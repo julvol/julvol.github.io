@@ -58,6 +58,15 @@ class StatsTable {
     this.cacheDuration = 1 * 60 * 5 * 1000; // 5 Minuten Cache-Dauer
     this.range = dataRange;
     this.matches = {};
+
+    // add hole length sets for new layouts here
+    this.holeLengthsSets = [
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Main",
+        lengths: [96, 61, 40, 61, 112, 58, 36, 77, 44],
+      },
+    ];
   }
 
   getURL(range) {
@@ -113,20 +122,17 @@ class StatsTable {
         this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayer;
       } else {
         // new match found. Add too object. We are now in the par row
+
+        // first: find out how many holes the layout has
         let howManyHoles = row.c?.length - 8;
-        console.log(`Initially set to ${howManyHoles} holes.`);
-        let isLessThenMaxHoles = true;
-        while (isLessThenMaxHoles) {
-          console.log(`check if c[${howManyHoles + 7}] is undefined`);
+        let isStillLessHoles = true;
+        while (isStillLessHoles) {
           if (row.c[howManyHoles + 7]?.v == null) {
-            console.log("it is.");
             howManyHoles--;
           } else {
-            isLessThenMaxHoles = false;
+            isStillLessHoles = false;
           }
         }
-
-        console.log(`This Course has ${howManyHoles} holes.`);
 
         let match = {
           startTime: row.c[3]?.v,
@@ -137,6 +143,16 @@ class StatsTable {
           holes: howManyHoles,
           players: {},
         };
+
+        this.holeLengthsSets.forEach((holeLengthSet) => {
+          if (
+            match.course == holeLengthSet.course &&
+            match.layout == holeLengthSet.layout
+          ) {
+            match.holeLengths = holeLengthSet.lengths;
+          }
+        });
+
         match.players["Par"] = {
           total: row.c[5]?.v,
           devFromPar: 0,
@@ -149,7 +165,9 @@ class StatsTable {
       }
     });
     console.log(this.matches);
-    Object.values(this.matches).forEach((match) => this.getStatsString(match));
+    Object.values(this.matches)
+      .sort((a, b) => b - a)
+      .forEach((match) => this.getStatsString(match)); // TODO sort funktioniert hier nicht (warum?)
   }
 
   getStatsString(match) {
@@ -196,18 +214,17 @@ class StatsTable {
     }
     statsString += `
         </tr>
-                  <tr>
-                    <th class="text-start-table-header-info">Länge</th>
-                    <td>96</td>
-                    <td>61</td>
-                    <td>40</td>
-                    <td>61</td>
-                    <td>112</td>
-                    <td>58</td>
-                    <td>36</td>
-                    <td>77</td>
-                    <td>44</td>
-                  </tr>
+                  `;
+    if (match.holeLengths) {
+      statsString += `<tr>
+                    <th class="text-start-table-header-info">Länge</th>`;
+      for (let i = 0; i < match.holes; i++) {
+        statsString += `<td>${match.holeLengths[i]}</td>`;
+      }
+
+      statsString += `</tr>`;
+    }
+    statsString += `
                   <tr>
                     <th class="text-start-table-header-info">Par</th>`;
     for (let i = 0; i < match.holes; i++) {
