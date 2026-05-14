@@ -58,6 +58,7 @@ class StatsTable {
     this.cacheDuration = 1 * 60 * 5 * 1000; // 5 Minuten Cache-Dauer
     this.range = dataRange;
     this.matches = {};
+    this.players = {};
 
     // add hole length sets for new layouts here
     this.holeLengthsSets = [
@@ -103,8 +104,33 @@ class StatsTable {
   }
 
   renderStats(jsonData) {
+    this.renderMatchesStats(jsonData);
+    this.renderPlayerStats(jsonData);
+  }
+
+  renderPlayerStats(jsonData) {
     let rows = jsonData.table.rows;
-    console.log(rows);
+    let currentParsToCompare = [];
+    rows.forEach((row) => {
+      if (row.c[0]?.v === "PlayerName" || row.c[0]?.v === "Par") {
+        return;
+      } else if (row.c[0]?.v in this.matches) {
+      } else {
+        // new player found. Add to object.
+        let newPlayer = { name: row.c[0]?.v, playedMatches: 1 };
+        let playedHolesOnThisMatch = 0;
+        //TODO i want to find the match from this.matches (we know the startTime)
+        // and then compare each hole of the player to par. Then store how many birdies, pars,
+        // bogeys, double bogeys, plusthrees the player got in that match. Then push into this.players
+
+        this.players[row.c[0]?.v] = newPlayer;
+      }
+    });
+    console.log(this.players);
+  }
+
+  renderMatchesStats(jsonData) {
+    let rows = jsonData.table.rows;
     rows.forEach((row) => {
       if (row.c[3]?.v === "StartDate") {
         return;
@@ -121,7 +147,7 @@ class StatsTable {
 
         this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayer;
       } else {
-        // new match found. Add too object. We are now in the par row
+        // new match found. Add to object. We are now in the par row
 
         // first: find out how many holes the layout has
         let howManyHoles = row.c?.length - 8;
