@@ -97,8 +97,20 @@ class StatsTable {
     let rows = jsonData.table.rows;
     console.log(rows);
     rows.forEach((row) => {
-      console.log(row.c[3]?.v);
-      if (row.c[3]?.v in this.matches || row.c[3]?.v !== "StartDate") {
+      if (row.c[3]?.v === "StartDate") {
+        return;
+      } else if (row.c[3]?.v in this.matches) {
+        // new player for existing match found --> add to corresponding match
+        let newPlayer = {
+          total: row.c[5]?.v,
+          devFromPar: row.c[6]?.v,
+          holes: [],
+        };
+        for (let i = 1; i <= this.matches[row.c[3]?.v].holes; i++) {
+          newPlayer.holes.push(row.c[7 + i]?.v);
+        }
+
+        this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayer;
       } else {
         // new match found. Add too object. We are now in the par row
         const howManyHoles = row.c?.length - 8;
@@ -124,10 +136,11 @@ class StatsTable {
       }
     });
     console.log(this.matches);
+    Object.values(this.matches).forEach((match) => this.getStatsString(match));
   }
 
-  renderStats2(jsonData) {
-    const startNewMatchString = `
+  getStatsString(match) {
+    let statsString = `
         <div
           class="d-flex justify-content-start justify-content-md-center mt-4"
           style="margin-bottom: 20px"
@@ -136,11 +149,27 @@ class StatsTable {
             class="bg-dark text-white p-3 rounded d-inline-block"
             style="cursor: pointer"
             data-bs-toggle="collapse"
-            data-bs-target="#scorecard-collapsing"
+            data-bs-target="#scorecard-collapsing-${match.startTime.replace(/\s/g, "")}"
           >
-            <h4>`;
-    const startNewScoreboardString = `
-        <div class="collapse" id="scorecard-collapsing">
+            <h4>${match.course} (${match.layout}) - ${match.startTime}</h4>
+            <h5 class="mb-3">Ergebnis</h5>
+            <table
+              class="table table-dark table-bordered text-center align-middle w-auto"
+            >
+              <tbody>`;
+    Object.entries(match.players)
+      .sort((a, b) => a[1].devFromPar - b[1].devFromPar)
+      .forEach(([playerKey, playerVal]) => {
+        if (playerKey === "Par") return;
+        statsString += `<tr>
+            <th class="text-start">${playerKey}</th>
+            <td><b style="color: #fd6c2e">+${playerVal.devFromPar}</b> (${playerVal.total})</td>
+        </tr>`;
+      });
+    statsString += `
+        </tbody>
+            </table>
+            <div class="collapse" id="scorecard-collapsing-${match.startTime.replace(/\s/g, "")}">
               <h5 class="mb-3">Scorecard</h5>
 
               <table
@@ -149,37 +178,11 @@ class StatsTable {
                 <thead class="border-bottom">
                   <tr>
                     <th class="text-start-table-header-info">Bahn</th>`;
-    let statsString = "" + startNewMatchString;
-    let nextRowIsParInfoRowOfMatch = true;
-    let rows = jsonData.table.rows;
-    let cols = jsonData.table.cols;
-    let currentScoreboardString = "";
-    console.log(rows);
-    console.log(cols);
-    rows.forEach((row) => {
-      console.log(row.c[0]);
-      if (row.c[0]?.v === "PlayerName") {
-        console.log("Found a new game");
-        statsString += startNewMatchString;
-        nextRowIsParInfoRowOfMatch = true;
-        return;
-      }
-      if (nextRowIsParInfoRowOfMatch) {
-        statsString +=
-          row.c[1]?.v +
-          ` - 07.05.2026 um 16:22 Uhr</h4>
-            <h5 class="mb-3">Ergebnis</h5>
-            <table
-              class="table table-dark table-bordered text-center align-middle w-auto"
-            >
-              <tbody>`;
-        currentScoreboardString = startNewScoreboardString;
-        const howManyHoles = row.c.length - 8;
-        for (let i = 1; i <= howManyHoles; i++) {
-          currentScoreboardString += `<th>${i}</th>`;
-        }
-        currentScoreboardString += `
-            </tr>
+    for (let i = 1; i <= match.holes; i++) {
+      statsString += `<th>${i}</th>`;
+    }
+    statsString += `
+        </tr>
                   <tr>
                     <th class="text-start-table-header-info">Länge</th>
                     <td>96</td>
@@ -193,21 +196,123 @@ class StatsTable {
                     <td>44</td>
                   </tr>
                   <tr>
-                    <th class="text-start-table-header-info">Par</th>`; // TODO Längen automatisch
-        for (let i = 1; i <= howManyHoles; i++) {
-          currentScoreboardString += `<td>${row.c[7 + i]?.v}</td>`;
-        }
-        currentScoreboardString += `
-            </tr>
+                    <th class="text-start-table-header-info">Par</th>`;
+    for (let i = 0; i < match.holes; i++) {
+      statsString += `<td>${match.players["Par"].holes[i]}</td>`;
+    }
+    statsString += `
+        </tr>
                 </thead>
 
                 <tbody>`;
-        nextRowIsParInfoRowOfMatch = false;
-        console.log(currentScoreboardString);
-      }
 
-      console.log(statsString);
-    });
+    Object.entries(match.players)
+      .sort((a, b) => a[1].devFromPar - b[1].devFromPar)
+      .forEach(([playerKey, playerVal]) => {
+        if (playerKey === "Par") return;
+        statsString += `
+        <tr>
+                    <th class="text-start">${playerKey}</th>`;
+
+        for (let i = 0; i < match.holes; i++) {
+          const devFromParOnThisHole =
+            playerVal.holes[i] - match.players["Par"].holes[i];
+          let classToAssign = "";
+          if (devFromParOnThisHole < 0) {
+            classToAssign = "birdie";
+          } else if (devFromParOnThisHole === 0) {
+            classToAssign = "par";
+          } else if (devFromParOnThisHole === 1) {
+            classToAssign = "bogey";
+          } else if (devFromParOnThisHole === 2) {
+            classToAssign = "doublebogey";
+          } else {
+            classToAssign = "plusthree";
+          }
+          statsString += `
+            <td>
+                      <span class="badge bg-scorecard-${classToAssign}">${playerVal.holes[i]}</span>
+                    </td>`;
+        }
+        statsString += `</tr>`;
+      });
+    statsString += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+    console.log(statsString);
+    document.getElementById("partien-container").innerHTML += statsString;
+
+    // const startNewScoreboardString = `
+    //     <div class="collapse" id="scorecard-collapsing">
+    //           <h5 class="mb-3">Scorecard</h5>
+
+    //           <table
+    //             class="table table-dark table-borderless text-center align-middle w-auto"
+    //           >
+    //             <thead class="border-bottom">
+    //               <tr>
+    //                 <th class="text-start-table-header-info">Bahn</th>`;
+    // let nextRowIsParInfoRowOfMatch = true;
+    // let rows = jsonData.table.rows;
+    // let cols = jsonData.table.cols;
+    // let currentScoreboardString = "";
+    // console.log(rows);
+    // console.log(cols);
+    // rows.forEach((row) => {
+    //   console.log(row.c[0]);
+    //   if (row.c[0]?.v === "PlayerName") {
+    //     console.log("Found a new game");
+    //     statsString += startNewMatchString;
+    //     nextRowIsParInfoRowOfMatch = true;
+    //     return;
+    //   }
+    //   if (nextRowIsParInfoRowOfMatch) {
+    //     statsString +=
+    //       row.c[1]?.v +
+    //       ` - 07.05.2026 um 16:22 Uhr</h4>
+    //         <h5 class="mb-3">Ergebnis</h5>
+    //         <table
+    //           class="table table-dark table-bordered text-center align-middle w-auto"
+    //         >
+    //           <tbody>`;
+    //     currentScoreboardString = startNewScoreboardString;
+    //     const howManyHoles = row.c.length - 8;
+    //     for (let i = 1; i <= howManyHoles; i++) {
+    //       currentScoreboardString += `<th>${i}</th>`;
+    //     }
+    //     currentScoreboardString += `
+    //         </tr>
+    //               <tr>
+    //                 <th class="text-start-table-header-info">Länge</th>
+    //                 <td>96</td>
+    //                 <td>61</td>
+    //                 <td>40</td>
+    //                 <td>61</td>
+    //                 <td>112</td>
+    //                 <td>58</td>
+    //                 <td>36</td>
+    //                 <td>77</td>
+    //                 <td>44</td>
+    //               </tr>
+    //               <tr>
+    //                 <th class="text-start-table-header-info">Par</th>`; // TODO Längen automatisch
+    //     for (let i = 1; i <= howManyHoles; i++) {
+    //       currentScoreboardString += `<td>${row.c[7 + i]?.v}</td>`;
+    //     }
+    //     currentScoreboardString += `
+    //         </tr>
+    //             </thead>
+
+    //             <tbody>`;
+    //     nextRowIsParInfoRowOfMatch = false;
+    //     console.log(currentScoreboardString);
+    //   }
+
+    //   console.log(statsString);
+    // });
   }
 
   loadTableData() {
