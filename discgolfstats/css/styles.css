@@ -10977,8 +10977,8 @@ html {
     background: #aa7012;
   }
   #mainNav.navbar-shrink {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
   }
   #mainNav.navbar-shrink .navbar-brand {
     font-size: 1.5em;
