@@ -113,7 +113,20 @@ class StatsTable {
         this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayer;
       } else {
         // new match found. Add too object. We are now in the par row
-        const howManyHoles = row.c?.length - 8;
+        let howManyHoles = row.c?.length - 8;
+        console.log(`Initially set to ${howManyHoles} holes.`);
+        let isLessThenMaxHoles = true;
+        while (isLessThenMaxHoles) {
+          console.log(`check if c[${howManyHoles + 7}] is undefined`);
+          if (row.c[howManyHoles + 7]?.v == null) {
+            console.log("it is.");
+            howManyHoles--;
+          } else {
+            isLessThenMaxHoles = false;
+          }
+        }
+
+        console.log(`This Course has ${howManyHoles} holes.`);
 
         let match = {
           startTime: row.c[3]?.v,
@@ -163,7 +176,7 @@ class StatsTable {
         if (playerKey === "Par") return;
         statsString += `<tr>
             <th class="text-start">${playerKey}</th>
-            <td><b style="color: #fd6c2e">+${playerVal.devFromPar}</b> (${playerVal.total})</td>
+            <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">+' : '#408ce2">'}${playerVal.devFromPar}</b> (${playerVal.total})</td>
         </tr>`;
       });
     statsString += `
@@ -242,7 +255,6 @@ class StatsTable {
             </div>
           </div>
         </div>`;
-    console.log(statsString);
     document.getElementById("partien-container").innerHTML += statsString;
   }
 
