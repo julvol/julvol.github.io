@@ -86,7 +86,7 @@ class StatsTable {
   }
 
   isCacheValid(cacheKey) {
-    return false; // TODO weg wenn fertig
+    // return false; // TODO weg wenn fertig
 
     let cached = JSON.parse(localStorage.getItem(cacheKey));
     if (!cached) return false;
@@ -244,75 +244,6 @@ class StatsTable {
         </div>`;
     console.log(statsString);
     document.getElementById("partien-container").innerHTML += statsString;
-
-    // const startNewScoreboardString = `
-    //     <div class="collapse" id="scorecard-collapsing">
-    //           <h5 class="mb-3">Scorecard</h5>
-
-    //           <table
-    //             class="table table-dark table-borderless text-center align-middle w-auto"
-    //           >
-    //             <thead class="border-bottom">
-    //               <tr>
-    //                 <th class="text-start-table-header-info">Bahn</th>`;
-    // let nextRowIsParInfoRowOfMatch = true;
-    // let rows = jsonData.table.rows;
-    // let cols = jsonData.table.cols;
-    // let currentScoreboardString = "";
-    // console.log(rows);
-    // console.log(cols);
-    // rows.forEach((row) => {
-    //   console.log(row.c[0]);
-    //   if (row.c[0]?.v === "PlayerName") {
-    //     console.log("Found a new game");
-    //     statsString += startNewMatchString;
-    //     nextRowIsParInfoRowOfMatch = true;
-    //     return;
-    //   }
-    //   if (nextRowIsParInfoRowOfMatch) {
-    //     statsString +=
-    //       row.c[1]?.v +
-    //       ` - 07.05.2026 um 16:22 Uhr</h4>
-    //         <h5 class="mb-3">Ergebnis</h5>
-    //         <table
-    //           class="table table-dark table-bordered text-center align-middle w-auto"
-    //         >
-    //           <tbody>`;
-    //     currentScoreboardString = startNewScoreboardString;
-    //     const howManyHoles = row.c.length - 8;
-    //     for (let i = 1; i <= howManyHoles; i++) {
-    //       currentScoreboardString += `<th>${i}</th>`;
-    //     }
-    //     currentScoreboardString += `
-    //         </tr>
-    //               <tr>
-    //                 <th class="text-start-table-header-info">Länge</th>
-    //                 <td>96</td>
-    //                 <td>61</td>
-    //                 <td>40</td>
-    //                 <td>61</td>
-    //                 <td>112</td>
-    //                 <td>58</td>
-    //                 <td>36</td>
-    //                 <td>77</td>
-    //                 <td>44</td>
-    //               </tr>
-    //               <tr>
-    //                 <th class="text-start-table-header-info">Par</th>`; // TODO Längen automatisch
-    //     for (let i = 1; i <= howManyHoles; i++) {
-    //       currentScoreboardString += `<td>${row.c[7 + i]?.v}</td>`;
-    //     }
-    //     currentScoreboardString += `
-    //         </tr>
-    //             </thead>
-
-    //             <tbody>`;
-    //     nextRowIsParInfoRowOfMatch = false;
-    //     console.log(currentScoreboardString);
-    //   }
-
-    //   console.log(statsString);
-    // });
   }
 
   loadTableData() {
