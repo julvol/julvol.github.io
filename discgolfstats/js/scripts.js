@@ -67,6 +67,54 @@ class StatsTable {
         layout: "Main",
         lengths: [96, 61, 40, 61, 112, 58, 36, 77, 44],
       },
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Newcomer 18",
+        lengths: [
+          96, 61, 40, 61, 112, 58, 36, 64, 63, 77, 30, 37, 44, 80, 82, 44, 48,
+          15,
+        ],
+      },
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Rotkehlchen",
+        lengths: [
+          91, 97, 66, 91, 32, 66, 53, 40, 59, 99, 50, 90, 55, 107, 91, 60, 52,
+          41,
+        ],
+      },
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Andalucia Nueva",
+        lengths: [
+          91, 61, 40, 66, 91, 58, 53, 40, 59, 99, 37, 44, 80, 55, 50, 100, 52,
+          48,
+        ],
+      },
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Aixpert 18",
+        lengths: [
+          96, 61, 40, 61, 112, 58, 63, 75, 70, 107, 73, 82, 152, 59, 82, 155,
+          80, 172,
+        ],
+      },
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Phoenix",
+        lengths: [
+          73, 76, 98, 93, 79, 88, 152, 83, 112, 75, 63, 157, 81, 77, 74, 145,
+          186, 231,
+        ],
+      },
+      {
+        course: "Aachen Kronenbergpark",
+        layout: "Pinguin",
+        lengths: [
+          60, 93, 81, 56, 76, 91, 59, 67, 77, 56, 63, 107, 56, 118, 69, 115, 86,
+          88,
+        ],
+      },
     ];
   }
 
@@ -105,47 +153,50 @@ class StatsTable {
 
   renderStats(jsonData) {
     this.renderMatchesStats(jsonData);
-    this.renderPlayerStats(jsonData);
-  }
-
-  renderPlayerStats(jsonData) {
-    let rows = jsonData.table.rows;
-    let currentParsToCompare = [];
-    rows.forEach((row) => {
-      if (row.c[0]?.v === "PlayerName" || row.c[0]?.v === "Par") {
-        return;
-      } else if (row.c[0]?.v in this.matches) {
-      } else {
-        // new player found. Add to object.
-        let newPlayer = { name: row.c[0]?.v, playedMatches: 1 };
-        let playedHolesOnThisMatch = 0;
-        //TODO i want to find the match from this.matches (we know the startTime)
-        // and then compare each hole of the player to par. Then store how many birdies, pars,
-        // bogeys, double bogeys, plusthrees the player got in that match. Then push into this.players
-
-        this.players[row.c[0]?.v] = newPlayer;
-      }
-    });
-    console.log(this.players);
   }
 
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
+
+    // we always have (1 header row + 1 par row + 1 row for each player) per match
     rows.forEach((row) => {
       if (row.c[3]?.v === "StartDate") {
         return;
       } else if (row.c[3]?.v in this.matches) {
         // new player for existing match found --> add to corresponding match
-        let newPlayer = {
+
+        // first check if player is already in this.players. Add otherwise
+        if (!(row.c[0]?.v in this.players)) {
+          console.log("we found a new player!!");
+          // player is not yet in this.players --> add
+          let newPlayer = {
+            name: row.c[0]?.v,
+            playedMatches: 0,
+            devFromParPerHole: [],
+            playedCourses: [],
+          };
+          this.players[row.c[0]?.v] = newPlayer;
+        }
+
+        let newPlayerForMatch = {
           total: row.c[5]?.v,
           devFromPar: row.c[6]?.v,
           holes: [],
         };
         for (let i = 1; i <= this.matches[row.c[3]?.v].holes; i++) {
-          newPlayer.holes.push(row.c[7 + i]?.v);
+          newPlayerForMatch.holes.push(row.c[7 + i]?.v);
+          this.players[row.c[0]?.v].devFromParPerHole.push(
+            row.c[7 + i]?.v -
+              this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
+          );
         }
+        this.players[row.c[0]?.v].playedMatches++;
+        this.players[row.c[0]?.v].playedCourses.push({
+          course: row.c[1]?.v,
+          layout: row.c[2]?.v,
+        });
 
-        this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayer;
+        this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayerForMatch;
       } else {
         // new match found. Add to object. We are now in the par row
 
@@ -191,6 +242,48 @@ class StatsTable {
       }
     });
     console.log(this.matches);
+
+    // refine this.players (grouping)
+    Object.values(this.players).forEach((player) => {
+      const playedCoursesCounts = Object.values(
+        player.playedCourses.reduce((acc, { course, layout }) => {
+          const key = `${course}__${layout}`;
+
+          if (!acc[key]) {
+            acc[key] = { course, layout, count: 0 };
+          }
+
+          acc[key].count += 1;
+
+          return acc;
+        }, {}),
+      );
+      player.playedCourses = playedCoursesCounts;
+
+      const devFromParPerHoleCounts = player.devFromParPerHole.reduce(
+        (acc, value) => {
+          if (value >= 3) {
+            acc["3+"]++;
+          } else if (value < 0) {
+            acc["-1"]++;
+          } else {
+            acc[value]++;
+          }
+          return acc;
+        },
+        {
+          "-1": 0,
+          0: 0,
+          1: 0,
+          2: 0,
+          "3+": 0,
+        },
+      );
+
+      player.devFromParPerHole = devFromParPerHoleCounts;
+    });
+
+    console.log(this.players);
     Object.values(this.matches)
       .sort((a, b) => b - a)
       .forEach((match) => this.getStatsString(match)); // TODO sort funktioniert hier nicht (warum?)
