@@ -115,6 +115,32 @@ class StatsTable {
           88,
         ],
       },
+      {
+        course: "Discgolfpark Herzogenrath",
+        layout: "Main",
+        lengths: [64, 52, 60, 41, 77, 101, 56, 64],
+      },
+      {
+        course: "Discgolfpark Herzogenrath",
+        layout: "Eurode 18",
+        lengths: [
+          64, 52, 65, 41, 43, 60, 75, 64, 48, 61, 77, 101, 56, 64, 63, 117, 85,
+          50,
+        ],
+      },
+      {
+        course: "Discgolfpark Station As",
+        layout: "Main",
+        lengths: [50, 35, 52, 36, 41, 39, 28, 37, 96],
+      },
+      {
+        course: "Discgolfpark Station As",
+        layout: "Main 9 X 2",
+        lengths: [
+          50, 35, 52, 36, 41, 39, 28, 37, 96, 50, 35, 52, 36, 41, 39, 28, 37,
+          96,
+        ],
+      },
     ];
   }
 
@@ -167,13 +193,13 @@ class StatsTable {
 
         // first check if player is already in this.players. Add otherwise
         if (!(row.c[0]?.v in this.players)) {
-          console.log("we found a new player!!");
           // player is not yet in this.players --> add
           let newPlayer = {
             name: row.c[0]?.v,
-            playedMatches: 0,
+            playedCoursesCount: 0,
             devFromParPerHole: [],
             playedCourses: [],
+            playedHolesCount: 0,
           };
           this.players[row.c[0]?.v] = newPlayer;
         }
@@ -185,12 +211,13 @@ class StatsTable {
         };
         for (let i = 1; i <= this.matches[row.c[3]?.v].holes; i++) {
           newPlayerForMatch.holes.push(row.c[7 + i]?.v);
+          this.players[row.c[0]?.v].playedHolesCount++;
           this.players[row.c[0]?.v].devFromParPerHole.push(
             row.c[7 + i]?.v -
               this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
           );
         }
-        this.players[row.c[0]?.v].playedMatches++;
+        this.players[row.c[0]?.v].playedCoursesCount++;
         this.players[row.c[0]?.v].playedCourses.push({
           course: row.c[1]?.v,
           layout: row.c[2]?.v,
@@ -241,7 +268,7 @@ class StatsTable {
         this.matches[row.c[3]?.v] = match;
       }
     });
-    console.log(this.matches);
+    // console.log(this.matches);
 
     // refine this.players (grouping)
     Object.values(this.players).forEach((player) => {
@@ -283,10 +310,90 @@ class StatsTable {
       player.devFromParPerHole = devFromParPerHoleCounts;
     });
 
-    console.log(this.players);
+    // console.log(this.players);
     Object.values(this.matches)
       .sort((a, b) => b - a)
       .forEach((match) => this.getStatsString(match)); // TODO sort funktioniert hier nicht (warum?)
+
+    Object.values(this.players)
+      .sort((a, b) => b - a)
+      .forEach((player) => this.getPlayerString(player)); // TODO sort funktioniert hier nicht (warum?)
+  }
+
+  getPlayerString(player) {
+    const playerNameWithoutSpecialChars = player.name.replace(
+      /[^a-zA-Z0-9]/g,
+      "",
+    );
+
+    let playerString = `<div class="accordion-item">
+            <h2 class="accordion-header" id="heading-${playerNameWithoutSpecialChars}">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-${playerNameWithoutSpecialChars}"
+                aria-expanded="true"
+                aria-controls="collapse-${playerNameWithoutSpecialChars}"
+              >
+                <h4>${player.name}</h4>
+              </button>
+            </h2>
+            <div
+              id="collapse-${playerNameWithoutSpecialChars}"
+              class="accordion-collapse collapse"
+              aria-labelledby="heading-${playerNameWithoutSpecialChars}"
+              data-bs-parent="#myAccordion"
+            >
+              <div class="accordion-body" style="background-color: #fff9f3;">
+                <h5>Gespielte Partien: ${player.playedCoursesCount}</h5>
+                <table
+                  class="table table-bordered text-center align-middle w-auto"
+                >
+                  <tbody>`;
+
+    player.playedCourses.forEach((course) => {
+      playerString += `
+      <tr>
+        <th class="text-start-table-header-info">${course.course}</th>
+        <th class="text-start">${course.layout}</th>
+        <td>${course.count}</td>
+      </tr>`;
+    });
+    playerString += `</tbody>
+                </table>
+                <h5>Gespielte Bahnen: ${player.playedHolesCount}</h5>
+                <table
+                  class="table table-bordered text-center align-middle w-auto"
+                >
+                  <tbody>
+                    <tr>
+                      <th class="text-start-table-header-info">Under Par</th>
+                      <td>${player.devFromParPerHole[-1]}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-start-table-header-info">Par</th>
+                      <td>${player.devFromParPerHole["0"]}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-start-table-header-info">Bogey</th>
+                      <td>${player.devFromParPerHole["1"]}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-start-table-header-info">Double Bogey</th>
+                      <td>${player.devFromParPerHole["2"]}</td>
+                    </tr>
+                    <tr>
+                      <th class="text-start-table-header-info">3+</th>
+                      <td>${player.devFromParPerHole["3+"]}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>`;
+
+    document.getElementById("playersAccordion").innerHTML += playerString;
   }
 
   getStatsString(match) {
@@ -313,7 +420,7 @@ class StatsTable {
         if (playerKey === "Par") return;
         statsString += `<tr>
             <th class="text-start">${playerKey}</th>
-            <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">+' : '#408ce2">'}${playerVal.devFromPar}</b> (${playerVal.total})</td>
+            <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
         </tr>`;
       });
     statsString += `
