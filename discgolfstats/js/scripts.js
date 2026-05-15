@@ -326,7 +326,7 @@ class StatsTable {
       "",
     );
 
-    let playerString = `<div class="accordion-item">
+    let playerString = `<div class="accordion-item col-lg-6 mx-auto">
             <h2 class="accordion-header" id="heading-${playerNameWithoutSpecialChars}">
               <button
                 class="accordion-button collapsed"
