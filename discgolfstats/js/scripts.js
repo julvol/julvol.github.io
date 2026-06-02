@@ -445,7 +445,7 @@ class StatsTable {
       statsString += `<tr>
                     <th class="text-start-table-header-info">Länge</th>`;
       for (let i = 0; i < match.holes; i++) {
-        statsString += `<td>${match.holeLengths[i]}</td>`;
+        statsString += `<td style="padding-left: 3px; padding-right: 3px; width: 30px">${match.holeLengths[i]}</td>`;
       }
 
       statsString += `</tr>`;
@@ -486,8 +486,8 @@ class StatsTable {
             classToAssign = "plusthree";
           }
           statsString += `
-            <td>
-                      <span class="badge bg-scorecard-${classToAssign}">${playerVal.holes[i]}</span>
+            <td style="padding: 3px; width: 30px">
+                      <span class="badge bg-scorecard-${classToAssign}" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${playerVal.holes[i]}</span>
                     </td>`;
         }
         statsString += `</tr>`;
