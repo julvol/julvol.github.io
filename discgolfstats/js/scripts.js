@@ -122,6 +122,11 @@ class StatsTable {
       },
       {
         course: "Discgolfpark Herzogenrath",
+        layout: "Main + Six",
+        lengths: [64, 52, 60, 41, 43, 64, 55, 61, 77, 101, 56, 64, 63, 117],
+      },
+      {
+        course: "Discgolfpark Herzogenrath",
         layout: "Eurode 18",
         lengths: [
           64, 52, 65, 41, 43, 60, 75, 64, 48, 61, 77, 101, 56, 64, 63, 117, 85,
