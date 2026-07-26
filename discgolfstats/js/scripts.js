@@ -188,7 +188,6 @@ class StatsTable {
 
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
-    console.log(rows);
 
     // we always have (1 header row + 1 par row + 1 row for each player) per match
     rows.forEach((row) => {
@@ -214,6 +213,7 @@ class StatsTable {
           total: row.c[5]?.v,
           devFromPar: row.c[6]?.v,
           holes: [],
+          howManyHolesNotPlayedInThisMatch: 0,
         };
         for (let i = 1; i <= this.matches[row.c[3]?.v].holes; i++) {
           if (row.c[7 + i]?.v > 0) {
@@ -225,6 +225,7 @@ class StatsTable {
             );
           } else {
             // player has not played the hole
+            newPlayerForMatch.howManyHolesNotPlayedInThisMatch++;
             newPlayerForMatch.holes.push("-");
             this.players[row.c[0]?.v].devFromParPerHole.push(420); // put 420 ==> has not played the hole
           }
@@ -435,6 +436,7 @@ class StatsTable {
         statsString += `<tr>
             <th class="text-start">${playerKey}</th>
             <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
+            ${playerVal.howManyHolesNotPlayedInThisMatch > 0 ? "<td><span style='font-size: 0.7rem'>THRU</span> " + (match.holes - playerVal.howManyHolesNotPlayedInThisMatch) + "</td>" : ""}
         </tr>`;
       });
     statsString += `
