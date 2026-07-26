@@ -188,6 +188,7 @@ class StatsTable {
 
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
+    console.log(rows);
 
     // we always have (1 header row + 1 par row + 1 row for each player) per match
     rows.forEach((row) => {
@@ -215,12 +216,18 @@ class StatsTable {
           holes: [],
         };
         for (let i = 1; i <= this.matches[row.c[3]?.v].holes; i++) {
-          newPlayerForMatch.holes.push(row.c[7 + i]?.v);
-          this.players[row.c[0]?.v].playedHolesCount++;
-          this.players[row.c[0]?.v].devFromParPerHole.push(
-            row.c[7 + i]?.v -
-              this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
-          );
+          if (row.c[7 + i]?.v > 0) {
+            newPlayerForMatch.holes.push(row.c[7 + i]?.v);
+            this.players[row.c[0]?.v].playedHolesCount++;
+            this.players[row.c[0]?.v].devFromParPerHole.push(
+              row.c[7 + i]?.v -
+                this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
+            );
+          } else {
+            // player has not played the hole
+            newPlayerForMatch.holes.push("-");
+            this.players[row.c[0]?.v].devFromParPerHole.push(420); // put 420 ==> has not played the hole
+          }
         }
         this.players[row.c[0]?.v].playedCoursesCount++;
         this.players[row.c[0]?.v].playedCourses.push({
@@ -294,7 +301,9 @@ class StatsTable {
 
       const devFromParPerHoleCounts = player.devFromParPerHole.reduce(
         (acc, value) => {
-          if (value >= 3) {
+          if (value == 420) {
+            // player has not played the hole ==> do nothing
+          } else if (value >= 3) {
             acc["3+"]++;
           } else if (value < 0) {
             acc["-1"]++;
@@ -329,7 +338,7 @@ class StatsTable {
     const playerNameWithoutSpecialChars = player.name.replace(
       /[^a-zA-Z0-9]/g,
       "",
-    );
+    ); // specialChars problematic in ids
 
     let playerString = `<div class="accordion-item col-lg-6 mx-auto">
             <h2 class="accordion-header" id="heading-${playerNameWithoutSpecialChars}">
@@ -487,8 +496,11 @@ class StatsTable {
             classToAssign = "bogey";
           } else if (devFromParOnThisHole === 2) {
             classToAssign = "doublebogey";
-          } else {
+          } else if (devFromParOnThisHole >= 3) {
             classToAssign = "plusthree";
+          } else {
+            // not played
+            classToAssign = "par"; // par = no background color = same as if not played
           }
           statsString += `
             <td style="padding: 3px; width: 30px">
