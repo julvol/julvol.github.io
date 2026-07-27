@@ -351,10 +351,10 @@ class StatsTable {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
-    return `${hours}h${minutes.toString().padStart(2, "0")}`;
+    return `${hours}h${minutes.toString().padStart(2, "0")}min`;
   }
 
-  formatDateStringForStatsString(date) {
+  formatDateStringForStatsStringHeader(date) {
     const weekday = new Intl.DateTimeFormat("de-DE", {
       weekday: "short",
     }).format(date);
@@ -373,6 +373,16 @@ class StatsTable {
     }).format(date);
 
     return `${weekday} ${day}.${month}.${year} ${hour}`;
+  }
+
+  formatDateStringForStatsStringCollapsed(date) {
+    const hourminute = new Intl.DateTimeFormat("de-DE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+
+    return `${hourminute} Uhr`;
   }
 
   getPlayerString(player) {
@@ -463,7 +473,7 @@ class StatsTable {
             data-bs-toggle="collapse"
             data-bs-target="#scorecard-collapsing-${match.startTime.valueOf()}"
           >
-            <h4>${match.course} (${match.layout}) - ${this.formatDateStringForStatsString(match.startTime)}</h4>
+            <h4>${match.course} (${match.layout}) - ${this.formatDateStringForStatsStringHeader(match.startTime)}</h4>
             <h5 class="mb-3">Ergebnis</h5>
             <table
               class="table table-dark table-bordered text-center align-middle w-auto"
@@ -483,6 +493,9 @@ class StatsTable {
         </tbody>
             </table>
             <div class="collapse" id="scorecard-collapsing-${match.startTime.valueOf()}">
+              <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
+              <li>Dauer - ${match.duration}</li>
+              <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
               <h5 class="mb-3">Scorecard</h5>
 
               <table
