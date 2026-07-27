@@ -335,8 +335,8 @@ class StatsTable {
 
     console.log(this.matches);
     Object.values(this.matches)
-      // .sort((a, b) => b.startTime.localeCompare(a.startTime))
-      .forEach((match) => this.getStatsString(match)); // TODO sort funktioniert hier nicht (warum?)
+      .sort((a, b) => a.startTime - b.startTime)
+      .forEach((match) => this.getStatsString(match));
 
     Object.values(this.players)
       .sort((a, b) => a.name.localeCompare(b.name))
