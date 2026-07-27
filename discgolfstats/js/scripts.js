@@ -434,27 +434,27 @@ class StatsTable {
                   <tbody>
                     <tr>
                       <th class="text-start-table-header-info">Under Par</th>
-                      <th><span class="badge bg-scorecard-birdie" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"></span></th>
+                      <th><span class="badge bg-scorecard-birdie" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"></span></th>
                       <td>${player.devFromParPerHole[-1]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">Par</th>
-                      <th><span class="badge bg-scorecard-par" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th><span class="badge bg-scorecard-par" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
                       <td>${player.devFromParPerHole["0"]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">Bogey</th>
-                      <th><span class="badge bg-scorecard-bogey" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th><span class="badge bg-scorecard-bogey" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
                       <td>${player.devFromParPerHole["1"]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">Double Bogey</th>
-                      <th><span class="badge bg-scorecard-doublebogey" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th><span class="badge bg-scorecard-doublebogey" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
                       <td>${player.devFromParPerHole["2"]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">3+</th>
-                      <th><span class="badge bg-scorecard-plusthree" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th><span class="badge bg-scorecard-plusthree" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
                       <td>${player.devFromParPerHole["3+"]}</td>
                     </tr>
                   </tbody>
