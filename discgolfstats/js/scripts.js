@@ -470,7 +470,7 @@ class StatsTable {
     let statsString = `
         <div
           class="d-flex justify-content-start justify-content-md-center mt-4"
-          style="margin-bottom: 20px"
+          style="margin-bottom: 10px"
         >
           <div
             class="bg-dark text-white p-3 rounded d-inline-block"
