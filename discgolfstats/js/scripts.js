@@ -251,9 +251,17 @@ class StatsTable {
           }
         }
 
+        const startTimeAsDate = new Date(
+          row.c[3]?.v.replace(/(\d{2})(\d{2})$/, "$1:$2"),
+        );
+        const endTimeAsDate = new Date(
+          row.c[4]?.v.replace(/(\d{2})(\d{2})$/, "$1:$2"),
+        );
+
         let match = {
-          startTime: row.c[3]?.v,
-          endTime: row.c[4]?.v,
+          startTime: startTimeAsDate,
+          endTime: endTimeAsDate,
+          duration: this.formatDuration(startTimeAsDate, endTimeAsDate),
           course: row.c[1]?.v,
           layout: row.c[2]?.v,
           par: row.c[5]?.v,
@@ -325,14 +333,46 @@ class StatsTable {
       player.devFromParPerHole = devFromParPerHoleCounts;
     });
 
-    // console.log(this.players);
+    console.log(this.matches);
     Object.values(this.matches)
-      .sort((a, b) => b - a)
+      // .sort((a, b) => b.startTime.localeCompare(a.startTime))
       .forEach((match) => this.getStatsString(match)); // TODO sort funktioniert hier nicht (warum?)
 
     Object.values(this.players)
-      .sort((a, b) => b - a)
-      .forEach((player) => this.getPlayerString(player)); // TODO sort funktioniert hier nicht (warum?)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach((player) => this.getPlayerString(player));
+  }
+
+  formatDuration(start, end) {
+    console.log(start);
+    const diffMs = end - start; // difference in milliseconds
+
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours}h${minutes.toString().padStart(2, "0")}`;
+  }
+
+  formatDateStringForStatsString(date) {
+    const weekday = new Intl.DateTimeFormat("de-DE", {
+      weekday: "short",
+    }).format(date);
+    const day = new Intl.DateTimeFormat("de-DE", { day: "2-digit" }).format(
+      date,
+    );
+    const month = new Intl.DateTimeFormat("de-DE", { month: "2-digit" }).format(
+      date,
+    );
+    const year = new Intl.DateTimeFormat("de-DE", { year: "numeric" }).format(
+      date,
+    );
+    const hour = new Intl.DateTimeFormat("de-DE", {
+      hour: "2-digit",
+      hour12: false,
+    }).format(date);
+
+    return `${weekday} ${day}.${month}.${year} ${hour}`;
   }
 
   getPlayerString(player) {
@@ -421,9 +461,9 @@ class StatsTable {
             class="bg-dark text-white p-3 rounded d-inline-block"
             style="cursor: pointer"
             data-bs-toggle="collapse"
-            data-bs-target="#scorecard-collapsing-${match.startTime.replace(/\s/g, "")}"
+            data-bs-target="#scorecard-collapsing-${match.startTime.valueOf()}"
           >
-            <h4>${match.course} (${match.layout}) - ${match.startTime}</h4>
+            <h4>${match.course} (${match.layout}) - ${this.formatDateStringForStatsString(match.startTime)}</h4>
             <h5 class="mb-3">Ergebnis</h5>
             <table
               class="table table-dark table-bordered text-center align-middle w-auto"
@@ -442,7 +482,7 @@ class StatsTable {
     statsString += `
         </tbody>
             </table>
-            <div class="collapse" id="scorecard-collapsing-${match.startTime.replace(/\s/g, "")}">
+            <div class="collapse" id="scorecard-collapsing-${match.startTime.valueOf()}">
               <h5 class="mb-3">Scorecard</h5>
 
               <table
