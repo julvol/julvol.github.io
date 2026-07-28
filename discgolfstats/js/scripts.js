@@ -146,6 +146,16 @@ class StatsTable {
           96,
         ],
       },
+      {
+        course: "De Kull - Disc Golf Mönchengladbach",
+        layout: "De Kull - Main",
+        lengths: [81, 67, 103, 106, 61, 61, 50, 43, 97],
+      },
+      {
+        course: "De Kull - Disc Golf Mönchengladbach",
+        layout: "Safari De Kull",
+        lengths: [104, 67, 118, 106, 90, 90, 118, 86, 88],
+      },
     ];
   }
 
@@ -467,6 +477,7 @@ class StatsTable {
   }
 
   getStatsString(match) {
+    // TODO alle Boxen auf breiteste Breite eines Matchtitels
     let statsString = `
         <div
           class="d-flex justify-content-start justify-content-md-center mt-4"
