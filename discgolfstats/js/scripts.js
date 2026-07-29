@@ -148,6 +148,11 @@ class StatsTable {
       },
       {
         course: "Discgolfpark Rheindahlen",
+        layout: "De Kull Main Am",
+        lengths: [81, 67, 59, 106, 61, 61, 50, 43, 97],
+      },
+      {
+        course: "Discgolfpark Rheindahlen",
         layout: "De Kull Main",
         lengths: [81, 67, 103, 106, 61, 61, 50, 43, 97],
       },
