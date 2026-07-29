@@ -489,7 +489,7 @@ class StatsTable {
             data-bs-toggle="collapse"
             data-bs-target="#scorecard-collapsing-${match.startTime.valueOf()}"
           >
-            <h4>${match.course} (${match.layout}) - ${this.formatDateStringForStatsStringHeader(match.startTime)}</h4>
+            <h4>${match.course} <span style="white-space: nowrap;">(${match.layout}) -</span> <span style="white-space: nowrap;">${this.formatDateStringForStatsStringHeader(match.startTime)}</span></h4>
             <h5 class="mb-3">Ergebnis</h5>
             <table
               class="table table-dark table-bordered text-center align-middle w-auto"
