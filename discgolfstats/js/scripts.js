@@ -537,27 +537,27 @@ class StatsTable {
               >
                 <thead class="border-bottom">
                   <tr>
-                    <th class="text-start-table-header-info">Bahn</th>`;
+                    <th class="text-start-table-header-info" style="line-height: 0.8">Bahn</th>`;
     for (let i = 1; i <= match.holes; i++) {
-      statsString += `<th>${i}</th>`;
+      statsString += `<th style="line-height: 0.8">${i}</th>`;
     }
     statsString += `
         </tr>
                   `;
     if (match.holeLengths) {
       statsString += `<tr>
-                    <th class="text-start-table-header-info">Länge</th>`;
+                    <th class="text-start-table-header-info" style="line-height: 0.8">Länge</th>`;
       for (let i = 0; i < match.holes; i++) {
-        statsString += `<td style="padding-left: 3px; padding-right: 3px; width: 30px">${match.holeLengths[i]}</td>`;
+        statsString += `<td style="padding-left: 3px; padding-right: 3px; width: 30px; line-height: 0.8">${match.holeLengths[i]}</td>`;
       }
 
       statsString += `</tr>`;
     }
     statsString += `
                   <tr>
-                    <th class="text-start-table-header-info">Par</th>`;
+                    <th class="text-start-table-header-info" style="line-height: 0.8">Par</th>`;
     for (let i = 0; i < match.holes; i++) {
-      statsString += `<td>${match.players["Par"].holes[i]}</td>`;
+      statsString += `<td style="line-height: 0.8">${match.players["Par"].holes[i]}</td>`;
     }
     statsString += `
         </tr>
@@ -571,7 +571,7 @@ class StatsTable {
         if (playerKey === "Par") return;
         statsString += `
         <tr>
-                    <th class="text-start">${playerKey}</th>`;
+                    <th class="text-start" style="line-height: 0.2">${playerKey}</th>`;
 
         for (let i = 0; i < match.holes; i++) {
           const devFromParOnThisHole =
@@ -592,7 +592,7 @@ class StatsTable {
             classToAssign = "par"; // par = no background color = same as if not played
           }
           statsString += `
-            <td style="padding: 3px; width: 30px">
+            <td style="padding: 3px; width: 30px; line-height: 0.2">
                       <span class="badge bg-scorecard-${classToAssign}" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${playerVal.holes[i]}</span>
                     </td>`;
         }
