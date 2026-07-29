@@ -147,13 +147,13 @@ class StatsTable {
         ],
       },
       {
-        course: "De Kull - Disc Golf Mönchengladbach",
-        layout: "De Kull - Main",
+        course: "Discgolfpark Rheindahlen",
+        layout: "De Kull Main",
         lengths: [81, 67, 103, 106, 61, 61, 50, 43, 97],
       },
       {
-        course: "De Kull - Disc Golf Mönchengladbach",
-        layout: "Safari De Kull",
+        course: "Discgolfpark Rheindahlen",
+        layout: "De Kull Safari",
         lengths: [104, 67, 118, 106, 90, 90, 118, 86, 88],
       },
     ];
