@@ -364,7 +364,20 @@ class StatsTable {
     return `${hours}h${minutes.toString().padStart(2, "0")}min`;
   }
 
+  roundToNearestHour(date) {
+    const rounded = new Date(date);
+    const minutes = rounded.getMinutes();
+
+    if (minutes >= 30) {
+      rounded.setHours(rounded.getHours() + 1);
+    }
+
+    rounded.setMinutes(0, 0, 0); // reset minutes, seconds, ms
+    return rounded;
+  }
+
   formatDateStringForStatsStringHeader(date) {
+    date = this.roundToNearestHour(date);
     const weekday = new Intl.DateTimeFormat("de-DE", {
       weekday: "short",
     }).format(date);
