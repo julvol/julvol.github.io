@@ -66,7 +66,8 @@
   --bs-body-bg: #fff;
   --bs-border-width: 0.125rem;
   --bs-border-style: solid;
-  --bs-border-color: #212529;
+  --bs-border-color: #dee2e6;
+  --bs-border-color-scorecard-block: #212529;
   --bs-border-color-translucent: rgba(0, 0, 0, 0.175);
   --bs-border-radius: 0.5rem;
   --bs-border-radius-sm: 0.25rem;
@@ -7164,6 +7165,10 @@ textarea.form-control-lg {
 
 .border-bottom {
   border-bottom: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color) !important;
+}
+
+.border-bottom-scorecard-block {
+  border-bottom: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color-scorecard-block) !important;
 }
 
 .border-bottom-0 {

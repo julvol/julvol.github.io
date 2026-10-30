@@ -506,7 +506,7 @@ class StatsTable {
     const buildScorecardTable = (from, to) => {
       let html = `
         <table class="table table-dark table-borderless text-center align-middle w-auto mb-2 scorecard-block">
-          <thead class="border-bottom">
+          <thead class="border-bottom-scorecard-block">
             <tr>
               <th class="text-start-table-header-info" style="line-height: 0.8">Bahn</th>`;
       for (let i = from; i < to; i++) {
