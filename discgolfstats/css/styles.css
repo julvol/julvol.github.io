@@ -8137,7 +8137,7 @@ textarea.form-control-lg {
 
 .scorecard-block {
   --bs-table-bg: transparent;
-  background-color: #4d4d4d;   /* slightly lighter than scorecard background #212529 */
+  background-color: #3E4145;   /* slightly lighter than scorecard background #212529 */
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
 }
@@ -8150,7 +8150,7 @@ textarea.form-control-lg {
 
 .bg-scorecard-par {
   --bs-bg-opacity: 1;
-  background-color: #4d4d4d !important;
+  background-color: #3E4145 !important;
   font-size: 1rem;
 }
 
