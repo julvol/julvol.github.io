@@ -204,7 +204,7 @@ class StatsTable {
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
 
-    // we always have (1 header row + 1 par row + 1 row for each player) per match
+    // we always have (1 header row + 1 par row + 1 row for each player) per match in the sheet
     rows.forEach((row) => {
       if (row.c[3]?.v === "StartDate") {
         return;
@@ -353,13 +353,13 @@ class StatsTable {
       .sort((a, b) => a.startTime - b.startTime)
       .forEach((match) => this.getStatsString(match));
 
+    console.log(this.players);
     Object.values(this.players)
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach((player) => this.getPlayerString(player));
   }
 
   formatDuration(start, end) {
-    console.log(start);
     const diffMs = end - start; // difference in milliseconds
 
     const totalMinutes = Math.floor(diffMs / (1000 * 60));
@@ -495,7 +495,77 @@ class StatsTable {
   }
 
   getStatsString(match) {
-    // TODO alle Boxen auf breiteste Breite eines Matchtitels
+    const HOLES_PER_ROW = 9;
+    const par = match.players["Par"];
+
+    const sortedPlayers = Object.entries(match.players)
+      .filter(([playerKey]) => playerKey !== "Par")
+      .sort((a, b) => a[1].devFromPar - b[1].devFromPar);
+
+    // Builds one scorecard table for holes [from, to)
+    const buildScorecardTable = (from, to) => {
+      let html = `
+        <table class="table table-dark table-borderless text-center align-middle w-auto mb-2">
+          <thead class="border-bottom">
+            <tr>
+              <th class="text-start-table-header-info" style="line-height: 0.8">Bahn</th>`;
+      for (let i = from; i < to; i++) {
+        html += `<th style="line-height: 0.8">${i + 1}</th>`;
+      }
+      html += `</tr>`;
+
+      if (match.holeLengths) {
+        html += `<tr>
+              <th class="text-start-table-header-info" style="line-height: 0.8">Länge</th>`;
+        for (let i = from; i < to; i++) {
+          html += `<td style="padding-left: 3px; padding-right: 3px; width: 30px; line-height: 0.8">${match.holeLengths[i]}</td>`;
+        }
+        html += `</tr>`;
+      }
+
+      html += `<tr>
+              <th class="text-start-table-header-info" style="line-height: 0.8">Par</th>`;
+      for (let i = from; i < to; i++) {
+        html += `<td style="line-height: 0.8">${par.holes[i]}</td>`;
+      }
+      html += `</tr>
+          </thead>
+          <tbody>`;
+
+      sortedPlayers.forEach(([playerKey, playerVal]) => {
+        html += `<tr>
+              <th class="text-start" style="line-height: 0.2">${playerKey}</th>`;
+        for (let i = from; i < to; i++) {
+          const devFromParOnThisHole = playerVal.holes[i] - par.holes[i];
+          let classToAssign = "";
+          if (devFromParOnThisHole < 0) {
+            classToAssign = "birdie";
+          } else if (devFromParOnThisHole === 0) {
+            classToAssign = "par";
+          } else if (devFromParOnThisHole === 1) {
+            classToAssign = "bogey";
+          } else if (devFromParOnThisHole === 2) {
+            classToAssign = "doublebogey";
+          } else if (devFromParOnThisHole >= 3) {
+            classToAssign = "plusthree";
+          } else {
+            // not played
+            classToAssign = "par"; // par = no background color = same as if not played
+          }
+          html += `
+              <td style="padding: 3px; width: 30px; line-height: 0.2">
+                <span class="badge bg-scorecard-${classToAssign}" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${playerVal.holes[i]}</span>
+              </td>`;
+        }
+        html += `</tr>`;
+      });
+
+      html += `
+          </tbody>
+        </table>`;
+      return html;
+    };
+
     let statsString = `
         <div
           class="d-flex justify-content-start justify-content-md-center mt-4"
@@ -513,97 +583,37 @@ class StatsTable {
               class="table table-dark table-bordered text-center align-middle w-auto"
             >
               <tbody>`;
-    Object.entries(match.players)
-      .sort((a, b) => a[1].devFromPar - b[1].devFromPar)
-      .forEach(([playerKey, playerVal]) => {
-        if (playerKey === "Par") return;
-        statsString += `<tr>
+
+    sortedPlayers.forEach(([playerKey, playerVal]) => {
+      statsString += `<tr>
             <th class="text-start">${playerKey}</th>
             <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
             ${playerVal.howManyHolesNotPlayedInThisMatch > 0 ? "<td><span style='font-size: 0.7rem'>THRU</span> " + (match.holes - playerVal.howManyHolesNotPlayedInThisMatch) + "</td>" : ""}
         </tr>`;
-      });
-    statsString += `
-        </tbody>
-            </table>
-            <div class="collapse" id="scorecard-collapsing-${match.startTime.valueOf()}">
-              <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
-              <li>Dauer - ${match.duration}</li>
-              <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
-              <h5 class="mb-3">Scorecard</h5>
+    });
 
-              <table
-                class="table table-dark table-borderless text-center align-middle w-auto"
-              >
-                <thead class="border-bottom">
-                  <tr>
-                    <th class="text-start-table-header-info" style="line-height: 0.8">Bahn</th>`;
-    for (let i = 1; i <= match.holes; i++) {
-      statsString += `<th style="line-height: 0.8">${i}</th>`;
+    statsString += `
+            </tbody>
+          </table>
+          <div class="collapse" id="scorecard-collapsing-${match.startTime.valueOf()}">
+            <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
+            <li>Dauer - ${match.duration}</li>
+            <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
+            <h5 class="mb-3">Scorecard</h5>`;
+
+    // One table per block of 9 holes
+    for (let from = 0; from < match.holes; from += HOLES_PER_ROW) {
+      statsString += buildScorecardTable(
+        from,
+        Math.min(from + HOLES_PER_ROW, match.holes),
+      );
     }
-    statsString += `
-        </tr>
-                  `;
-    if (match.holeLengths) {
-      statsString += `<tr>
-                    <th class="text-start-table-header-info" style="line-height: 0.8">Länge</th>`;
-      for (let i = 0; i < match.holes; i++) {
-        statsString += `<td style="padding-left: 3px; padding-right: 3px; width: 30px; line-height: 0.8">${match.holeLengths[i]}</td>`;
-      }
 
-      statsString += `</tr>`;
-    }
     statsString += `
-                  <tr>
-                    <th class="text-start-table-header-info" style="line-height: 0.8">Par</th>`;
-    for (let i = 0; i < match.holes; i++) {
-      statsString += `<td style="line-height: 0.8">${match.players["Par"].holes[i]}</td>`;
-    }
-    statsString += `
-        </tr>
-                </thead>
-
-                <tbody>`;
-
-    Object.entries(match.players)
-      .sort((a, b) => a[1].devFromPar - b[1].devFromPar)
-      .forEach(([playerKey, playerVal]) => {
-        if (playerKey === "Par") return;
-        statsString += `
-        <tr>
-                    <th class="text-start" style="line-height: 0.2">${playerKey}</th>`;
-
-        for (let i = 0; i < match.holes; i++) {
-          const devFromParOnThisHole =
-            playerVal.holes[i] - match.players["Par"].holes[i];
-          let classToAssign = "";
-          if (devFromParOnThisHole < 0) {
-            classToAssign = "birdie";
-          } else if (devFromParOnThisHole === 0) {
-            classToAssign = "par";
-          } else if (devFromParOnThisHole === 1) {
-            classToAssign = "bogey";
-          } else if (devFromParOnThisHole === 2) {
-            classToAssign = "doublebogey";
-          } else if (devFromParOnThisHole >= 3) {
-            classToAssign = "plusthree";
-          } else {
-            // not played
-            classToAssign = "par"; // par = no background color = same as if not played
-          }
-          statsString += `
-            <td style="padding: 3px; width: 30px; line-height: 0.2">
-                      <span class="badge bg-scorecard-${classToAssign}" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${playerVal.holes[i]}</span>
-                    </td>`;
-        }
-        statsString += `</tr>`;
-      });
-    statsString += `
-                </tbody>
-              </table>
-            </div>
           </div>
-        </div>`;
+        </div>
+      </div>`;
+
     document.getElementById("partien-container").innerHTML += statsString;
   }
 
