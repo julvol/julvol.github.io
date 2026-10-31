@@ -147,6 +147,11 @@ class StatsTable {
         ],
       },
       {
+        course: "Kasteelpark Itterdal",
+        layout: "Main",
+        lengths: [52, 55, 47, 105, 56, 44, 35, 75, 64],
+      },
+      {
         course: "Discgolfpark Rheindahlen",
         layout: "De Kull Main Am",
         lengths: [81, 67, 59, 106, 61, 61, 50, 43, 97],
