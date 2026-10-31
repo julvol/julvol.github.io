@@ -57,8 +57,10 @@ class StatsTable {
     this.cacheKeyTable = keyIndex;
     this.cacheDuration = 1 * 60 * 5 * 1000; // 5 Minuten Cache-Dauer
     this.range = dataRange;
+    this.FIRST_SCORE_COLUMN_OFFSET = 8;
     this.matches = {};
     this.players = {};
+    this.courses = {};
 
     // add hole length sets for new layouts here
     this.holeLengthsSets = [
@@ -209,6 +211,93 @@ class StatsTable {
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
 
+    rows.forEach((row) => {
+      let howManyHoles = this.howManyHolesHasLayout(row);
+      if (row.c[3]?.v === "StartDate") {
+        return;
+      } else if (row.c[1]?.v + row.c[2]?.v in this.courses) {
+        // new combination of player+round for existing course found
+        // if the new player is Par: ignore
+        if (row.c[0]?.v == "Par") {
+          return;
+        }
+        for (var i = 0; i < howManyHoles; i++) {
+          // add scores to course
+          // if not played: ignore
+          if (row.c[i + this.FIRST_SCORE_COLUMN_OFFSET]?.v == 0) {
+            continue;
+          }
+          this.courses[row.c[1]?.v + row.c[2]?.v][i + 1].push({
+            name: row.c[0]?.v,
+            score: row.c[i + this.FIRST_SCORE_COLUMN_OFFSET]?.v,
+          });
+        }
+      } else {
+        // new course found (and we are in the Par row)
+        let howManyHoles = this.howManyHolesHasLayout(row);
+        let newCourse = {
+          course: row.c[1]?.v,
+          layout: row.c[2]?.v,
+          howManyHoles: howManyHoles,
+        };
+        for (var i = 0; i < howManyHoles; i++) {
+          newCourse[i + 1] = [];
+          newCourse[i + 1].push({
+            name: row.c[0]?.v, // (= Par because Par is first row)
+            score: row.c[i + this.FIRST_SCORE_COLUMN_OFFSET]?.v,
+          });
+          newCourse[i + 1].distribution = {
+            "-1": 0,
+            0: 0,
+            1: 0,
+            2: 0,
+            "3+": 0,
+          };
+          newCourse[i + 1].averageToPar = 0;
+        }
+
+        // create distribution from the scores for each hole of each course/layout combination
+        Object.values(this.courses).forEach((course) => {
+          for (let hole = 1; hole <= course.howManyHoles; hole++) {
+            const entries = course[hole];
+            const parEntry = entries[0]; // Par row is always first
+            const par = parEntry.score;
+
+            // reset in case this runs more than once
+            const distribution = { "-1": 0, 0: 0, 1: 0, 2: 0, "3+": 0 };
+
+            // skip index 0 (Par itself)
+            let total = 0;
+            let count = 0;
+            for (let i = 1; i < entries.length; i++) {
+              const score = entries[i].score;
+              const diff = score - par;
+              total += score;
+              count++;
+
+              if (diff <= -1) {
+                distribution["-1"]++;
+              } else if (diff === 0) {
+                distribution[0]++;
+              } else if (diff === 1) {
+                distribution[1]++;
+              } else if (diff === 2) {
+                distribution[2]++;
+              } else {
+                distribution["3+"]++;
+              }
+            }
+            course[hole].distribution = distribution;
+
+            course[hole].averageToPar = count > 0 ? total / count - par : null;
+          }
+        });
+
+        // add courses scores to course
+        this.courses[row.c[1]?.v + row.c[2]?.v] = newCourse;
+      }
+    });
+
     // we always have (1 header row + 1 par row + 1 row for each player) per match in the sheet
     rows.forEach((row) => {
       if (row.c[3]?.v === "StartDate") {
@@ -225,6 +314,7 @@ class StatsTable {
             devFromParPerHole: [],
             playedCourses: [],
             playedHolesCount: 0,
+            recentScoresDevFromPar: {},
           };
           this.players[row.c[0]?.v] = newPlayer;
         }
@@ -237,6 +327,7 @@ class StatsTable {
         };
         for (let i = 1; i <= this.matches[row.c[3]?.v].holes; i++) {
           if (row.c[7 + i]?.v > 0) {
+            // player has played the hole: add score
             newPlayerForMatch.holes.push(row.c[7 + i]?.v);
             this.players[row.c[0]?.v].playedHolesCount++;
             this.players[row.c[0]?.v].devFromParPerHole.push(
@@ -261,15 +352,7 @@ class StatsTable {
         // new match found. Add to object. We are now in the par row
 
         // first: find out how many holes the layout has
-        let howManyHoles = row.c?.length - 8;
-        let isStillLessHoles = true;
-        while (isStillLessHoles) {
-          if (row.c[howManyHoles + 7]?.v == null) {
-            howManyHoles--;
-          } else {
-            isStillLessHoles = false;
-          }
-        }
+        let howManyHoles = this.howManyHolesHasLayout(row);
 
         const startTimeAsDate = new Date(
           row.c[3]?.v.replace(/(\d{2})(\d{2})$/, "$1:$2"),
@@ -353,6 +436,30 @@ class StatsTable {
       player.devFromParPerHole = devFromParPerHoleCounts;
     });
 
+    Object.entries(this.courses).forEach(([courseKey, course]) => {
+      for (let hole = 1; hole <= course.howManyHoles; hole++) {
+        const entries = course[hole];
+        const par = entries[0].score; // Par row is always first
+
+        // skip index 0 (Par)
+        for (let i = 1; i < entries.length; i++) {
+          const { name, score } = entries[i];
+          const player = this.players[name];
+          if (!player) continue; // player not in this.players
+
+          player.recentScoresDevFromPar[courseKey] ??= {};
+          const scores = (player.recentScoresDevFromPar[courseKey][hole] ??=
+            []);
+
+          scores.push(score - par);
+          if (scores.length > 4) {
+            scores.shift(); // drop the oldest
+          }
+        }
+      }
+    });
+
+    console.log(this.courses);
     console.log(this.matches);
     Object.values(this.matches)
       .sort((a, b) => a.startTime - b.startTime)
@@ -362,6 +469,19 @@ class StatsTable {
     Object.values(this.players)
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach((player) => this.getPlayerString(player));
+  }
+
+  howManyHolesHasLayout(row) {
+    let howManyHoles = row.c?.length - 8;
+    let isStillLessHoles = true;
+    while (isStillLessHoles) {
+      if (row.c[howManyHoles + 7]?.v == null) {
+        howManyHoles--;
+      } else {
+        isStillLessHoles = false;
+      }
+    }
+    return howManyHoles;
   }
 
   formatDuration(start, end) {
@@ -384,6 +504,63 @@ class StatsTable {
 
     rounded.setMinutes(0, 0, 0); // reset minutes, seconds, ms
     return rounded;
+  }
+
+  getScoreClass(devFromPar) {
+    if (devFromPar < 0) return "birdie";
+    if (devFromPar === 0) return "par";
+    if (devFromPar === 1) return "bogey";
+    if (devFromPar === 2) return "doublebogey";
+    return "plusthree";
+  }
+
+  formatDevFromPar(devFromPar) {
+    if (devFromPar === 0) return "E";
+    return devFromPar > 0 ? `+${devFromPar}` : `${devFromPar}`;
+  }
+
+  getRecentScoresString(player) {
+    const MAX_RECENT = 4; // keep in sync with the shift() limit in renderMatchesStats
+    const courseEntries = Object.entries(player.recentScoresDevFromPar);
+    if (courseEntries.length === 0) return "";
+
+    let html = `<h5>Letzte Ergebnisse</h5>`;
+
+    courseEntries.forEach(([courseKey, holes]) => {
+      const course = this.courses[courseKey];
+
+      html += `
+      <details class="mb-2">
+        <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
+        <table class="table table-bordered text-center align-middle w-auto mt-2">
+          <tbody>`;
+
+      // numeric keys are iterated in ascending order, so holes come out 1, 2, 3, ...
+      Object.entries(holes).forEach(([hole, scores]) => {
+        html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
+
+        scores.forEach((dev) => {
+          html += `
+    <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle">
+      <span class="badge bg-scorecard-${this.getScoreClass(dev)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${this.formatDevFromPar(dev)}</span>
+    </td>`;
+        });
+
+        // pad with empty cells so all rows have the same width
+        for (let i = scores.length; i < MAX_RECENT; i++) {
+          html += `<td style="padding: 3px; width: 36px"></td>`;
+        }
+
+        html += `</tr>`;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      </details>`;
+    });
+
+    return html;
   }
 
   formatDateStringForStatsStringHeader(date) {
@@ -491,7 +668,9 @@ class StatsTable {
                       <td>${player.devFromParPerHole["3+"]}</td>
                     </tr>
                   </tbody>
-                </table>
+                </table>`;
+    playerString += this.getRecentScoresString(player);
+    playerString += `
               </div>
             </div>
           </div>`;
