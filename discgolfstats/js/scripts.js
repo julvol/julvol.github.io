@@ -201,6 +201,11 @@ class StatsTable {
           layout: "Advanced Newcomer",
           hole: 2,
         },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 2,
+        },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 3 },
@@ -208,6 +213,11 @@ class StatsTable {
         {
           course: "Aachen Kronenbergpark",
           layout: "Advanced Newcomer",
+          hole: 3,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
           hole: 3,
         },
       ],
@@ -235,6 +245,11 @@ class StatsTable {
         {
           course: "Aachen Kronenbergpark",
           layout: "Advanced Newcomer",
+          hole: 6,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
           hole: 6,
         },
       ],
@@ -282,10 +297,23 @@ class StatsTable {
         },
       ],
       [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 12 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 11,
+        },
+      ],
+      [
         { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 13 },
         {
           course: "Aachen Kronenbergpark",
           layout: "Advanced Newcomer",
+          hole: 12,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
           hole: 12,
         },
       ],
@@ -294,6 +322,11 @@ class StatsTable {
         {
           course: "Aachen Kronenbergpark",
           layout: "Advanced Newcomer",
+          hole: 13,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
           hole: 13,
         },
       ],
@@ -311,6 +344,119 @@ class StatsTable {
           course: "Aachen Kronenbergpark",
           layout: "Advanced Newcomer",
           hole: 16,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 18,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 1,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 1,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 4,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 3,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 5,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 4,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 7,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 7,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 8,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 8,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 9,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 9,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 10,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 10,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 14,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 13,
+        },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Andalucia Nueva",
+          hole: 17,
+        },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Rotkehlchen",
+          hole: 17,
         },
       ],
       [
