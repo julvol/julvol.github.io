@@ -309,6 +309,7 @@ class StatsTable {
             devFromParPerHole: [],
             playedCourses: [],
             playedHolesCount: 0,
+            recentScoresDevFromPar: {},
           };
           this.players[row.c[0]?.v] = newPlayer;
         }
@@ -390,7 +391,6 @@ class StatsTable {
 
     // refine this.players (grouping)
     Object.values(this.players).forEach((player) => {
-      player.recentScores = {};
       const playedCoursesCounts = Object.values(
         player.playedCourses.reduce((acc, { course, layout }) => {
           const key = `${course}__${layout}`;
@@ -434,6 +434,7 @@ class StatsTable {
     Object.entries(this.courses).forEach(([courseKey, course]) => {
       for (let hole = 1; hole <= course.howManyHoles; hole++) {
         const entries = course[hole];
+        const par = entries[0].score; // Par row is always first
 
         // skip index 0 (Par)
         for (let i = 1; i < entries.length; i++) {
@@ -441,11 +442,12 @@ class StatsTable {
           const player = this.players[name];
           if (!player) continue; // player not in this.players
 
-          player.recentScores[courseKey] ??= {};
-          const scores = (player.recentScores[courseKey][hole] ??= []);
+          player.recentScoresDevFromPar[courseKey] ??= {};
+          const scores = (player.recentScoresDevFromPar[courseKey][hole] ??=
+            []);
 
-          scores.push(score);
-          if (scores.length > 5) {
+          scores.push(score - par);
+          if (scores.length > 4) {
             scores.shift(); // drop the oldest
           }
         }
