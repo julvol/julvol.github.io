@@ -501,6 +501,63 @@ class StatsTable {
     return rounded;
   }
 
+  getScoreClass(devFromPar) {
+    if (devFromPar < 0) return "birdie";
+    if (devFromPar === 0) return "par";
+    if (devFromPar === 1) return "bogey";
+    if (devFromPar === 2) return "doublebogey";
+    return "plusthree";
+  }
+
+  formatDevFromPar(devFromPar) {
+    if (devFromPar === 0) return "E";
+    return devFromPar > 0 ? `+${devFromPar}` : `${devFromPar}`;
+  }
+
+  getRecentScoresString(player) {
+    const MAX_RECENT = 4; // keep in sync with the shift() limit in renderMatchesStats
+    const courseEntries = Object.entries(player.recentScoresDevFromPar);
+    if (courseEntries.length === 0) return "";
+
+    let html = `<h5>Letzte Ergebnisse</h5>`;
+
+    courseEntries.forEach(([courseKey, holes]) => {
+      const course = this.courses[courseKey];
+
+      html += `
+      <details class="mb-2">
+        <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
+        <table class="table table-bordered text-center align-middle w-auto mt-2">
+          <tbody>`;
+
+      // numeric keys are iterated in ascending order, so holes come out 1, 2, 3, ...
+      Object.entries(holes).forEach(([hole, scores]) => {
+        html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
+
+        scores.forEach((dev) => {
+          html += `
+    <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle">
+      <span class="badge bg-scorecard-${this.getScoreClass(dev)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${this.formatDevFromPar(dev)}</span>
+    </td>`;
+        });
+
+        // pad with empty cells so all rows have the same width
+        for (let i = scores.length; i < MAX_RECENT; i++) {
+          html += `<td style="padding: 3px; width: 36px"></td>`;
+        }
+
+        html += `</tr>`;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      </details>`;
+    });
+
+    return html;
+  }
+
   formatDateStringForStatsStringHeader(date) {
     date = this.roundToNearestHour(date);
     const weekday = new Intl.DateTimeFormat("de-DE", {
@@ -606,7 +663,9 @@ class StatsTable {
                       <td>${player.devFromParPerHole["3+"]}</td>
                     </tr>
                   </tbody>
-                </table>
+                </table>`;
+    playerString += this.getRecentScoresString(player);
+    playerString += `
               </div>
             </div>
           </div>`;
