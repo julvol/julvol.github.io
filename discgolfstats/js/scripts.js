@@ -179,7 +179,7 @@ class StatsTable {
     ];
 
     // currently for the following Layouts:
-    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen)
+    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen, Andalucia Nueva, Aixpert 18)
     // Discgolfpark Herzogenrath (Main, Main + Six, Eurode 18)
     // Discgolfpark Station As (Main, Main 9 X 2)
     // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main)
@@ -192,6 +192,7 @@ class StatsTable {
           layout: "Advanced Newcomer",
           hole: 1,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 1 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 2 },
@@ -206,6 +207,7 @@ class StatsTable {
           layout: "Andalucia Nueva",
           hole: 2,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 2 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 3 },
@@ -220,6 +222,7 @@ class StatsTable {
           layout: "Andalucia Nueva",
           hole: 3,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 3 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 4 },
@@ -229,6 +232,7 @@ class StatsTable {
           layout: "Advanced Newcomer",
           hole: 4,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 4 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 5 },
@@ -238,6 +242,7 @@ class StatsTable {
           layout: "Advanced Newcomer",
           hole: 5,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 5 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 6 },
@@ -252,6 +257,7 @@ class StatsTable {
           layout: "Andalucia Nueva",
           hole: 6,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 6 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 7 },
@@ -337,6 +343,7 @@ class StatsTable {
           layout: "Advanced Newcomer",
           hole: 14,
         },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 12 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 17 },
@@ -350,6 +357,14 @@ class StatsTable {
           layout: "Andalucia Nueva",
           hole: 18,
         },
+      ],
+      [
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 17,
+        },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 13 },
       ],
       [
         {
