@@ -785,6 +785,26 @@ class StatsTable {
       .forEach((el) => new bootstrap.Popover(el));
   }
 
+  // last #limit totals (dev from par) of this player on exactly this course/layout, oldest -> newest
+  getRecentTotals(player, course, limit) {
+    return Object.values(this.matches)
+      .filter(
+        (m) =>
+          m.course === course.course &&
+          m.layout === course.layout &&
+          player.name in m.players,
+      )
+      .sort((a, b) => a.startTime - b.startTime)
+      .slice(-limit)
+      .map((m) => m.players[player.name].devFromPar);
+  }
+
+  formatDevFromPar(dev) {
+    if (dev > 0) return `+${dev}`;
+    if (dev === 0) return "E";
+    return `${dev}`;
+  }
+
   // last #limit scores on this hole and all its isomorph holes for player, oldest -> newest
   getCombinedRecentScores(player, course, hole, limit) {
     const sources = [
@@ -869,6 +889,41 @@ class StatsTable {
       html += `
     <details class="mb-2">
       <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
+      <table class="table table-bordered text-center align-middle w-auto mt-2">
+        <thead>
+          <tr>
+            <th></th>
+            <th colspan="${MAX_RECENT}" style="font-size: 0.75rem; font-weight: normal; padding: 2px 6px;">
+              <span class="d-flex align-items-center">
+                <span><b>alt</b></span>
+                <span style="flex-grow: 1; text-align: center;"><b>&#10230;</b></span>
+                <span><b>neu</b></span>
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+      const totals = this.getRecentTotals(player, course, MAX_RECENT);
+      if (totals.length > 0) {
+        html += `<tr><th class="text-start-table-header-info">Gesamt</th>`;
+
+        // pad on the left so the newest total is in the rightmost column
+        for (let i = totals.length; i < MAX_RECENT; i++) {
+          html += `<td style="padding: 3px; width: 36px"></td>`;
+        }
+
+        totals.forEach((dev, index) => {
+          const column = MAX_RECENT - totals.length + index;
+          const color = dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529";
+          html += `
+        <td style="padding: 3px; width: 36px; vertical-align: middle;">
+          <b style="color: ${color};">${this.formatDevFromPar(dev)}</b>
+        </td>`;
+        });
+      }
+
+      html += `</tr></tbody></table>
       <table class="table table-bordered text-center align-middle w-auto mt-2">
         <thead>
           <tr>
