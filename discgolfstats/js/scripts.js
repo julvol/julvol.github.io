@@ -390,6 +390,7 @@ class StatsTable {
 
     // refine this.players (grouping)
     Object.values(this.players).forEach((player) => {
+      player.recentScores = {};
       const playedCoursesCounts = Object.values(
         player.playedCourses.reduce((acc, { course, layout }) => {
           const key = `${course}__${layout}`;
@@ -428,6 +429,27 @@ class StatsTable {
       );
 
       player.devFromParPerHole = devFromParPerHoleCounts;
+    });
+
+    Object.entries(this.courses).forEach(([courseKey, course]) => {
+      for (let hole = 1; hole <= course.howManyHoles; hole++) {
+        const entries = course[hole];
+
+        // skip index 0 (Par)
+        for (let i = 1; i < entries.length; i++) {
+          const { name, score } = entries[i];
+          const player = this.players[name];
+          if (!player) continue; // player not in this.players
+
+          player.recentScores[courseKey] ??= {};
+          const scores = (player.recentScores[courseKey][hole] ??= []);
+
+          scores.push(score);
+          if (scores.length > 5) {
+            scores.shift(); // drop the oldest
+          }
+        }
+      }
     });
 
     console.log(this.courses);
