@@ -179,7 +179,7 @@ class StatsTable {
     ];
 
     // currently for the following Layouts:
-    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen, Andalucia Nueva, Aixpert 18)
+    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen, Andalucia Nueva, Aixpert 18, Pinguin) missing Phoenix, Spaßvogel
     // Discgolfpark Herzogenrath (Main, Main + Six, Eurode 18)
     // Discgolfpark Station As (Main, Main 9 X 2)
     // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main)
