@@ -669,12 +669,8 @@ class StatsTable {
         // first: find out how many holes the layout has
         let howManyHoles = this.howManyHolesHasLayout(row);
 
-        const startTimeAsDate = new Date(
-          row.c[3]?.v.replace(/(\d{2})(\d{2})$/, "$1:$2"),
-        );
-        const endTimeAsDate = new Date(
-          row.c[4]?.v.replace(/(\d{2})(\d{2})$/, "$1:$2"),
-        );
+        const startTimeAsDate = this.formatCsvTimeAsDate(row.c[3]?.v);
+        const endTimeAsDate = this.formatCsvTimeAsDate(row.c[4]?.v);
 
         let match = {
           startTime: startTimeAsDate,
@@ -784,6 +780,21 @@ class StatsTable {
       .forEach((player) => this.getPlayerString(player));
   }
 
+  // returns all other holes that are isomorph to the given one
+  getIsomorphHoles(course, layout, hole) {
+    const isSame = (h) =>
+      h.course === course && h.layout === layout && h.hole === Number(hole);
+
+    const group = this.isomorphHoles.find((g) => g.some(isSame));
+    if (!group) return [];
+
+    return group.filter((h) => !isSame(h));
+  }
+
+  formatCsvTimeAsDate(time) {
+    return new Date(time.replace(/(\d{2})(\d{2})$/, "$1:$2"));
+  }
+
   howManyHolesHasLayout(row) {
     let howManyHoles = row.c?.length - 8;
     let isStillLessHoles = true;
@@ -846,7 +857,20 @@ class StatsTable {
       // numeric keys are iterated in ascending order, so holes come out 1, 2, 3, ...
       Object.entries(holes).forEach(([hole, scores]) => {
         const par = course[hole][0].score; // Par entry is always first
-        html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
+
+        const isomorphs = this.getIsomorphHoles(
+          course.course,
+          course.layout,
+          hole,
+        );
+        if (isomorphs.length > 0) {
+          const tooltip = isomorphs
+            .map((h) => `${h.layout} - Bahn ${h.hole}`)
+            .join("&#10;"); // &#10; === <br>
+          html += `<tr><th class="text-start-table-header-info" title="Gleiche Bahn wie:&#10;${tooltip}" style="cursor: help;">Bahn ${hole}</th>`;
+        } else {
+          html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
+        }
 
         scores.forEach((score) => {
           html += `
