@@ -870,6 +870,18 @@ class StatsTable {
     <details class="mb-2">
       <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
       <table class="table table-bordered text-center align-middle w-auto mt-2">
+        <thead>
+          <tr>
+            <th></th>
+            <th colspan="${MAX_RECENT}" style="font-size: 0.75rem; font-weight: normal; padding: 2px 6px;">
+              <span class="d-flex align-items-center">
+                <span><b>alt</b></span>
+                <span style="flex-grow: 1; text-align: center;"><b>&#10230;</b></span>
+                <span><b>neu</b></span>
+              </span>
+            </th>
+          </tr>
+        </thead>
         <tbody>`;
 
       for (let hole = 1; hole <= course.howManyHoles; hole++) {
@@ -905,17 +917,17 @@ class StatsTable {
           html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
         }
 
-        recent.forEach(({ score, par }) => {
-          html += `
-            <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle">
-              <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
-            </td>`;
-        });
-
-        // pad with empty cells so all rows have the same width
+        // fill with empty cells so all rows have the same width
         for (let i = recent.length; i < MAX_RECENT; i++) {
           html += `<td style="padding: 3px; width: 36px"></td>`;
         }
+
+        recent.forEach(({ score, par }, index) => {
+          html += `
+            <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle;">
+              <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
+            </td>`;
+        });
 
         html += `</tr>`;
       }
