@@ -314,7 +314,7 @@ class StatsTable {
             devFromParPerHole: [],
             playedCourses: [],
             playedHolesCount: 0,
-            recentScoresDevFromPar: {},
+            recentScores: {},
           };
           this.players[row.c[0]?.v] = newPlayer;
         }
@@ -439,7 +439,6 @@ class StatsTable {
     Object.entries(this.courses).forEach(([courseKey, course]) => {
       for (let hole = 1; hole <= course.howManyHoles; hole++) {
         const entries = course[hole];
-        const par = entries[0].score; // Par row is always first
 
         // skip index 0 (Par)
         for (let i = 1; i < entries.length; i++) {
@@ -447,11 +446,10 @@ class StatsTable {
           const player = this.players[name];
           if (!player) continue; // player not in this.players
 
-          player.recentScoresDevFromPar[courseKey] ??= {};
-          const scores = (player.recentScoresDevFromPar[courseKey][hole] ??=
-            []);
+          player.recentScores[courseKey] ??= {};
+          const scores = (player.recentScores[courseKey][hole] ??= []);
 
-          scores.push(score - par);
+          scores.push(score);
           if (scores.length > 4) {
             scores.shift(); // drop the oldest
           }
@@ -514,19 +512,14 @@ class StatsTable {
     return "plusthree";
   }
 
-  formatDevFromPar(devFromPar) {
-    if (devFromPar === 0) return "E";
-    return devFromPar > 0 ? `+${devFromPar}` : `${devFromPar}`;
-  }
-
   getRecentScoresString(player) {
     const MAX_RECENT = 4; // keep in sync with the shift() limit in renderMatchesStats
-    const courseEntries = Object.entries(player.recentScoresDevFromPar);
-    if (courseEntries.length === 0) return "";
+    const recentScoresEntries = Object.entries(player.recentScores);
+    if (recentScoresEntries.length === 0) return "";
 
     let html = `<h5>Letzte Ergebnisse</h5>`;
 
-    courseEntries.forEach(([courseKey, holes]) => {
+    recentScoresEntries.forEach(([courseKey, holes]) => {
       const course = this.courses[courseKey];
 
       html += `
@@ -537,12 +530,13 @@ class StatsTable {
 
       // numeric keys are iterated in ascending order, so holes come out 1, 2, 3, ...
       Object.entries(holes).forEach(([hole, scores]) => {
+        const par = course[hole][0].score; // Par entry is always first
         html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
 
-        scores.forEach((dev) => {
+        scores.forEach((score) => {
           html += `
     <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle">
-      <span class="badge bg-scorecard-${this.getScoreClass(dev)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${this.formatDevFromPar(dev)}</span>
+      <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
     </td>`;
         });
 
