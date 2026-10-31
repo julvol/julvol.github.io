@@ -79,6 +79,14 @@ class StatsTable {
       },
       {
         course: "Aachen Kronenbergpark",
+        layout: "Advanced Newcomer",
+        lengths: [
+          96, 61, 40, 61, 112, 58, 36, 64, 63, 77, 66, 44, 80, 82, 44, 48, 152,
+          164,
+        ],
+      },
+      {
+        course: "Aachen Kronenbergpark",
         layout: "Rotkehlchen",
         lengths: [
           91, 97, 66, 91, 32, 66, 53, 40, 59, 99, 50, 90, 55, 107, 91, 60, 52,
@@ -169,6 +177,312 @@ class StatsTable {
         lengths: [104, 67, 118, 106, 90, 90, 118, 86, 88],
       },
     ];
+
+    // currently for the following Layouts:
+    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen)
+    // Discgolfpark Herzogenrath (Main, Main + Six, Eurode 18)
+    // Discgolfpark Station As (Main, Main 9 X 2)
+    // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main)
+    this.isomorphHoles = [
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 1 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 1 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 1,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 2 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 2 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 2,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 3 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 3 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 3,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 4 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 4 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 4,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 5 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 5 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 5,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 6 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 6 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 6,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 7 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 7 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 7,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 8 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 10 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 10,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Main", hole: 9 },
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 16 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 15,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 8 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 8,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 9 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 9,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 13 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 12,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 14 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 13,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 15 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 14,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 17 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 16,
+        },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 1 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 1 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 1 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 2 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 2 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 2 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 3 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 3 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 6 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 4 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 4 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 4 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 5 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 9 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 11 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 6 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 10 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 12 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 7 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 11 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 13 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 8 },
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 12 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 14 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 5 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 5 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 6 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 8 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 8 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 10 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 13 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 15 },
+      ],
+      [
+        { course: "Discgolfpark Herzogenrath", layout: "Main + Six", hole: 14 },
+        { course: "Discgolfpark Herzogenrath", layout: "Eurode 18", hole: 16 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 1 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 1 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 10 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 2 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 2 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 11 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 3 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 3 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 12 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 4 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 4 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 13 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 5 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 5 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 14 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 6 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 6 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 15 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 7 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 7 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 16 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 8 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 8 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 17 },
+      ],
+      [
+        { course: "Discgolfpark Station As", layout: "Main", hole: 9 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 9 },
+        { course: "Discgolfpark Station As", layout: "Main 9 X 2", hole: 18 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 1,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 1 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 2,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 2 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 4,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 4 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 5,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 5 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 6,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 6 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 7,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 7 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 8,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 8 },
+      ],
+      [
+        {
+          course: "Discgolfpark Rheindahlen",
+          layout: "De Kull Main Am",
+          hole: 9,
+        },
+        { course: "Discgolfpark Rheindahlen", layout: "De Kull Main", hole: 9 },
+      ],
+    ];
   }
 
   getURL(range) {
@@ -230,6 +544,7 @@ class StatsTable {
           this.courses[row.c[1]?.v + row.c[2]?.v][i + 1].push({
             name: row.c[0]?.v,
             score: row.c[i + this.FIRST_SCORE_COLUMN_OFFSET]?.v,
+            date: row.c[3]?.v,
           });
         }
       } else {
