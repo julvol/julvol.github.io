@@ -778,6 +778,11 @@ class StatsTable {
     Object.values(this.players)
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach((player) => this.getPlayerString(player));
+
+    // initialize isomorph holes popovers once all player HTML exists
+    document
+      .querySelectorAll('#playersAccordion [data-bs-toggle="popover"]')
+      .forEach((el) => new bootstrap.Popover(el));
   }
 
   // returns all other holes that are isomorph to the given one
@@ -864,10 +869,20 @@ class StatsTable {
           hole,
         );
         if (isomorphs.length > 0) {
-          const tooltip = isomorphs
-            .map((h) => `${h.layout} - Bahn ${h.hole}`)
-            .join("&#10;"); // &#10; === <br>
-          html += `<tr><th class="text-start-table-header-info" title="Gleiche Bahn wie:&#10;${tooltip}" style="cursor: help;">Bahn ${hole}</th>`;
+          const popoverContent =
+            "<b>Gleiche Bahn wie</b><br>" +
+            isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
+          html += `<tr><th
+            class="text-start-table-header-info"
+            tabindex="0"
+            style="cursor: pointer;"
+            data-bs-toggle="popover"
+            data-bs-trigger="hover focus"
+            data-bs-container="body"
+            data-bs-html="true"
+            data-bs-placement="right"
+            data-bs-content="${popoverContent}"
+          >Bahn ${hole}</th>`;
         } else {
           html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
         }
