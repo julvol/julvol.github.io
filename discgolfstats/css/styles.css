@@ -8149,9 +8149,10 @@ textarea.form-control-lg {
 
 .bg-scorecard-birdie {
   --bs-bg-opacity: 1;
-  background-color: #23426d !important;
+  background-color: #5076aa !important;
   font-size: 1rem;
 }
+
 
 .bg-scorecard-par {
   --bs-bg-opacity: 1;

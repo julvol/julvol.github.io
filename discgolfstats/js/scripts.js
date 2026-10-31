@@ -750,20 +750,20 @@ class StatsTable {
     Object.entries(this.courses).forEach(([courseKey, course]) => {
       for (let hole = 1; hole <= course.howManyHoles; hole++) {
         const entries = course[hole];
+        const par = entries[0].score; // Par row is always first
 
         // skip index 0 (Par)
         for (let i = 1; i < entries.length; i++) {
-          const { name, score } = entries[i];
+          const { name, score, date } = entries[i];
           const player = this.players[name];
           if (!player) continue; // player not in this.players
 
           player.recentScores[courseKey] ??= {};
-          const scores = (player.recentScores[courseKey][hole] ??= []);
-
-          scores.push(score);
-          if (scores.length > 4) {
-            scores.shift(); // drop the oldest
-          }
+          (player.recentScores[courseKey][hole] ??= []).push({
+            score,
+            par,
+            time: this.formatCsvTimeAsDate(date).getTime(),
+          });
         }
       }
     });
@@ -783,6 +783,19 @@ class StatsTable {
     document
       .querySelectorAll('#playersAccordion [data-bs-toggle="popover"]')
       .forEach((el) => new bootstrap.Popover(el));
+  }
+
+  // last #limit scores on this hole and all its isomorph holes for player, oldest -> newest
+  getCombinedRecentScores(player, course, hole, limit) {
+    const sources = [
+      { course: course.course, layout: course.layout, hole: Number(hole) },
+      ...this.getIsomorphHoles(course.course, course.layout, hole),
+    ];
+
+    return sources
+      .flatMap((h) => player.recentScores[h.course + h.layout]?.[h.hole] ?? [])
+      .sort((a, b) => a.time - b.time)
+      .slice(-limit);
   }
 
   // returns all other holes that are isomorph to the given one
@@ -844,24 +857,29 @@ class StatsTable {
   }
 
   getRecentScoresString(player) {
-    const MAX_RECENT = 4; // keep in sync with the shift() limit in renderMatchesStats
+    const MAX_RECENT = 4;
     const recentScoresEntries = Object.entries(player.recentScores);
     if (recentScoresEntries.length === 0) return "";
 
     let html = `<h5>Letzte Ergebnisse</h5>`;
 
-    recentScoresEntries.forEach(([courseKey, holes]) => {
+    recentScoresEntries.forEach(([courseKey]) => {
       const course = this.courses[courseKey];
 
       html += `
-      <details class="mb-2">
-        <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
-        <table class="table table-bordered text-center align-middle w-auto mt-2">
-          <tbody>`;
+    <details class="mb-2">
+      <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
+      <table class="table table-bordered text-center align-middle w-auto mt-2">
+        <tbody>`;
 
-      // numeric keys are iterated in ascending order, so holes come out 1, 2, 3, ...
-      Object.entries(holes).forEach(([hole, scores]) => {
-        const par = course[hole][0].score; // Par entry is always first
+      for (let hole = 1; hole <= course.howManyHoles; hole++) {
+        const recent = this.getCombinedRecentScores(
+          player,
+          course,
+          hole,
+          MAX_RECENT,
+        );
+        if (recent.length === 0) continue; // never played this hole (or an isomorph of it)
 
         const isomorphs = this.getIsomorphHoles(
           course.course,
@@ -873,39 +891,39 @@ class StatsTable {
             "<b>Gleiche Bahn wie</b><br>" +
             isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
           html += `<tr><th
-            class="text-start-table-header-info"
-            tabindex="0"
-            style="cursor: pointer;"
-            data-bs-toggle="popover"
-            data-bs-trigger="hover focus"
-            data-bs-container="body"
-            data-bs-html="true"
-            data-bs-placement="right"
-            data-bs-content="${popoverContent}"
-          >Bahn ${hole}</th>`;
+          class="text-start-table-header-info"
+          tabindex="0"
+          style="cursor: pointer;"
+          data-bs-toggle="popover"
+          data-bs-trigger="hover focus"
+          data-bs-container="body"
+          data-bs-html="true"
+          data-bs-placement="right"
+          data-bs-content="${popoverContent}"
+        >Bahn ${hole}</th>`;
         } else {
           html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
         }
 
-        scores.forEach((score) => {
+        recent.forEach(({ score, par }) => {
           html += `
-    <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle">
-      <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
-    </td>`;
+            <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle">
+              <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
+            </td>`;
         });
 
         // pad with empty cells so all rows have the same width
-        for (let i = scores.length; i < MAX_RECENT; i++) {
+        for (let i = recent.length; i < MAX_RECENT; i++) {
           html += `<td style="padding: 3px; width: 36px"></td>`;
         }
 
         html += `</tr>`;
-      });
+      }
 
       html += `
-          </tbody>
-        </table>
-      </details>`;
+        </tbody>
+      </table>
+    </details>`;
     });
 
     return html;
