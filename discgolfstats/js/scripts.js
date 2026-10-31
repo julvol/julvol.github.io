@@ -1116,7 +1116,7 @@ class StatsTable {
         );
         if (isomorphs.length > 0) {
           const popoverContent =
-            "<b>Gleiche Bahn wie</b><br>" +
+            "<b>identisch zu</b><br>" +
             isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
           html += `<tr><th
           class="text-start-table-header-info"
