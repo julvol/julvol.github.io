@@ -351,6 +351,8 @@ class StatsTable {
             score,
             par,
             time: this.formatCsvTimeAsDate(date).getTime(),
+            layout: course.layout,
+            hole,
           });
         }
       }
@@ -389,6 +391,7 @@ class StatsTable {
         thru: this.hasPlayerCompletedMatch(m, player)
           ? null // null = round completed, otherwise the number of holes played
           : m.holes - m.players[player.name].howManyHolesNotPlayedInThisMatch,
+        time: m.startTime,
       }));
   }
 
@@ -415,33 +418,58 @@ class StatsTable {
     return this.getCombinedScores(player, course, hole).slice(-limit);
   }
 
-  // personal best on this hole incl. isomorph holes (best = lowest dev from par, ties: fewer throws)
+  // personal best on this hole incl. isomorph holes = fewest throws (absolute score)
+  // on a tie the earliest one wins, because getCombinedScores is sorted oldest -> newest
   getPersonalBestScore(player, course, hole) {
     const all = this.getCombinedScores(player, course, hole);
     if (all.length === 0) return null;
 
-    return all.reduce((best, s) => {
-      const devS = s.score - s.par;
-      const devBest = best.score - best.par;
-      return devS < devBest || (devS === devBest && s.score < best.score)
-        ? s
-        : best;
-    });
+    return all.reduce((best, s) => (s.score < best.score ? s : best));
   }
 
-  // personal best total (dev from par) on exactly this course/layout, only completed rounds
+  // personal best total on exactly this course/layout, only completed rounds
+  // returns { dev, time } or null (on a tie the earliest round wins)
   getPersonalBestTotal(player, course) {
-    const totals = Object.values(this.matches)
+    return Object.values(this.matches)
       .filter(
         (m) =>
           m.course === course.course &&
           m.layout === course.layout &&
-          player.name in m.players &&
           this.hasPlayerCompletedMatch(m, player),
       )
-      .map((m) => m.players[player.name].devFromPar);
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((m) => ({
+        dev: m.players[player.name].devFromPar,
+        time: m.startTime,
+      }))
+      .reduce(
+        (best, t) => (best === null || t.dev < best.dev ? t : best),
+        null,
+      );
+  }
 
-    return totals.length > 0 ? Math.min(...totals) : null;
+  formatDate(time) {
+    return new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(time);
+  }
+
+  // popover content for a single hole score (recent or PB)
+  getScorePopoverContent({ time, layout, hole, par }) {
+    return `<b>${this.formatDate(time)}</b><br>auf ${layout}`;
+  }
+
+  // attributes that turn an element into a hover/tap popover
+  getPopoverAttributes(content, placement = "top") {
+    return `tabindex="0"
+    data-bs-toggle="popover"
+    data-bs-trigger="hover focus"
+    data-bs-container="body"
+    data-bs-html="true"
+    data-bs-placement="${placement}"
+    data-bs-content="${content}"`;
   }
 
   // check if the player played every hole of this match
@@ -545,22 +573,15 @@ class StatsTable {
           html += `<td style="padding: 3px; width: 36px"></td>`;
         }
 
-        totals.forEach(({ dev, thru }) => {
+        totals.forEach(({ dev, thru, time }) => {
           const color = dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529";
           const isIncomplete = thru !== null;
-
-          const popoverAttributes = isIncomplete
-            ? `tabindex="0"
-              data-bs-toggle="popover"
-              data-bs-trigger="hover focus"
-              data-bs-container="body"
-              data-bs-html="true"
-              data-bs-placement="top"
-              data-bs-content="<b>THRU ${thru}</b>"`
-            : "";
+          const content =
+            `<b>${this.formatDate(time)}</b>` +
+            (isIncomplete ? `<br>THRU ${thru}` : "");
 
           html += `
-            <td style="padding: 3px; width: 36px; vertical-align: middle;${isIncomplete ? " cursor: pointer;" : ""}" ${popoverAttributes}>
+            <td style="padding: 3px; width: 36px; vertical-align: middle; cursor: pointer;" ${this.getPopoverAttributes(content)}>
               <b style="color: ${color};">${this.formatDevFromPar(dev)}${isIncomplete ? "*" : ""}</b>
             </td>`;
         });
@@ -568,10 +589,14 @@ class StatsTable {
         const pbTotal = this.getPersonalBestTotal(player, course);
         if (pbTotal !== null) {
           const pbColor =
-            pbTotal > 0 ? "#e26028" : pbTotal < 0 ? "#408ce2" : "#212529";
+            pbTotal.dev > 0
+              ? "#e26028"
+              : pbTotal.dev < 0
+                ? "#408ce2"
+                : "#212529";
           html += `
-            <td style="padding: 3px; width: 36px; vertical-align: middle; border-left: 3px double #adb5bd;">
-              <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal)}</b>
+            <td style="padding: 3px; width: 36px; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`<b>zuerst am ${this.formatDate(pbTotal.time)}</b>`)}>
+              <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b>
             </td>`;
         } else {
           html += `<td style="border-left: 3px double #adb5bd;"></td>`;
@@ -633,19 +658,19 @@ class StatsTable {
           html += `<td style="padding: 3px; width: 36px"></td>`;
         }
 
-        recent.forEach(({ score, par }, index) => {
+        recent.forEach((entry) => {
           html += `
-            <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle;">
-              <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
+            <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; cursor: pointer;" ${this.getPopoverAttributes(this.getScorePopoverContent(entry))}>
+              <span class="badge bg-scorecard-${this.getScoreClass(entry.score - entry.par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${entry.score}</span>
             </td>`;
         });
-        const pb = this.getPersonalBestScore(player, course, hole);
-        html += `
-          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd;">
-            <span class="badge bg-scorecard-${this.getScoreClass(pb.score - pb.par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
-          </td>`;
 
-        html += `</tr>`;
+        const pb = this.getPersonalBestScore(player, course, hole);
+        const originalPar = course[hole][0].score;
+        html += `
+          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes("<b>zuerst am </b>" + this.getScorePopoverContent(pb))}>
+            <span class="badge bg-scorecard-${this.getScoreClass(pb.score - originalPar)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
+          </td>`;
       }
 
       html += `
