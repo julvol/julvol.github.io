@@ -179,7 +179,7 @@ class StatsTable {
     ];
 
     // currently for the following Layouts:
-    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen, Andalucia Nueva, Aixpert 18, Pinguin) missing Phoenix, Spaßvogel
+    // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen, Andalucia Nueva, Aixpert 18, Pinguin, Phoenix, Spaßvogel)
     // Discgolfpark Herzogenrath (Main, Main + Six, Eurode 18)
     // Discgolfpark Station As (Main, Main 9 X 2)
     // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main)
@@ -243,6 +243,7 @@ class StatsTable {
           hole: 5,
         },
         { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 5 },
+        { course: "Aachen Kronenbergpark", layout: "Phoenix", hole: 9 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 6 },
@@ -258,6 +259,7 @@ class StatsTable {
           hole: 6,
         },
         { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 6 },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 7 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Main", hole: 7 },
@@ -293,6 +295,7 @@ class StatsTable {
           layout: "Advanced Newcomer",
           hole: 8,
         },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 9 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 9 },
@@ -335,6 +338,7 @@ class StatsTable {
           layout: "Andalucia Nueva",
           hole: 13,
         },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 4 },
       ],
       [
         { course: "Aachen Kronenbergpark", layout: "Newcomer 18", hole: 15 },
@@ -365,6 +369,8 @@ class StatsTable {
           hole: 17,
         },
         { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 13 },
+        { course: "Aachen Kronenbergpark", layout: "Phoenix", hole: 7 },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 1 },
       ],
       [
         {
@@ -413,6 +419,7 @@ class StatsTable {
           layout: "Rotkehlchen",
           hole: 7,
         },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 8 },
       ],
       [
         {
@@ -449,6 +456,7 @@ class StatsTable {
           layout: "Rotkehlchen",
           hole: 10,
         },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 11 },
       ],
       [
         {
@@ -473,6 +481,46 @@ class StatsTable {
           layout: "Rotkehlchen",
           hole: 17,
         },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Phoenix", hole: 4 },
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 3 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Phoenix", hole: 10 },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 8 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Phoenix", hole: 11 },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 7 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 2 },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 14 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 5 },
+        { course: "Aachen Kronenbergpark", layout: "Rotkehlchen", hole: 2 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 10 },
+        { course: "Aachen Kronenbergpark", layout: "Aixpert 18", hole: 9 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 14 },
+        { course: "Aachen Kronenbergpark", layout: "Rotkehlchen", hole: 15 },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 16 },
+        {
+          course: "Aachen Kronenbergpark",
+          layout: "Advanced Newcomer",
+          hole: 11,
+        },
+      ],
+      [
+        { course: "Aachen Kronenbergpark", layout: "Spaßvogel", hole: 17 },
+        { course: "Aachen Kronenbergpark", layout: "Rotkehlchen", hole: 12 },
       ],
       [
         { course: "Discgolfpark Herzogenrath", layout: "Main", hole: 1 },
