@@ -393,8 +393,8 @@ class StatsTable {
     return `${dev}`;
   }
 
-  // last #limit scores on this hole and all its isomorph holes for player, oldest -> newest
-  getCombinedRecentScores(player, course, hole, limit) {
+  // all scores on this hole and all its isomorph holes for player, oldest -> newest
+  getCombinedScores(player, course, hole) {
     const sources = [
       { course: course.course, layout: course.layout, hole: Number(hole) },
       ...this.getIsomorphHoles(course.course, course.layout, hole),
@@ -402,8 +402,46 @@ class StatsTable {
 
     return sources
       .flatMap((h) => player.recentScores[h.course + h.layout]?.[h.hole] ?? [])
-      .sort((a, b) => a.time - b.time)
-      .slice(-limit);
+      .sort((a, b) => a.time - b.time);
+  }
+
+  // last #limit scores on this hole and all its isomorph holes for player, oldest -> newest
+  getCombinedRecentScores(player, course, hole, limit) {
+    return this.getCombinedScores(player, course, hole).slice(-limit);
+  }
+
+  // personal best on this hole incl. isomorph holes (best = lowest dev from par, ties: fewer throws)
+  getPersonalBestScore(player, course, hole) {
+    const all = this.getCombinedScores(player, course, hole);
+    if (all.length === 0) return null;
+
+    return all.reduce((best, s) => {
+      const devS = s.score - s.par;
+      const devBest = best.score - best.par;
+      return devS < devBest || (devS === devBest && s.score < best.score)
+        ? s
+        : best;
+    });
+  }
+
+  // personal best total (dev from par) on exactly this course/layout, only completed rounds
+  getPersonalBestTotal(player, course) {
+    const totals = Object.values(this.matches)
+      .filter(
+        (m) =>
+          m.course === course.course &&
+          m.layout === course.layout &&
+          player.name in m.players &&
+          this.hasPlayerCompletedMatch(m, player),
+      )
+      .map((m) => m.players[player.name].devFromPar);
+
+    return totals.length > 0 ? Math.min(...totals) : null;
+  }
+
+  // check if the player played every hole of this match
+  hasPlayerCompletedMatch(match, player) {
+    return match.players[player.name]?.howManyHolesNotPlayedInThisMatch === 0;
   }
 
   // returns all other holes that are isomorph to the given one
@@ -488,6 +526,7 @@ class StatsTable {
                 <span><b>neu</b></span>
               </span>
             </th>
+            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
           </tr>
         </thead>
         <tbody>
@@ -509,6 +548,18 @@ class StatsTable {
           <b style="color: ${color};">${this.formatDevFromPar(dev)}</b>
         </td>`;
         });
+
+        const pbTotal = this.getPersonalBestTotal(player, course);
+        if (pbTotal !== null) {
+          const pbColor =
+            pbTotal > 0 ? "#e26028" : pbTotal < 0 ? "#408ce2" : "#212529";
+          html += `
+            <td style="padding: 3px; width: 36px; vertical-align: middle; border-left: 3px double #adb5bd;">
+              <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal)}</b>
+            </td>`;
+        } else {
+          html += `<td style="border-left: 3px double #adb5bd;"></td>`;
+        }
       }
 
       html += `</tr></tbody></table>
@@ -523,6 +574,7 @@ class StatsTable {
                 <span><b>neu</b></span>
               </span>
             </th>
+            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
           </tr>
         </thead>
         <tbody>`;
@@ -571,6 +623,11 @@ class StatsTable {
               <span class="badge bg-scorecard-${this.getScoreClass(score - par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${score}</span>
             </td>`;
         });
+        const pb = this.getPersonalBestScore(player, course, hole);
+        html += `
+          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd;">
+            <span class="badge bg-scorecard-${this.getScoreClass(pb.score - pb.par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
+          </td>`;
 
         html += `</tr>`;
       }
