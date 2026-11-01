@@ -386,7 +386,9 @@ class StatsTable {
       .slice(-limit)
       .map((m) => ({
         dev: m.players[player.name].devFromPar,
-        wasMatchCompleted: this.hasPlayerCompletedMatch(m, player),
+        thru: this.hasPlayerCompletedMatch(m, player)
+          ? null // null = round completed, otherwise the number of holes played
+          : m.holes - m.players[player.name].howManyHolesNotPlayedInThisMatch,
       }));
   }
 
@@ -543,11 +545,23 @@ class StatsTable {
           html += `<td style="padding: 3px; width: 36px"></td>`;
         }
 
-        totals.forEach(({ dev, wasMatchCompleted }, index) => {
+        totals.forEach(({ dev, thru }) => {
           const color = dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529";
+          const isIncomplete = thru !== null;
+
+          const popoverAttributes = isIncomplete
+            ? `tabindex="0"
+              data-bs-toggle="popover"
+              data-bs-trigger="hover focus"
+              data-bs-container="body"
+              data-bs-html="true"
+              data-bs-placement="top"
+              data-bs-content="<b>THRU ${thru}</b>"`
+            : "";
+
           html += `
-            <td style="padding: 3px; width: 36px; vertical-align: middle;">
-              <b style="color: ${color};">${this.formatDevFromPar(dev)}${wasMatchCompleted ? "" : "*"}</b>
+            <td style="padding: 3px; width: 36px; vertical-align: middle;${isIncomplete ? " cursor: pointer;" : ""}" ${popoverAttributes}>
+              <b style="color: ${color};">${this.formatDevFromPar(dev)}${isIncomplete ? "*" : ""}</b>
             </td>`;
         });
 
