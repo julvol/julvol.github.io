@@ -384,7 +384,10 @@ class StatsTable {
       )
       .sort((a, b) => a.startTime - b.startTime)
       .slice(-limit)
-      .map((m) => m.players[player.name].devFromPar);
+      .map((m) => ({
+        dev: m.players[player.name].devFromPar,
+        wasMatchCompleted: this.hasPlayerCompletedMatch(m, player),
+      }));
   }
 
   formatDevFromPar(dev) {
@@ -540,13 +543,12 @@ class StatsTable {
           html += `<td style="padding: 3px; width: 36px"></td>`;
         }
 
-        totals.forEach((dev, index) => {
-          const column = MAX_RECENT - totals.length + index;
+        totals.forEach(({ dev, wasMatchCompleted }, index) => {
           const color = dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529";
           html += `
-        <td style="padding: 3px; width: 36px; vertical-align: middle;">
-          <b style="color: ${color};">${this.formatDevFromPar(dev)}</b>
-        </td>`;
+            <td style="padding: 3px; width: 36px; vertical-align: middle;">
+              <b style="color: ${color};">${this.formatDevFromPar(dev)}${wasMatchCompleted ? "" : "*"}</b>
+            </td>`;
         });
 
         const pbTotal = this.getPersonalBestTotal(player, course);
