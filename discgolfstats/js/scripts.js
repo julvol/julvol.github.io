@@ -69,7 +69,7 @@ class StatsTable {
     // Aachen Kronenbergpark (Main, Newcomer 18, Advanced Newcomer, Rotkehlchen, Andalucia Nueva, Aixpert 18, Pinguin, Phoenix, Spaßvogel)
     // Discgolfpark Herzogenrath (Main, Main + Six, Eurode 18)
     // Discgolfpark Station As (Main, Main 9 X 2)
-    // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main)
+    // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main, De Kull Safari)
     this.isomorphHoles = [];
   }
 
