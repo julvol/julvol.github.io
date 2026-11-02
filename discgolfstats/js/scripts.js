@@ -358,7 +358,6 @@ class StatsTable {
       }
     });
 
-    console.log(this.courses);
     console.log(this.matches);
     Object.values(this.matches)
       .sort((a, b) => a.startTime - b.startTime)
@@ -369,12 +368,19 @@ class StatsTable {
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach((player) => this.getPlayerString(player));
 
+    console.log(this.courses);
+    Object.values(this.courses)
+      .sort((a, b) => (a.course + a.layout).localeCompare(b.course + b.layout))
+      .forEach((course) => this.getCourseString(course));
+
     // popover content inline style is restricted by Bootstrap; allow inline styles on <span> only
     bootstrap.Popover.Default.allowList.span = ["style"];
 
     // initialize isomorph holes popovers once all player HTML exists
     document
-      .querySelectorAll('#playersAccordion [data-bs-toggle="popover"]')
+      .querySelectorAll(
+        '#playersAccordion [data-bs-toggle="popover"], #coursesAccordion [data-bs-toggle="popover"]',
+      )
       .forEach((el) => new bootstrap.Popover(el));
   }
 
@@ -827,6 +833,81 @@ class StatsTable {
           </div>`;
 
     document.getElementById("playersAccordion").innerHTML += playerString;
+  }
+
+  getCourseString(course) {
+    const courseNameWithoutSpecialChars = (
+      course.course + course.layout
+    ).replace(/[^a-zA-Z0-9]/g, ""); // specialChars problematic in ids
+
+    // all players with at least one completed round on this course/layout, best (lowest) first
+    const pbRows = Object.values(this.players)
+      .map((player) => ({
+        name: player.name,
+        pb: this.getPersonalBestTotal(player, course),
+      }))
+      .filter(({ pb }) => pb !== null)
+      .sort(
+        (a, b) =>
+          a.pb.dev - b.pb.dev ||
+          a.pb.time - b.pb.time || // tie: who was first
+          a.name.localeCompare(b.name),
+      );
+
+    let pbRowsString = "";
+    if (pbRows.length === 0) {
+      pbRowsString = `<tr><td colspan="2" class="text-muted">Noch keine abgeschlossene Runde.</td></tr>`;
+    } else {
+      pbRows.forEach(({ name, pb }) => {
+        const pbColor =
+          pb.dev > 0 ? "#e26028" : pb.dev < 0 ? "#408ce2" : "#212529";
+        pbRowsString += `
+          <tr>
+            <th class="text-start-table-header-info">${name}</th>
+            <td style="cursor: pointer;" ${this.getPopoverAttributes(`<b>${this.formatDate(pb.time)}</b>`)}>
+              <b style="color: ${pbColor};">${this.formatDevFromPar(pb.dev)}</b> (${pb.total})
+            </td>
+          </tr>`;
+      });
+    }
+
+    let courseLayoutString = `<div class="accordion-item col-lg-6 mx-auto">
+            <h2 class="accordion-header" id="heading-${courseNameWithoutSpecialChars}">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-${courseNameWithoutSpecialChars}"
+                aria-expanded="true"
+                aria-controls="collapse-${courseNameWithoutSpecialChars}"
+              >
+                <h4>${course.course} (${course.layout})</h4>
+              </button>
+            </h2>
+            <div
+              id="collapse-${courseNameWithoutSpecialChars}"
+              class="accordion-collapse collapse"
+              aria-labelledby="heading-${courseNameWithoutSpecialChars}"
+              data-bs-parent="#myAccordion"
+            >
+              <div class="accordion-body" style="background-color: #fff9f3;">
+                <h5>Bestenliste:</h5>
+                <table
+                  class="table table-bordered text-center align-middle w-auto"
+                >
+                  <thead>
+                    <tr>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Spieler</th>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">PB</th>
+                    </tr>
+                  </thead>
+                  <tbody>${pbRowsString}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>`;
+
+    document.getElementById("coursesAccordion").innerHTML += courseLayoutString;
   }
 
   getStatsString(match) {
