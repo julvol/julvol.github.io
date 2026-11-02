@@ -443,6 +443,7 @@ class StatsTable {
       .sort((a, b) => a.startTime - b.startTime)
       .map((m) => ({
         dev: m.players[player.name].devFromPar,
+        total: m.players[player.name].total,
         time: m.startTime,
       }))
       .reduce(
@@ -774,7 +775,7 @@ class StatsTable {
           pbTotal.dev > 0 ? "#e26028" : pbTotal.dev < 0 ? "#408ce2" : "#212529";
         pbCell = `
         <td style="border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`<b>zuerst am ${this.formatDate(pbTotal.time)}</b>`)}>
-          <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b>
+          <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b> (${pbTotal.total})
         </td>`;
       }
 
