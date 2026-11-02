@@ -613,7 +613,7 @@ class StatsTable {
               <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b>
             </td>`;
         } else {
-          html += `<td style="border-left: 3px double #adb5bd;"></td>`;
+          html += `<td style="border-left: 3px double #adb5bd;">-</td>`;
         }
       }
 
@@ -769,7 +769,7 @@ class StatsTable {
 
     player.playedCourses.forEach((course) => {
       const pbTotal = this.getPersonalBestTotal(player, course);
-      let pbCell = `<td style="border-left: 3px double #adb5bd;"></td>`; // if no completed round: pbCell not overwritten
+      let pbCell = `<td style="border-left: 3px double #adb5bd;">-</td>`; // if no completed round: pbCell not overwritten
       if (pbTotal !== null) {
         const pbColor =
           pbTotal.dev > 0 ? "#e26028" : pbTotal.dev < 0 ? "#408ce2" : "#212529";
