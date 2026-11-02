@@ -752,14 +752,32 @@ class StatsTable {
                 <table
                   class="table table-bordered text-center align-middle w-auto"
                 >
+                  <thead>
+                    <tr>
+                      <th colspan="2" style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Kurs</th>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">#</th>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
+                    </tr>
+                  </thead>
                   <tbody>`;
 
     player.playedCourses.forEach((course) => {
+      const pbTotal = this.getPersonalBestTotal(player, course);
+      let pbCell = `<td style="border-left: 3px double #adb5bd;"></td>`; // if no completed round: pbCell not overwritten
+      if (pbTotal !== null) {
+        const pbColor =
+          pbTotal.dev > 0 ? "#e26028" : pbTotal.dev < 0 ? "#408ce2" : "#212529";
+        pbCell = `
+        <td style="border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`<b>zuerst am ${this.formatDate(pbTotal.time)}</b>`)}>
+          <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b>
+        </td>`;
+      }
+
       playerString += `
       <tr>
         <th class="text-start-table-header-info">${course.course}</th>
         <th class="text-start">${course.layout}</th>
-        <td>${course.count}</td>
+        <td>${course.count}</td>${pbCell}
       </tr>`;
     });
     playerString += `</tbody>
