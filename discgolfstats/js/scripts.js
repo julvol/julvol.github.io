@@ -537,7 +537,15 @@ class StatsTable {
 
   getRecentScoresString(player) {
     const MAX_RECENT = 4;
-    const recentScoresEntries = Object.entries(player.recentScores);
+    const label = (courseKey) => {
+      const course = this.courses[courseKey];
+      return `${course.course} (${course.layout})`;
+    };
+
+    const recentScoresEntries = Object.entries(player.recentScores).sort(
+      ([keyA], [keyB]) =>
+        label(keyA).localeCompare(label(keyB), "de", { numeric: true }),
+    );
     if (recentScoresEntries.length === 0) return "";
 
     let html = `<h5>Letzte Ergebnisse</h5>`;
@@ -762,7 +770,7 @@ class StatsTable {
                 >
                   <tbody>
                     <tr>
-                      <th class="text-start-table-header-info">Under Par</th>
+                      <th class="text-start-table-header-info">Unter</th>
                       <th><span class="badge bg-scorecard-birdie" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"></span></th>
                       <td>${player.devFromParPerHole[-1]}</td>
                     </tr>
@@ -777,7 +785,7 @@ class StatsTable {
                       <td>${player.devFromParPerHole["1"]}</td>
                     </tr>
                     <tr>
-                      <th class="text-start-table-header-info">Double Bogey</th>
+                      <th class="text-start-table-header-info">Double</th>
                       <th><span class="badge bg-scorecard-doublebogey" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
                       <td>${player.devFromParPerHole["2"]}</td>
                     </tr>
