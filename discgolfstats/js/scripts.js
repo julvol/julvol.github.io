@@ -760,7 +760,7 @@ class StatsTable {
                 >
                   <thead>
                     <tr>
-                      <th colspan="2" style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Kurs</th>
+                      <th colspan="2" style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Parcours</th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;"># gesp.</th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
                     </tr>
