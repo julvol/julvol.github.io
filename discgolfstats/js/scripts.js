@@ -369,6 +369,9 @@ class StatsTable {
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach((player) => this.getPlayerString(player));
 
+    // popover content inline style is restricted by Bootstrap; allow inline styles on <span> only
+    bootstrap.Popover.Default.allowList.span = ["style"];
+
     // initialize isomorph holes popovers once all player HTML exists
     document
       .querySelectorAll('#playersAccordion [data-bs-toggle="popover"]')
@@ -586,7 +589,9 @@ class StatsTable {
           const isIncomplete = thru !== null;
           const content =
             `<b>${this.formatDate(time)}</b>` +
-            (isIncomplete ? `<br>THRU ${thru}` : "");
+            (isIncomplete
+              ? `<br><span style='font-size: 0.7rem'>THRU</span> ${thru}`
+              : "");
 
           html += `
             <td style="padding: 3px; width: 36px; vertical-align: middle; cursor: pointer;" ${this.getPopoverAttributes(content)}>
