@@ -429,17 +429,19 @@ class StatsTable {
 
   // personal best on this hole incl. isomorph holes = fewest throws (absolute score)
   // on a tie the earliest one wins, because getCombinedScores is sorted oldest -> newest
+  // count = how often that score was achieved
   getPersonalBestScore(player, course, hole) {
     const all = this.getCombinedScores(player, course, hole);
     if (all.length === 0) return null;
 
-    return all.reduce((best, s) => (s.score < best.score ? s : best));
+    const best = all.reduce((b, s) => (s.score < b.score ? s : b));
+    return { ...best, count: all.filter((s) => s.score === best.score).length };
   }
 
   // personal best total on exactly this course/layout, only completed rounds
-  // returns { dev, time } or null (on a tie the earliest round wins)
+  // returns { dev, total, time, count } or null (on a tie the earliest round wins)
   getPersonalBestTotal(player, course) {
-    return Object.values(this.matches)
+    const totals = Object.values(this.matches)
       .filter(
         (m) =>
           m.course === course.course &&
@@ -451,11 +453,11 @@ class StatsTable {
         dev: m.players[player.name].devFromPar,
         total: m.players[player.name].total,
         time: m.startTime,
-      }))
-      .reduce(
-        (best, t) => (best === null || t.dev < best.dev ? t : best),
-        null,
-      );
+      }));
+    if (totals.length === 0) return null;
+
+    const best = totals.reduce((b, t) => (t.dev < b.dev ? t : b));
+    return { ...best, count: totals.filter((t) => t.dev === best.dev).length };
   }
 
   formatDate(time) {
@@ -615,7 +617,7 @@ class StatsTable {
                 ? "#408ce2"
                 : "#212529";
           html += `
-            <td style="padding: 3px; width: 36px; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`<b>zuerst am ${this.formatDate(pbTotal.time)}</b>`)}>
+            <td style="padding: 3px; width: 36px; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(this.getPbDateLabel(pbTotal.time, pbTotal.count > 1))}>
               <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b>
             </td>`;
         } else {
@@ -688,7 +690,7 @@ class StatsTable {
         const pb = this.getPersonalBestScore(player, course, hole);
         const originalPar = course[hole][0].score;
         html += `
-          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes("<b>zuerst am </b>" + this.getScorePopoverContent(pb))}>
+          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`${this.getPbDateLabel(pb.time, pb.count > 1)}<br>auf ${pb.layout}`)}>
             <span class="badge bg-scorecard-${this.getScoreClass(pb.score - originalPar)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
           </td>`;
       }
@@ -700,6 +702,11 @@ class StatsTable {
     });
 
     return html;
+  }
+
+  // date line for PB popovers: "erstmals am" only if the PB was achieved more than once
+  getPbDateLabel(time, achievedMultipleTimes) {
+    return `<b>${achievedMultipleTimes ? "erstmals am" : ""} ${this.formatDate(time)}</b>`;
   }
 
   formatDateStringForStatsStringHeader(date) {
@@ -780,7 +787,7 @@ class StatsTable {
         const pbColor =
           pbTotal.dev > 0 ? "#e26028" : pbTotal.dev < 0 ? "#408ce2" : "#212529";
         pbCell = `
-        <td style="border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`<b>zuerst am ${this.formatDate(pbTotal.time)}</b>`)}>
+        <td style="border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(this.getPbDateLabel(pbTotal.time, pbTotal.count > 1))}>
           <b style="color: ${pbColor};">${this.formatDevFromPar(pbTotal.dev)}</b> (${pbTotal.total})
         </td>`;
       }
@@ -864,7 +871,7 @@ class StatsTable {
         pbRowsString += `
           <tr>
             <th class="text-start-table-header-info">${name}</th>
-            <td style="cursor: pointer;" ${this.getPopoverAttributes(`<b>${this.formatDate(pb.time)}</b>`)}>
+            <td style="cursor: pointer;" ${this.getPopoverAttributes(this.getPbDateLabel(pb.time, pb.count > 1))}>
               <b style="color: ${pbColor};">${this.formatDevFromPar(pb.dev)}</b> (${pb.total})
             </td>
           </tr>`;
