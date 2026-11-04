@@ -679,8 +679,7 @@ class StatsTable {
     };
 
     const recentScoresEntries = Object.entries(player.recentScores).sort(
-      ([keyA], [keyB]) =>
-        label(keyA).localeCompare(label(keyB), "de", { numeric: true }),
+      ([keyA], [keyB]) => keyA.localeCompare(keyB, "de", { numeric: true }),
     );
     if (recentScoresEntries.length === 0) return "";
 
