@@ -412,13 +412,18 @@ class StatsTable {
       let barCell = `<td>-</td>`;
       if (total > 0) {
         const popoverContent =
-          `<b>${total} Ergebnisse</b><br>` +
+          `<b>${total} Einträge</b>` +
           segments
-            .map(
-              (s) =>
-                `${s.label}: ${distribution[s.key]} (${Math.round((distribution[s.key] / total) * 100)}%)`,
-            )
-            .join("<br>");
+            .map((s) => {
+              const count = distribution[s.key];
+              const percent = Math.round((count / total) * 100);
+              return `<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap;${count === 0 ? " opacity: 0.4;" : ""}">
+                  ${this.getScoreClassDot(s.cls)}
+                  <span style="min-width: 2ch; text-align: right;">${count}</span>
+                  <span style="min-width: 4ch; text-align: right;">${percent}%</span>
+                </span>`;
+            })
+            .join("");
 
         const bar = segments
           .filter((s) => distribution[s.key] > 0)
@@ -445,10 +450,7 @@ class StatsTable {
     }
 
     const legend = segments
-      .map(
-        (s) =>
-          `<span><span class="badge bg-scorecard-${s.cls}" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"></span> ${s.label}</span>`,
-      )
+      .map((s) => `<span>${this.getScoreClassDot(s.cls)} ${s.label}</span>`)
       .join("");
 
     return `
@@ -467,6 +469,13 @@ class StatsTable {
     </table>
     <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">Die Verteilung betrachtet nur auf diesem Layout gespielte Runden.</div>
     <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">${legend}</div>`;
+  }
+
+  getScoreClassDot(cls) {
+    return `<span
+      class="badge bg-scorecard-${cls}"
+      style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"
+    ></span>`;
   }
 
   // last #limit totals (dev from par) of this player on exactly this course/layout, oldest -> newest
@@ -560,13 +569,14 @@ class StatsTable {
 
   // attributes that turn an element into a hover/tap popover
   getPopoverAttributes(content, placement = "top") {
+    const escapedContent = content.replace(/"/g, "&quot;");
     return `tabindex="0"
-    data-bs-toggle="popover"
-    data-bs-trigger="hover focus"
-    data-bs-container="body"
-    data-bs-html="true"
-    data-bs-placement="${placement}"
-    data-bs-content="${content}"`;
+      data-bs-toggle="popover"
+      data-bs-trigger="hover focus"
+      data-bs-container="body"
+      data-bs-html="true"
+      data-bs-placement="${placement}"
+      data-bs-content="${escapedContent}"`;
   }
 
   // check if the player played every hole of this match
@@ -893,27 +903,27 @@ class StatsTable {
                   <tbody>
                     <tr>
                       <th class="text-start-table-header-info">Unter</th>
-                      <th><span class="badge bg-scorecard-birdie" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"></span></th>
+                      <th>${this.getScoreClassDot("birdie")}</th>
                       <td>${player.devFromParPerHole[-1]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">Par</th>
-                      <th><span class="badge bg-scorecard-par" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th>${this.getScoreClassDot("par")}</th>
                       <td>${player.devFromParPerHole["0"]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">Bogey</th>
-                      <th><span class="badge bg-scorecard-bogey" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th>${this.getScoreClassDot("bogey")}</th>
                       <td>${player.devFromParPerHole["1"]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">Double</th>
-                      <th><span class="badge bg-scorecard-doublebogey" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th>${this.getScoreClassDot("doublebogey")}</th>
                       <td>${player.devFromParPerHole["2"]}</td>
                     </tr>
                     <tr>
                       <th class="text-start-table-header-info">3+</th>
-                      <th><span class="badge bg-scorecard-plusthree" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"> </span></th>
+                      <th>${this.getScoreClassDot("plusthree")}</th>
                       <td>${player.devFromParPerHole["3+"]}</td>
                     </tr>
                   </tbody>
