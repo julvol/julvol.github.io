@@ -411,7 +411,7 @@ class StatsTable {
 
       let barCell = `<td>-</td>`;
       if (total > 0) {
-        const popoverContent =
+        const popoverContentDistribution =
           `<b>${total} ${total == 1 ? "Eintrag" : "Einträge"}</b>` +
           segments
             .map((s) => {
@@ -434,14 +434,36 @@ class StatsTable {
           .join("");
 
         barCell = `
-        <td style="padding: 6px; cursor: pointer;" ${this.getPopoverAttributes(popoverContent)}>
+        <td style="padding: 6px; cursor: pointer;" ${this.getPopoverAttributes(popoverContentDistribution)}>
           <div style="display: flex; width: 110px; height: 14px; border-radius: 3px; overflow: hidden;">${bar}</div>
         </td>`;
       }
 
+      const isomorphs = this.getIsomorphHoles(
+        course.course,
+        course.layout,
+        hole,
+      );
+      if (isomorphs.length > 0) {
+        const popoverContentIsomorphHoles =
+          "<b>identisch zu</b><br>" +
+          isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
+        rowsString += `<tr><th
+          class="text-start-table-header-info"
+          tabindex="0"
+          style="cursor: pointer;"
+          data-bs-toggle="popover"
+          data-bs-trigger="hover focus"
+          data-bs-container="body"
+          data-bs-html="true"
+          data-bs-placement="right"
+          data-bs-content="${popoverContentIsomorphHoles}"
+        >Bahn ${hole}</th>`;
+      } else {
+        rowsString += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
+      }
+
       rowsString += `
-      <tr>
-        <th class="text-start-table-header-info">Bahn ${hole}</th>
         ${lengths ? `<td>${lengths[hole - 1] ?? "-"}</td>` : ""}
         <td>${par}</td>
         <td><b style="color: ${avgColor};">${this.formatAverageToPar(avg)}</b></td>
@@ -467,7 +489,7 @@ class StatsTable {
       </thead>
       <tbody>${rowsString}</tbody>
     </table>
-    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; enthält nur auf diesem Layout gespielte Runden</div>`;
+    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; enthält nur auf ${course.layout} gespielte Runden</div>`;
   }
 
   getScoreClassDot(cls) {
