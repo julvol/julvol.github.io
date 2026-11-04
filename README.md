@@ -9,8 +9,9 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
   <img width="721" height="513" alt="image" src="https://github.com/user-attachments/assets/cbe83374-f7b4-4877-85cb-f9d1b04cb3b5" />
 - For every player, it shows the played courses with their personal best, the distribution of played holes and the most recent score for every layout and hole. If the same hole is included in multiple layouts, recent results on the isomorphic holes in other layouts are also displayed. Hover over or click on the hole number to see which other holes are isomorphic to it. Hover over or click on a recent score or personal best to see where it originates from and when that result was achieved.<br>
   <img width="570" height="1354" alt="image" src="https://github.com/user-attachments/assets/20de0351-9b48-49b6-8207-761da48ccf6e" />
-- For every course and layout, it shows the leaderbord.<br>
-  <img width="568" height="376" alt="image" src="https://github.com/user-attachments/assets/7f99a623-6e8c-4400-9511-f2a6265c0681" />
+- For every course and layout, it shows the layout leaderbord and the per-hole distribution (only from rounds played on that layout).<br>
+  <img width="483" height="821" alt="image" src="https://github.com/user-attachments/assets/5fc3e6d5-f39e-4508-a8be-316e9a9b6e9b" />
+
   
 Personal bests require a round to be completed, i.e. not missing any holes.
 
