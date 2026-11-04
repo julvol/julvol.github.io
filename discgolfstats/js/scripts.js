@@ -412,7 +412,7 @@ class StatsTable {
       let barCell = `<td>-</td>`;
       if (total > 0) {
         const popoverContent =
-          `<b>${total} Einträge</b>` +
+          `<b>${total} ${total == 1 ? "Eintrag" : "Einträge"}</b>` +
           segments
             .map((s) => {
               const count = distribution[s.key];
