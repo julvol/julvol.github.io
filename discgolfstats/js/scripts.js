@@ -462,13 +462,12 @@ class StatsTable {
           ${lengths ? `<th style="${headStyle}">Länge</th>` : ""}
           <th style="${headStyle}">Par</th>
           <th style="${headStyle}">Ø Par</th>
-          <th style="${headStyle}">Verteilung</th>
+          <th style="${headStyle}">Verteilung&#x00B9;</th>
         </tr>
       </thead>
       <tbody>${rowsString}</tbody>
     </table>
-    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">Die Verteilung betrachtet nur auf diesem Layout gespielte Runden.</div>
-    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">${legend}</div>`;
+    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; enthält nur auf diesem Layout gespielte Runden</div>`;
   }
 
   getScoreClassDot(cls) {
@@ -502,6 +501,14 @@ class StatsTable {
     if (dev > 0) return `+${dev}`;
     if (dev === 0) return "E";
     return `${dev}`;
+  }
+
+  // average score (absolute) on this hole incl. isomorph holes, or null if never played
+  getAverageScore(player, course, hole) {
+    const all = this.getCombinedScores(player, course, hole);
+    if (all.length === 0) return null;
+
+    return all.reduce((sum, s) => sum + s.score, 0) / all.length;
   }
 
   // all scores on this hole and all its isomorph holes for player, oldest -> newest
@@ -674,7 +681,7 @@ class StatsTable {
                 <span><b>neu</b></span>
               </span>
             </th>
-            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
+            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB&#x00B9;</th>
           </tr>
         </thead>
         <tbody>
@@ -732,7 +739,8 @@ class StatsTable {
                 <span><b>neu</b></span>
               </span>
             </th>
-            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
+            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB&#x00B9;</th>
+            <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">&#x2300;&#x00B9;</th>
           </tr>
         </thead>
         <tbody>`;
@@ -788,11 +796,22 @@ class StatsTable {
           <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`${this.getPbDateLabel(pb.time, pb.count > 1)}<br>auf ${pb.layout}`)}>
             <span class="badge bg-scorecard-${this.getScoreClass(pb.score - originalPar)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
           </td>`;
+
+        const average = this.getAverageScore(player, course, hole);
+        const averageText = new Intl.NumberFormat("de-DE", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(average);
+        html += `
+          <td style="padding: 3px; width: 46px; line-height: 1; vertical-align: middle;">
+            <span class="badge bg-scorecard-${this.getScoreClass(Math.round(average - originalPar))}" style="display: block; width: 40px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${averageText}</span>
+          </td>`;
       }
 
       html += `
         </tbody>
       </table>
+      <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; über die gesamte Zeit</div>
     </details>`;
     });
 
