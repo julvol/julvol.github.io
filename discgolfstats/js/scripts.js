@@ -375,8 +375,8 @@ class StatsTable {
   formatAverageToPar(avg) {
     if (avg === null) return "-";
     return new Intl.NumberFormat("de-DE", {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
       signDisplay: "exceptZero",
     }).format(avg);
   }
