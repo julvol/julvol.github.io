@@ -149,57 +149,14 @@ class StatsTable {
             name: row.c[0]?.v, // (= Par because Par is first row)
             score: row.c[i + this.FIRST_SCORE_COLUMN_OFFSET]?.v,
           });
-          newCourse[i + 1].distribution = {
-            "-1": 0,
-            0: 0,
-            1: 0,
-            2: 0,
-            "3+": 0,
-          };
-          newCourse[i + 1].averageToPar = 0;
         }
-
-        // create distribution from the scores for each hole of each course/layout combination
-        Object.values(this.courses).forEach((course) => {
-          for (let hole = 1; hole <= course.howManyHoles; hole++) {
-            const entries = course[hole];
-            const parEntry = entries[0]; // Par row is always first
-            const par = parEntry.score;
-
-            // reset in case this runs more than once
-            const distribution = { "-1": 0, 0: 0, 1: 0, 2: 0, "3+": 0 };
-
-            // skip index 0 (Par itself)
-            let total = 0;
-            let count = 0;
-            for (let i = 1; i < entries.length; i++) {
-              const score = entries[i].score;
-              const diff = score - par;
-              total += score;
-              count++;
-
-              if (diff <= -1) {
-                distribution["-1"]++;
-              } else if (diff === 0) {
-                distribution[0]++;
-              } else if (diff === 1) {
-                distribution[1]++;
-              } else if (diff === 2) {
-                distribution[2]++;
-              } else {
-                distribution["3+"]++;
-              }
-            }
-            course[hole].distribution = distribution;
-
-            course[hole].averageToPar = count > 0 ? total / count - par : null;
-          }
-        });
 
         // add courses scores to course
         this.courses[row.c[1]?.v + row.c[2]?.v] = newCourse;
       }
     });
+
+    this.calculateHoleStatistics();
 
     // we always have (1 header row + 1 par row + 1 row for each player) per match in the sheet
     rows.forEach((row) => {
@@ -382,6 +339,134 @@ class StatsTable {
         '#playersAccordion [data-bs-toggle="popover"], #coursesAccordion [data-bs-toggle="popover"]',
       )
       .forEach((el) => new bootstrap.Popover(el));
+  }
+
+  // distribution + average vs. par for every hole of every course/layout (needs all rows to be read first)
+  calculateHoleStatistics() {
+    Object.values(this.courses).forEach((course) => {
+      for (let hole = 1; hole <= course.howManyHoles; hole++) {
+        const entries = course[hole];
+        const par = entries[0].score; // Par row is always first
+
+        const distribution = { "-1": 0, 0: 0, 1: 0, 2: 0, "3+": 0 };
+        let total = 0;
+        let count = 0;
+
+        // skip index 0 (Par itself)
+        for (let i = 1; i < entries.length; i++) {
+          const score = entries[i].score;
+          const diff = score - par;
+          total += score;
+          count++;
+
+          if (diff <= -1) distribution["-1"]++;
+          else if (diff === 0) distribution[0]++;
+          else if (diff === 1) distribution[1]++;
+          else if (diff === 2) distribution[2]++;
+          else distribution["3+"]++;
+        }
+
+        entries.distribution = distribution;
+        entries.averageToPar = count > 0 ? total / count - par : null;
+      }
+    });
+  }
+
+  formatAverageToPar(avg) {
+    if (avg === null) return "-";
+    return new Intl.NumberFormat("de-DE", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+      signDisplay: "exceptZero",
+    }).format(avg);
+  }
+
+  getHoleStatsString(course) {
+    const lengths = this.holeLengthsSets.find(
+      (s) => s.course === course.course && s.layout === course.layout,
+    )?.lengths;
+
+    const segments = [
+      { key: "-1", label: "Unter", cls: "birdie" },
+      { key: "0", label: "Par", cls: "par" },
+      { key: "1", label: "Bogey", cls: "bogey" },
+      { key: "2", label: "Double", cls: "doublebogey" },
+      { key: "3+", label: "3+", cls: "plusthree" },
+    ];
+    const headStyle =
+      "font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;";
+
+    let rowsString = "";
+    for (let hole = 1; hole <= course.howManyHoles; hole++) {
+      const entries = course[hole];
+      const par = entries[0].score; // Par row is always first
+      const distribution = entries.distribution;
+      const total = segments.reduce((sum, s) => sum + distribution[s.key], 0);
+
+      // color by the rounded value, so "0,0" is not shown as over par
+      const avg = entries.averageToPar;
+      const rounded = avg === null ? 0 : Math.round(avg * 10) / 10;
+      const avgColor =
+        rounded > 0 ? "#e26028" : rounded < 0 ? "#408ce2" : "#212529";
+
+      let barCell = `<td>-</td>`;
+      if (total > 0) {
+        const popoverContent =
+          `<b>${total} Ergebnisse</b><br>` +
+          segments
+            .map(
+              (s) =>
+                `${s.label}: ${distribution[s.key]} (${Math.round((distribution[s.key] / total) * 100)}%)`,
+            )
+            .join("<br>");
+
+        const bar = segments
+          .filter((s) => distribution[s.key] > 0)
+          .map(
+            (s) =>
+              `<div class="bg-scorecard-${s.cls}" style="width: ${(distribution[s.key] / total) * 100}%;"></div>`,
+          )
+          .join("");
+
+        barCell = `
+        <td style="padding: 6px; cursor: pointer;" ${this.getPopoverAttributes(popoverContent)}>
+          <div style="display: flex; width: 110px; height: 14px; border-radius: 3px; overflow: hidden;">${bar}</div>
+        </td>`;
+      }
+
+      rowsString += `
+      <tr>
+        <th class="text-start-table-header-info">Bahn ${hole}</th>
+        ${lengths ? `<td>${lengths[hole - 1] ?? "-"}</td>` : ""}
+        <td>${par}</td>
+        <td><b style="color: ${avgColor};">${this.formatAverageToPar(avg)}</b></td>
+        ${barCell}
+      </tr>`;
+    }
+
+    const legend = segments
+      .map(
+        (s) =>
+          `<span><span class="badge bg-scorecard-${s.cls}" style="display: inline-block; width: 11px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;"></span> ${s.label}</span>`,
+      )
+      .join("");
+
+    return `
+    <h5 class="mt-3">Bahnen:</h5>
+    <table class="table table-bordered text-center align-middle w-auto">
+      <thead>
+        <tr>
+          <th style="${headStyle}"></th>
+          ${lengths ? `<th style="${headStyle}">Länge</th>` : ""}
+          <th style="${headStyle}">Par</th>
+          <th style="${headStyle}">Ø Par</th>
+          <th style="${headStyle}">Verteilung</th>
+        </tr>
+      </thead>
+      <tbody>${rowsString}</tbody>
+    </table>
+    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">Die Verteilung betrachtet nur auf diesem Layout gespielte Runden.</div>
+    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">${legend}</div>`;
   }
 
   // last #limit totals (dev from par) of this player on exactly this course/layout, oldest -> newest
@@ -910,6 +995,7 @@ class StatsTable {
                   </thead>
                   <tbody>${pbRowsString}</tbody>
                 </table>
+                ${this.getHoleStatsString(course)}
               </div>
             </div>
           </div>`;
