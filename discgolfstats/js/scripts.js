@@ -400,13 +400,7 @@ class StatsTable {
       (s) => s.course === course.course && s.layout === course.layout,
     )?.lengths;
 
-    const segments = [
-      { key: "-1", label: "Unter", cls: "birdie" },
-      { key: "0", label: "Par", cls: "par" },
-      { key: "1", label: "Bogey", cls: "bogey" },
-      { key: "2", label: "Double", cls: "doublebogey" },
-      { key: "3+", label: "3+", cls: "plusthree" },
-    ];
+    const segments = this.getDistributionSegments();
     const headStyle =
       "font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;";
 
@@ -497,7 +491,7 @@ class StatsTable {
           <th style="${headStyle}"></th>
           ${lengths ? `<th style="${headStyle}">Länge</th>` : ""}
           <th style="${headStyle}">Par</th>
-          <th style="${headStyle}">Ø Par</th>
+          <th style="${headStyle}">Ø Par&#x00B9;</th>
           <th style="${headStyle}">Verteilung&#x00B9;</th>
         </tr>
       </thead>
