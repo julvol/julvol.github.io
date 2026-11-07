@@ -318,7 +318,7 @@ class StatsTable {
     console.log(this.matches);
     Object.values(this.matches)
       .sort((a, b) => a.startTime - b.startTime)
-      .forEach((match) => this.getStatsString(match));
+      .forEach((match) => this.getMatchesString(match));
 
     console.log(this.players);
     Object.values(this.players)
@@ -333,12 +333,26 @@ class StatsTable {
     // popover content inline style is restricted by Bootstrap; allow inline styles on <span> only
     bootstrap.Popover.Default.allowList.span = ["style"];
 
-    // initialize isomorph holes popovers once all player HTML exists
+    // initialize popovers once all player HTML exists
     document
       .querySelectorAll(
-        '#playersAccordion [data-bs-toggle="popover"], #coursesAccordion [data-bs-toggle="popover"]',
+        '#playersAccordion [data-bs-toggle="popover"], #coursesAccordion [data-bs-toggle="popover"], #partien-container [data-bs-toggle="popover"]',
       )
       .forEach((el) => new bootstrap.Popover(el));
+
+    // show the distribution cells of a match only while its scorecard is expanded
+    const setDistributionCellsVisible = (collapseElement, visible) => {
+      document
+        .querySelectorAll(`[data-scorecard-id="${collapseElement.id}"]`)
+        .forEach((td) => (td.style.display = visible ? "table-cell" : "none"));
+    };
+    const partienContainer = document.getElementById("partien-container");
+    partienContainer.addEventListener("show.bs.collapse", (e) =>
+      setDistributionCellsVisible(e.target, true),
+    );
+    partienContainer.addEventListener("hide.bs.collapse", (e) =>
+      setDistributionCellsVisible(e.target, false),
+    );
   }
 
   // distribution + average vs. par for every hole of every course/layout (needs all rows to be read first)
@@ -1053,9 +1067,10 @@ class StatsTable {
     document.getElementById("coursesAccordion").innerHTML += courseLayoutString;
   }
 
-  getStatsString(match) {
+  getMatchesString(match) {
     const HOLES_PER_ROW = 9;
     const par = match.players["Par"];
+    const collapseId = `scorecard-collapsing-${match.startTime.valueOf()}`;
 
     const sortedPlayers = Object.entries(match.players)
       .filter(([playerKey]) => playerKey !== "Par")
@@ -1134,7 +1149,7 @@ class StatsTable {
             class="bg-dark text-white p-3 rounded d-inline-block"
             style="cursor: pointer"
             data-bs-toggle="collapse"
-            data-bs-target="#scorecard-collapsing-${match.startTime.valueOf()}"
+            data-bs-target="#${collapseId}"
           >
             <h4>${match.course} <span style="white-space: nowrap;">(${match.layout}) -</span> <span style="white-space: nowrap;">${this.formatDateStringForStatsStringHeader(match.startTime)}</span></h4>
             <h5 class="mb-3">Ergebnis</h5>
@@ -1145,16 +1160,17 @@ class StatsTable {
 
     sortedPlayers.forEach(([playerKey, playerVal]) => {
       statsString += `<tr>
-            <th class="text-start">${playerKey}</th>
-            <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
-            ${playerVal.howManyHolesNotPlayedInThisMatch > 0 ? "<td><span style='font-size: 0.7rem'>THRU</span> " + (match.holes - playerVal.howManyHolesNotPlayedInThisMatch) + "</td>" : ""}
-        </tr>`;
+        <th class="text-start">${playerKey}</th>
+        <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
+        ${playerVal.howManyHolesNotPlayedInThisMatch > 0 ? "<td><span style='font-size: 0.7rem'>THRU</span> " + (match.holes - playerVal.howManyHolesNotPlayedInThisMatch) + "</td>" : ""}
+        ${this.getMatchDistributionCell(playerVal, par.holes, collapseId)}
+    </tr>`;
     });
 
     statsString += `
             </tbody>
           </table>
-          <div class="collapse" id="scorecard-collapsing-${match.startTime.valueOf()}">
+          <div class="collapse" id="${collapseId}">
             <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
             <li>Dauer - ${match.duration}</li>
             <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
@@ -1174,6 +1190,74 @@ class StatsTable {
       </div>`;
 
     document.getElementById("partien-container").innerHTML += statsString;
+  }
+
+  // hidden by default, shown while the scorecard of this match is expanded
+  getMatchDistributionCell(playerVal, parHoles, collapseId) {
+    const distribution = this.getMatchDistribution(playerVal, parHoles);
+    const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+    const cellAttributes = `data-scorecard-id="${collapseId}" style="display: none; padding: 6px;`;
+
+    if (total === 0) return `<td ${cellAttributes}">-</td>`;
+
+    const title = `${total} ${total === 1 ? "Bahn" : "Bahnen"}`;
+    // stopPropagation: a tap on the bar must not collapse the scorecard again
+    return `<td ${cellAttributes} cursor: pointer;" onclick="event.stopPropagation()" ${this.getPopoverAttributes(this.getDistributionPopoverContent(distribution, total, title))}>
+      ${this.getDistributionBarString(distribution, total)}
+    </td>`;
+  }
+
+  // distribution of all played holes of one player in one match
+  getMatchDistribution(playerVal, parHoles) {
+    const distribution = { "-1": 0, 0: 0, 1: 0, 2: 0, "3+": 0 };
+    playerVal.holes.forEach((score, i) => {
+      if (score === "-") return; // hole not played
+      const diff = score - parHoles[i];
+      if (diff <= -1) distribution["-1"]++;
+      else if (diff === 0) distribution[0]++;
+      else if (diff === 1) distribution[1]++;
+      else if (diff === 2) distribution[2]++;
+      else distribution["3+"]++;
+    });
+    return distribution;
+  }
+
+  getDistributionSegments() {
+    return [
+      { key: "-1", label: "Unter", cls: "birdie" },
+      { key: "0", label: "Par", cls: "par" },
+      { key: "1", label: "Bogey", cls: "bogey" },
+      { key: "2", label: "Double", cls: "doublebogey" },
+      { key: "3+", label: "3+", cls: "plusthree" },
+    ];
+  }
+
+  getDistributionBarString(distribution, total) {
+    const bar = this.getDistributionSegments()
+      .filter((s) => distribution[s.key] > 0)
+      .map(
+        (s) =>
+          `<div class="bg-scorecard-${s.cls}" style="width: ${(distribution[s.key] / total) * 100}%;"></div>`,
+      )
+      .join("");
+    return `<div style="display: flex; width: 110px; height: 14px; border-radius: 3px; overflow: hidden;">${bar}</div>`;
+  }
+
+  getDistributionPopoverContent(distribution, total, title) {
+    return (
+      `<b>${title}</b>` +
+      this.getDistributionSegments()
+        .map((s) => {
+          const count = distribution[s.key];
+          const percent = Math.round((count / total) * 100);
+          return `<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap;${count === 0 ? " opacity: 0.4;" : ""}">
+            ${this.getScoreClassDot(s.cls)}
+            <span style="min-width: 2ch; text-align: right;">${count}</span>
+            <span style="min-width: 4ch; text-align: right;">${percent}%</span>
+          </span>`;
+        })
+        .join("")
+    );
   }
 
   loadTableData() {
