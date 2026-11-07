@@ -50,6 +50,14 @@ window.addEventListener("DOMContentLoaded", (event) => {
   });
 });
 
+const SCORE_CATEGORIES = [
+  { key: "-1", label: "Unter", cls: "birdie", matches: (d) => d <= -1 },
+  { key: "0", label: "Par", cls: "par", matches: (d) => d === 0 },
+  { key: "1", label: "Bogey", cls: "bogey", matches: (d) => d === 1 },
+  { key: "2", label: "Double", cls: "doublebogey", matches: (d) => d === 2 },
+  { key: "3+", label: "3+", cls: "plusthree", matches: (d) => d >= 3 },
+];
+
 class StatsTable {
   constructor(sheetID, sheetName, dataRange, keyIndex) {
     this.sheetID = sheetID;
@@ -171,7 +179,7 @@ class StatsTable {
           let newPlayer = {
             name: row.c[0]?.v,
             playedCoursesCount: 0,
-            devFromParPerHole: [],
+            devs: [], // dev from par per hole
             playedCourses: [],
             playedHolesCount: 0,
             recentScores: {},
@@ -190,7 +198,7 @@ class StatsTable {
             // player has played the hole: add score
             newPlayerForMatch.holes.push(row.c[7 + i]?.v);
             this.players[row.c[0]?.v].playedHolesCount++;
-            this.players[row.c[0]?.v].devFromParPerHole.push(
+            this.players[row.c[0]?.v].devs.push(
               row.c[7 + i]?.v -
                 this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
             );
@@ -198,7 +206,7 @@ class StatsTable {
             // player has not played the hole
             newPlayerForMatch.howManyHolesNotPlayedInThisMatch++;
             newPlayerForMatch.holes.push("-");
-            this.players[row.c[0]?.v].devFromParPerHole.push(420); // put 420 ==> has not played the hole
+            // unplayed hole: nothing is added
           }
         }
         this.players[row.c[0]?.v].playedCoursesCount++;
@@ -267,29 +275,8 @@ class StatsTable {
       );
       player.playedCourses = playedCoursesCounts;
 
-      const devFromParPerHoleCounts = player.devFromParPerHole.reduce(
-        (acc, value) => {
-          if (value == 420) {
-            // player has not played the hole ==> do nothing
-          } else if (value >= 3) {
-            acc["3+"]++;
-          } else if (value < 0) {
-            acc["-1"]++;
-          } else {
-            acc[value]++;
-          }
-          return acc;
-        },
-        {
-          "-1": 0,
-          0: 0,
-          1: 0,
-          2: 0,
-          "3+": 0,
-        },
-      );
-
-      player.devFromParPerHole = devFromParPerHoleCounts;
+      player.devFromParPerHole = this.createDistribution(player.devs);
+      delete player.devs; // not needed anymore
     });
 
     Object.entries(this.courses).forEach(([courseKey, course]) => {
@@ -362,26 +349,11 @@ class StatsTable {
         const entries = course[hole];
         const par = entries[0].score; // Par row is always first
 
-        const distribution = { "-1": 0, 0: 0, 1: 0, 2: 0, "3+": 0 };
-        let total = 0;
-        let count = 0;
-
-        // skip index 0 (Par itself)
-        for (let i = 1; i < entries.length; i++) {
-          const score = entries[i].score;
-          const diff = score - par;
-          total += score;
-          count++;
-
-          if (diff <= -1) distribution["-1"]++;
-          else if (diff === 0) distribution[0]++;
-          else if (diff === 1) distribution[1]++;
-          else if (diff === 2) distribution[2]++;
-          else distribution["3+"]++;
-        }
-
-        entries.distribution = distribution;
-        entries.averageToPar = count > 0 ? total / count - par : null;
+        const devs = entries.slice(1).map((e) => e.score - par); // skip the Par entry
+        entries.distribution = this.createDistribution(devs);
+        entries.averageToPar = devs.length
+          ? devs.reduce((a, b) => a + b, 0) / devs.length
+          : null;
       }
     });
   }
@@ -400,7 +372,7 @@ class StatsTable {
       (s) => s.course === course.course && s.layout === course.layout,
     )?.lengths;
 
-    const segments = this.getDistributionSegments();
+    const segments = SCORE_CATEGORIES;
     const headStyle =
       "font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;";
 
@@ -671,12 +643,19 @@ class StatsTable {
     return rounded;
   }
 
-  getScoreClass(devFromPar) {
-    if (devFromPar < 0) return "birdie";
-    if (devFromPar === 0) return "par";
-    if (devFromPar === 1) return "bogey";
-    if (devFromPar === 2) return "doublebogey";
-    return "plusthree";
+  getScoreClass(dev) {
+    return SCORE_CATEGORIES.find((c) => c.matches(dev)).cls;
+  }
+
+  // devs = array of (score - par)
+  createDistribution(devs) {
+    const distribution = Object.fromEntries(
+      SCORE_CATEGORIES.map((c) => [c.key, 0]),
+    );
+    devs.forEach(
+      (dev) => distribution[SCORE_CATEGORIES.find((c) => c.matches(dev)).key]++,
+    );
+    return distribution;
   }
 
   getRecentScoresString(player) {
@@ -949,31 +928,14 @@ class StatsTable {
                   class="table table-bordered text-center align-middle w-auto"
                 >
                   <tbody>
-                    <tr>
-                      <th class="text-start-table-header-info">Unter</th>
-                      <th>${this.getScoreClassDot("birdie")}</th>
-                      <td>${player.devFromParPerHole[-1]}</td>
-                    </tr>
-                    <tr>
-                      <th class="text-start-table-header-info">Par</th>
-                      <th>${this.getScoreClassDot("par")}</th>
-                      <td>${player.devFromParPerHole["0"]}</td>
-                    </tr>
-                    <tr>
-                      <th class="text-start-table-header-info">Bogey</th>
-                      <th>${this.getScoreClassDot("bogey")}</th>
-                      <td>${player.devFromParPerHole["1"]}</td>
-                    </tr>
-                    <tr>
-                      <th class="text-start-table-header-info">Double</th>
-                      <th>${this.getScoreClassDot("doublebogey")}</th>
-                      <td>${player.devFromParPerHole["2"]}</td>
-                    </tr>
-                    <tr>
-                      <th class="text-start-table-header-info">3+</th>
-                      <th>${this.getScoreClassDot("plusthree")}</th>
-                      <td>${player.devFromParPerHole["3+"]}</td>
-                    </tr>
+                    ${SCORE_CATEGORIES.map(
+                      (c) => `
+                        <tr>
+                          <th class="text-start-table-header-info">${c.label}</th>
+                          <th>${this.getScoreClassDot(c.cls)}</th>
+                          <td>${player.devFromParPerHole[c.key]}</td>
+                        </tr>`,
+                    ).join("")}
                   </tbody>
                 </table>`;
     playerString += this.getRecentScoresString(player);
@@ -1105,21 +1067,11 @@ class StatsTable {
               <th class="text-start" style="line-height: 0.2">${playerKey}</th>`;
         for (let i = from; i < to; i++) {
           const devFromParOnThisHole = playerVal.holes[i] - par.holes[i];
-          let classToAssign = "";
-          if (devFromParOnThisHole < 0) {
-            classToAssign = "birdie";
-          } else if (devFromParOnThisHole === 0) {
-            classToAssign = "par";
-          } else if (devFromParOnThisHole === 1) {
-            classToAssign = "bogey";
-          } else if (devFromParOnThisHole === 2) {
-            classToAssign = "doublebogey";
-          } else if (devFromParOnThisHole >= 3) {
-            classToAssign = "plusthree";
-          } else {
-            // not played
-            classToAssign = "par"; // par = no background color = same as if not played
-          }
+          const classToAssign =
+            playerVal.holes[i] === "-"
+              ? "par" // if not played: no background which is the same background as par
+              : this.getScoreClass(playerVal.holes[i] - par.holes[i]);
+
           html += `
               <td style="padding: 3px; width: 30px; line-height: 0.2">
                 <span class="badge bg-scorecard-${classToAssign}" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${playerVal.holes[i]}</span>
@@ -1203,32 +1155,14 @@ class StatsTable {
 
   // distribution of all played holes of one player in one match
   getMatchDistribution(playerVal, parHoles) {
-    const distribution = { "-1": 0, 0: 0, 1: 0, 2: 0, "3+": 0 };
-    playerVal.holes.forEach((score, i) => {
-      if (score === "-") return; // hole not played
-      const diff = score - parHoles[i];
-      if (diff <= -1) distribution["-1"]++;
-      else if (diff === 0) distribution[0]++;
-      else if (diff === 1) distribution[1]++;
-      else if (diff === 2) distribution[2]++;
-      else distribution["3+"]++;
-    });
-    return distribution;
-  }
-
-  getDistributionSegments() {
-    return [
-      { key: "-1", label: "Unter", cls: "birdie" },
-      { key: "0", label: "Par", cls: "par" },
-      { key: "1", label: "Bogey", cls: "bogey" },
-      { key: "2", label: "Double", cls: "doublebogey" },
-      { key: "3+", label: "3+", cls: "plusthree" },
-    ];
+    const devs = playerVal.holes
+      .map((score, i) => (score === "-" ? null : score - parHoles[i]))
+      .filter((dev) => dev !== null);
+    return this.createDistribution(devs);
   }
 
   getDistributionBarString(distribution, total) {
-    const bar = this.getDistributionSegments()
-      .filter((s) => distribution[s.key] > 0)
+    const bar = SCORE_CATEGORIES.filter((s) => distribution[s.key] > 0)
       .map(
         (s) =>
           `<div class="bg-scorecard-${s.cls}" style="width: ${(distribution[s.key] / total) * 100}%;"></div>`,
@@ -1240,17 +1174,15 @@ class StatsTable {
   getDistributionPopoverContent(distribution, total, title) {
     return (
       `<b>${title}</b>` +
-      this.getDistributionSegments()
-        .map((s) => {
-          const count = distribution[s.key];
-          const percent = Math.round((count / total) * 100);
-          return `<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap;${count === 0 ? " opacity: 0.4;" : ""}">
+      SCORE_CATEGORIES.map((s) => {
+        const count = distribution[s.key];
+        const percent = Math.round((count / total) * 100);
+        return `<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap;${count === 0 ? " opacity: 0.4;" : ""}">
             ${this.getScoreClassDot(s.cls)}
             <span style="min-width: 2ch; text-align: right;">${count}</span>
             <span style="min-width: 4ch; text-align: right;">${percent}%</span>
           </span>`;
-        })
-        .join("")
+      }).join("")
     );
   }
 
