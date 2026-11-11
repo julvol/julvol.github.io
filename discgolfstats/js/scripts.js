@@ -349,6 +349,8 @@ class StatsTable {
         .forEach((el) => this.fitScorecardNames(el)),
     );
 
+    this.setupMatchFilter();
+
     // "identische Bahnen" switch: show the variant with or without isomorph holes
     document.addEventListener("change", (e) => {
       if (!e.target.classList.contains("isomorph-switch")) return;
@@ -362,6 +364,78 @@ class StatsTable {
           ),
         );
     });
+  }
+
+  // filter field above the matches: every word of the input has to match (AND)
+  // - date words are compared exactly: 15.03.2025, 03.2025 / 3.2025, 2025
+  // - all other words are searched in course, layout and player names (case-insensitive)
+  setupMatchFilter() {
+    const input = document.getElementById("matchFilter");
+    const info = document.getElementById("matchFilterInfo");
+    const cards = [...document.querySelectorAll("#partien-container .match-card")];
+
+    const pad = (n) => n.padStart(2, "0");
+    const matchesTerm = (card, term) => {
+      const dates = card.dataset.filterDates.split(" ");
+      let m;
+      if ((m = term.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)))
+        return dates.includes(`${pad(m[1])}.${pad(m[2])}.${m[3]}`);
+      if ((m = term.match(/^(\d{1,2})\.(\d{4})$/)))
+        return dates.includes(`${pad(m[1])}.${m[2]}`);
+      if (/^\d{4}$/.test(term)) return dates.includes(term);
+      return card.dataset.filterText.includes(term);
+    };
+
+    const applyFilter = () => {
+      const terms = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let visibleCount = 0;
+      cards.forEach((card) => {
+        const visible = terms.every((term) => matchesTerm(card, term));
+        card.classList.toggle("filtered-out", !visible);
+        if (visible) visibleCount++;
+      });
+      info.textContent =
+        terms.length === 0
+          ? ""
+          : visibleCount === 0
+            ? "Keine Partien gefunden"
+            : `${visibleCount} von ${cards.length} Partien`;
+    };
+
+    input.addEventListener("input", applyFilter);
+
+    // magnifying glass: opens the search field; closes it again if it is empty
+    const box = document.getElementById("matchFilterBox");
+    const toggle = document.getElementById("matchFilterToggle");
+    const setOpen = (open) => {
+      box.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", open);
+      input.tabIndex = open ? 0 : -1;
+    };
+    // keep the focus in the field, so clicking the icon does not trigger the blur below first
+    toggle.addEventListener("mousedown", (e) => e.preventDefault());
+    toggle.addEventListener("click", () => {
+      if (box.classList.contains("open") && input.value === "") {
+        setOpen(false);
+        input.blur();
+      } else {
+        setOpen(true);
+        input.focus();
+      }
+    });
+    input.addEventListener("blur", () => {
+      if (input.value === "") setOpen(false);
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      input.value = "";
+      applyFilter();
+      setOpen(false);
+      input.blur();
+    });
+
+    applyFilter(); // in case the browser restored a value
+    if (input.value !== "") setOpen(true);
   }
 
   // compact scorecard (CSS sets --scorecard-name-max): shrink the font of every player name
@@ -1221,10 +1295,25 @@ class StatsTable {
       return html;
     };
 
+    // what the match filter searches in (see setupMatchFilter)
+    const filterText = [
+      match.course,
+      match.layout,
+      ...sortedPlayers.map(([playerKey]) => playerKey),
+    ]
+      .join(" ")
+      .toLowerCase();
+    const day = String(match.startTime.getDate()).padStart(2, "0");
+    const month = String(match.startTime.getMonth() + 1).padStart(2, "0");
+    const year = match.startTime.getFullYear();
+    const filterDates = `${day}.${month}.${year} ${month}.${year} ${year}`;
+
     let statsString = `
         <div
-          class="d-flex justify-content-start justify-content-md-center mt-4"
+          class="d-flex justify-content-start justify-content-md-center mt-4 match-card"
           style="margin-bottom: 10px"
+          data-filter-text="${filterText.replace(/"/g, "&quot;")}"
+          data-filter-dates="${filterDates}"
         >
           <div
             class="bg-dark text-white p-3 rounded d-inline-block"

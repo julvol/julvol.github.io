@@ -94,6 +94,32 @@
             <div class="divider-custom-line"></div>
           </div>
 
+          <!-- Filter for the matches (see setupMatchFilter in scripts.js) -->
+          <div class="d-flex justify-content-center">
+            <div style="width: 100%; max-width: 600px">
+              <div class="match-filter" id="matchFilterBox">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary rounded-circle match-filter-toggle"
+                  id="matchFilterToggle"
+                  aria-label="Partien filtern"
+                  aria-expanded="false"
+                >
+                  <i class="fas fa-magnifying-glass"></i>
+                </button>
+                <input
+                  type="search"
+                  id="matchFilter"
+                  class="form-control"
+                  placeholder="Suche in Partien"
+                  autocomplete="off"
+                  tabindex="-1"
+                />
+              </div>
+              <div id="matchFilterInfo" class="small text-secondary mt-1"></div>
+            </div>
+          </div>
+
           <!-- Here come all the match containers! -->
         </div>
       </section>

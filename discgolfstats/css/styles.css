@@ -8140,6 +8140,45 @@ textarea.form-control-lg {
   --bs-text-opacity: 1;
 }
 
+/* match filter: magnifying glass that expands into the search field */
+.match-filter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.match-filter-toggle {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+}
+
+.match-filter input.form-control {
+  flex: 0 1 auto;
+  width: 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
+  opacity: 0;
+  transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.match-filter.open input.form-control {
+  width: 100%;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  border-width: var(--bs-border-width);
+  opacity: 1;
+}
+
+/* matches hidden by the match filter (beats the !important of .d-flex) */
+.match-card.filtered-out {
+  display: none !important;
+}
+
 /* only the scorecard scrolls horizontally on narrow screens, not the page */
 .scorecard-scroll {
   max-width: 100%;
