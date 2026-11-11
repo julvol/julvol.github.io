@@ -79,6 +79,9 @@ class StatsTable {
     // Discgolfpark Station As (Main, Main 9 X 2)
     // Discgolfpark Rheindahlen (De Kull Main Am, De Kull Main, De Kull Safari)
     this.isomorphHoles = [];
+
+    // for unique ids of the "identische Bahnen" switches
+    this.isomorphSwitchCount = 0;
   }
 
   getURL(range) {
@@ -163,8 +166,6 @@ class StatsTable {
         this.courses[row.c[1]?.v + row.c[2]?.v] = newCourse;
       }
     });
-
-    this.calculateHoleStatistics();
 
     // we always have (1 header row + 1 par row + 1 row for each player) per match in the sheet
     rows.forEach((row) => {
@@ -340,22 +341,72 @@ class StatsTable {
     partienContainer.addEventListener("hide.bs.collapse", (e) =>
       setDistributionCellsVisible(e.target, false),
     );
+
+    // "identische Bahnen" switch: show the variant with or without isomorph holes
+    document.addEventListener("change", (e) => {
+      if (!e.target.classList.contains("isomorph-switch")) return;
+      e.target
+        .closest(".isomorph-toggle")
+        .querySelectorAll(":scope > [data-isomorph-variant]")
+        .forEach((variant) =>
+          variant.classList.toggle(
+            "d-none",
+            (variant.dataset.isomorphVariant === "with") !== e.target.checked,
+          ),
+        );
+    });
   }
 
-  // distribution + average vs. par for every hole of every course/layout (needs all rows to be read first)
-  calculateHoleStatistics() {
-    Object.values(this.courses).forEach((course) => {
-      for (let hole = 1; hole <= course.howManyHoles; hole++) {
-        const entries = course[hole];
-        const par = entries[0].score; // Par row is always first
+  // true if at least one hole of this course/layout has isomorph holes
+  hasIsomorphHoles(course) {
+    for (let hole = 1; hole <= course.howManyHoles; hole++) {
+      if (this.getIsomorphHoles(course.course, course.layout, hole).length > 0)
+        return true;
+    }
+    return false;
+  }
 
-        const devs = entries.slice(1).map((e) => e.score - par); // skip the Par entry
-        entries.distribution = this.createDistribution(devs);
-        entries.averageToPar = devs.length
-          ? devs.reduce((a, b) => a + b, 0) / devs.length
-          : null;
-      }
+  // switch + both variants (with / without isomorph holes) of a section, only one is visible
+  getIsomorphToggleString(variantWith, variantWithout, includedByDefault) {
+    const id = `isomorph-switch-${this.isomorphSwitchCount++}`;
+    return `
+    <div class="isomorph-toggle">
+      <div class="form-check form-switch mb-2" style="font-size: 0.85rem;">
+        <input class="form-check-input isomorph-switch" type="checkbox" role="switch" id="${id}" ${includedByDefault ? "checked" : ""}>
+        <label class="form-check-label" for="${id}">identische Bahnen einbeziehen</label>
+      </div>
+      <div data-isomorph-variant="with" class="${includedByDefault ? "" : "d-none"}">${variantWith}</div>
+      <div data-isomorph-variant="without" class="${includedByDefault ? "d-none" : ""}">${variantWithout}</div>
+    </div>`;
+  }
+
+  // entries of all played isomorph holes of this hole that have the same par
+  getSameParIsomorphEntries(course, hole) {
+    const par = course[hole][0].score; // Par row is always first
+    return this.getIsomorphHoles(course.course, course.layout, hole)
+      .map((h) => this.courses[h.course + h.layout]?.[h.hole]) // isomorph layout may never have been played
+      .filter((entries) => entries && entries[0].score === par);
+  }
+
+  // distribution + average vs. par of all rounds on this hole
+  // (optionally incl. its isomorph holes, but only those with the same par)
+  getHoleStatistics(course, hole, includeIsomorphs) {
+    const sources = [course[hole]];
+    if (includeIsomorphs) {
+      sources.push(...this.getSameParIsomorphEntries(course, hole));
+    }
+
+    const devs = sources.flatMap((entries) => {
+      const par = entries[0].score; // Par row is always first
+      return entries.slice(1).map((e) => e.score - par); // skip the Par entry
     });
+
+    return {
+      distribution: this.createDistribution(devs),
+      averageToPar: devs.length
+        ? devs.reduce((a, b) => a + b, 0) / devs.length
+        : null,
+    };
   }
 
   formatAverageToPar(avg) {
@@ -368,6 +419,28 @@ class StatsTable {
   }
 
   getHoleStatsString(course) {
+    const heading = `<h5 class="mt-3">Bahnen:</h5>`;
+
+    // switch only if including isomorph holes would change anything
+    let hasSameParIsomorphs = false;
+    for (let hole = 1; hole <= course.howManyHoles; hole++) {
+      if (this.getSameParIsomorphEntries(course, hole).length > 0)
+        hasSameParIsomorphs = true;
+    }
+    if (!hasSameParIsomorphs) {
+      return heading + this.getHoleStatsTableString(course, false);
+    }
+    return (
+      heading +
+      this.getIsomorphToggleString(
+        this.getHoleStatsTableString(course, true),
+        this.getHoleStatsTableString(course, false),
+        false, // course overview: by default only rounds on this layout
+      )
+    );
+  }
+
+  getHoleStatsTableString(course, includeIsomorphs) {
     const lengths = this.holeLengthsSets.find(
       (s) => s.course === course.course && s.layout === course.layout,
     )?.lengths;
@@ -380,11 +453,15 @@ class StatsTable {
     for (let hole = 1; hole <= course.howManyHoles; hole++) {
       const entries = course[hole];
       const par = entries[0].score; // Par row is always first
-      const distribution = entries.distribution;
+      const { distribution, averageToPar } = this.getHoleStatistics(
+        course,
+        hole,
+        includeIsomorphs,
+      );
       const total = segments.reduce((sum, s) => sum + distribution[s.key], 0);
 
       // color by the rounded value, so "0,0" is not shown as over par
-      const avg = entries.averageToPar;
+      const avg = averageToPar;
       const rounded = avg === null ? 0 : Math.round(avg * 10) / 10;
       const avgColor =
         rounded > 0 ? "#e26028" : rounded < 0 ? "#408ce2" : "#212529";
@@ -451,12 +528,11 @@ class StatsTable {
       </tr>`;
     }
 
-    const legend = segments
-      .map((s) => `<span>${this.getScoreClassDot(s.cls)} ${s.label}</span>`)
-      .join("");
+    const footnote = includeIsomorphs
+      ? `&#x00B9; enthält auch Runden auf identischen Bahnen anderer Layouts mit gleichem Par`
+      : `&#x00B9; enthält nur auf ${course.layout} gespielte Runden`;
 
     return `
-    <h5 class="mt-3">Bahnen:</h5>
     <table class="table table-bordered text-center align-middle w-auto">
       <thead>
         <tr>
@@ -469,7 +545,7 @@ class StatsTable {
       </thead>
       <tbody>${rowsString}</tbody>
     </table>
-    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; enthält nur auf ${course.layout} gespielte Runden</div>`;
+    <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">${footnote}</div>`;
   }
 
   getScoreClassDot(cls) {
@@ -505,19 +581,21 @@ class StatsTable {
     return `${dev}`;
   }
 
-  // average score (absolute) on this hole incl. isomorph holes, or null if never played
-  getAverageScore(player, course, hole) {
-    const all = this.getCombinedScores(player, course, hole);
+  // average score (absolute) on this hole (optionally incl. isomorph holes), or null if never played
+  getAverageScore(player, course, hole, includeIsomorphs) {
+    const all = this.getCombinedScores(player, course, hole, includeIsomorphs);
     if (all.length === 0) return null;
 
     return all.reduce((sum, s) => sum + s.score, 0) / all.length;
   }
 
-  // all scores on this hole and all its isomorph holes for player, oldest -> newest
-  getCombinedScores(player, course, hole) {
+  // all scores on this hole (optionally incl. all its isomorph holes) for player, oldest -> newest
+  getCombinedScores(player, course, hole, includeIsomorphs) {
     const sources = [
       { course: course.course, layout: course.layout, hole: Number(hole) },
-      ...this.getIsomorphHoles(course.course, course.layout, hole),
+      ...(includeIsomorphs
+        ? this.getIsomorphHoles(course.course, course.layout, hole)
+        : []),
     ];
 
     return sources
@@ -525,16 +603,18 @@ class StatsTable {
       .sort((a, b) => a.time - b.time);
   }
 
-  // last #limit scores on this hole and all its isomorph holes for player, oldest -> newest
-  getCombinedRecentScores(player, course, hole, limit) {
-    return this.getCombinedScores(player, course, hole).slice(-limit);
+  // last #limit scores on this hole (optionally incl. isomorph holes) for player, oldest -> newest
+  getCombinedRecentScores(player, course, hole, limit, includeIsomorphs) {
+    return this.getCombinedScores(player, course, hole, includeIsomorphs).slice(
+      -limit,
+    );
   }
 
-  // personal best on this hole incl. isomorph holes = fewest throws (absolute score)
+  // personal best on this hole (optionally incl. isomorph holes) = fewest throws (absolute score)
   // on a tie the earliest one wins, because getCombinedScores is sorted oldest -> newest
   // count = how often that score was achieved
-  getPersonalBestScore(player, course, hole) {
-    const all = this.getCombinedScores(player, course, hole);
+  getPersonalBestScore(player, course, hole, includeIsomorphs) {
+    const all = this.getCombinedScores(player, course, hole, includeIsomorphs);
     if (all.length === 0) return null;
 
     const best = all.reduce((b, s) => (s.score < b.score ? s : b));
@@ -735,7 +815,29 @@ class StatsTable {
         }
       }
 
-      html += `</tr></tbody></table>
+      html += `</tr></tbody></table>`;
+
+      if (this.hasIsomorphHoles(course)) {
+        html += this.getIsomorphToggleString(
+          this.getRecentHolesTableString(player, course, MAX_RECENT, true),
+          this.getRecentHolesTableString(player, course, MAX_RECENT, false),
+          true, // player section: by default incl. isomorph holes
+        );
+      } else {
+        html += this.getRecentHolesTableString(player, course, MAX_RECENT, false);
+      }
+
+      html += `
+      <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; über die gesamte Zeit</div>
+    </details>`;
+    });
+
+    return html;
+  }
+
+  // per hole: last #maxRecent scores, PB and average of player (optionally incl. isomorph holes)
+  getRecentHolesTableString(player, course, MAX_RECENT, includeIsomorphs) {
+    let html = `
       <table class="table table-bordered text-center align-middle w-auto mt-2">
         <thead>
           <tr>
@@ -753,75 +855,83 @@ class StatsTable {
         </thead>
         <tbody>`;
 
-      for (let hole = 1; hole <= course.howManyHoles; hole++) {
-        const recent = this.getCombinedRecentScores(
-          player,
-          course,
-          hole,
-          MAX_RECENT,
-        );
-        if (recent.length === 0) continue; // never played this hole (or an isomorph of it)
+    for (let hole = 1; hole <= course.howManyHoles; hole++) {
+      const recent = this.getCombinedRecentScores(
+        player,
+        course,
+        hole,
+        MAX_RECENT,
+        includeIsomorphs,
+      );
+      if (recent.length === 0) continue; // never played this hole (or an included isomorph of it)
 
-        const isomorphs = this.getIsomorphHoles(
-          course.course,
-          course.layout,
-          hole,
-        );
-        if (isomorphs.length > 0) {
-          const popoverContent =
-            "<b>identisch zu</b><br>" +
-            isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
-          html += `<tr><th
-          class="text-start-table-header-info"
-          tabindex="0"
-          style="cursor: pointer;"
-          data-bs-toggle="popover"
-          data-bs-trigger="hover focus"
-          data-bs-container="body"
-          data-bs-html="true"
-          data-bs-placement="right"
-          data-bs-content="${popoverContent}"
-        >Bahn ${hole}</th>`;
-        } else {
-          html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
-        }
-
-        // fill with empty cells so all rows have the same width
-        for (let i = recent.length; i < MAX_RECENT; i++) {
-          html += `<td style="padding: 3px; width: 36px"></td>`;
-        }
-
-        recent.forEach((entry) => {
-          html += `
-            <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; cursor: pointer;" ${this.getPopoverAttributes(this.getScorePopoverContent(entry))}>
-              <span class="badge bg-scorecard-${this.getScoreClass(entry.score - entry.par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${entry.score}</span>
-            </td>`;
-        });
-
-        const pb = this.getPersonalBestScore(player, course, hole);
-        const originalPar = course[hole][0].score;
-        html += `
-          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`${this.getPbDateLabel(pb.time, pb.count > 1)}<br>auf ${pb.layout}`)}>
-            <span class="badge bg-scorecard-${this.getScoreClass(pb.score - originalPar)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
-          </td>`;
-
-        const average = this.getAverageScore(player, course, hole);
-        const averageText = new Intl.NumberFormat("de-DE", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(average);
-        html += `
-          <td style="padding: 3px; width: 46px; line-height: 1; vertical-align: middle;">
-            <span class="badge bg-scorecard-${this.getScoreClass(Math.round(average - originalPar))}" style="display: block; width: 40px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${averageText}</span>
-          </td>`;
+      const isomorphs = this.getIsomorphHoles(
+        course.course,
+        course.layout,
+        hole,
+      );
+      if (isomorphs.length > 0) {
+        const popoverContent =
+          "<b>identisch zu</b><br>" +
+          isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
+        html += `<tr><th
+        class="text-start-table-header-info"
+        tabindex="0"
+        style="cursor: pointer;"
+        data-bs-toggle="popover"
+        data-bs-trigger="hover focus"
+        data-bs-container="body"
+        data-bs-html="true"
+        data-bs-placement="right"
+        data-bs-content="${popoverContent}"
+      >Bahn ${hole}</th>`;
+      } else {
+        html += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
       }
 
+      // fill with empty cells so all rows have the same width
+      for (let i = recent.length; i < MAX_RECENT; i++) {
+        html += `<td style="padding: 3px; width: 36px"></td>`;
+      }
+
+      recent.forEach((entry) => {
+        html += `
+          <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; cursor: pointer;" ${this.getPopoverAttributes(this.getScorePopoverContent(entry))}>
+            <span class="badge bg-scorecard-${this.getScoreClass(entry.score - entry.par)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${entry.score}</span>
+          </td>`;
+      });
+
+      const pb = this.getPersonalBestScore(
+        player,
+        course,
+        hole,
+        includeIsomorphs,
+      );
+      const originalPar = course[hole][0].score;
       html += `
+        <td style="padding: 3px; width: 36px; line-height: 1; vertical-align: middle; border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(`${this.getPbDateLabel(pb.time, pb.count > 1)}<br>auf ${pb.layout}`)}>
+          <span class="badge bg-scorecard-${this.getScoreClass(pb.score - originalPar)}" style="display: block; width: 30px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${pb.score}</span>
+        </td>`;
+
+      const average = this.getAverageScore(
+        player,
+        course,
+        hole,
+        includeIsomorphs,
+      );
+      const averageText = new Intl.NumberFormat("de-DE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(average);
+      html += `
+        <td style="padding: 3px; width: 46px; line-height: 1; vertical-align: middle;">
+          <span class="badge bg-scorecard-${this.getScoreClass(Math.round(average - originalPar))}" style="display: block; width: 40px; margin: 0 auto; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${averageText}</span>
+        </td>`;
+    }
+
+    html += `
         </tbody>
-      </table>
-      <div class="d-flex flex-wrap gap-3" style="font-size: 0.75rem;">&#x00B9; über die gesamte Zeit</div>
-    </details>`;
-    });
+      </table>`;
 
     return html;
   }
