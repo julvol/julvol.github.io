@@ -1203,7 +1203,7 @@ class StatsTable {
         >
           <div
             class="bg-dark text-white p-3 rounded d-inline-block"
-            style="cursor: pointer; max-width: 100%; min-width: 0;"
+            style="cursor: pointer; width: 100%; max-width: 600px; min-width: 0;"
             data-bs-toggle="collapse"
             data-bs-target="#${collapseId}"
           >
