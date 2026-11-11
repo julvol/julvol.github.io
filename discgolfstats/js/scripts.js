@@ -1158,7 +1158,7 @@ class StatsTable {
         html += `<tr>
               <th class="text-start-table-header-info" style="line-height: 0.8">Länge</th>`;
         for (let i = from; i < to; i++) {
-          html += `<td style="padding-left: 3px; padding-right: 3px; width: 30px; line-height: 0.8">${match.holeLengths[i]}</td>`;
+          html += `<td class="scorecard-cell" style="line-height: 0.8">${match.holeLengths[i]}</td>`;
         }
         html += `</tr>`;
       }
@@ -1183,8 +1183,8 @@ class StatsTable {
               : this.getScoreClass(playerVal.holes[i] - par.holes[i]);
 
           html += `
-              <td style="padding: 3px; width: 30px; line-height: 0.2">
-                <span class="badge bg-scorecard-${classToAssign}" style="display: inline-block; width: 30px; text-align: center; padding-left: 0; padding-right: 0; overflow: hidden; white-space: nowrap;">${playerVal.holes[i]}</span>
+              <td class="scorecard-cell" style="line-height: 0.2">
+                <span class="badge bg-scorecard-${classToAssign} scorecard-badge">${playerVal.holes[i]}</span>
               </td>`;
         }
         html += `</tr>`;

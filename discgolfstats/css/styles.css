@@ -8146,6 +8146,7 @@ textarea.form-control-lg {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;       /* Firefox */
+  container-type: inline-size; /* the scorecard sizes itself by the available width */
 }
 
 .scorecard-scroll::-webkit-scrollbar {
@@ -8157,6 +8158,45 @@ textarea.form-control-lg {
   background-color: #3E4145;   /* slightly lighter than scorecard background #212529 */
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
+}
+
+.scorecard-block.table .scorecard-cell {
+  padding: 3px;
+  width: 30px;
+}
+
+.scorecard-block .scorecard-badge {
+  display: inline-block;
+  width: 30px;
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* compact scorecard, only if the full size one does not fit (e.g. on phones):
+   less padding, smaller font, and the score badges shrink with the available width
+   so that 9 holes + the name column (~70px) fit into one row */
+@container (max-width: 420px) {
+  .scorecard-block.table th,
+  .scorecard-block.table td,
+  .scorecard-block.table .scorecard-cell {
+    padding-left: 1px;
+    padding-right: 1px;
+    width: auto;
+    font-size: 0.85rem;
+  }
+
+  .scorecard-block.table tr > th:first-child {
+    padding-left: 6px;
+    padding-right: 4px;
+  }
+
+  .scorecard-block .scorecard-badge {
+    width: clamp(18px, calc((100cqw - 70px) / 9 - 2px), 30px);
+    font-size: 0.8rem;
+  }
 }
 
 .bg-scorecard-birdie {
