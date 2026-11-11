@@ -8197,6 +8197,16 @@ textarea.form-control-lg {
     width: clamp(18px, calc((100cqw - 70px) / 9 - 2px), 30px);
     font-size: 0.8rem;
   }
+
+  /* longer names get a smaller font (fitScorecardNames in scripts.js),
+     so the name column stays within the ~70px left over by the badges */
+  .scorecard-block .scorecard-name {
+    --scorecard-name-max: 60px;
+  }
+}
+
+.scorecard-name {
+  white-space: nowrap;
 }
 
 .bg-scorecard-birdie {

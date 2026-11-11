@@ -335,11 +335,18 @@ class StatsTable {
         .forEach((td) => (td.style.display = visible ? "table-cell" : "none"));
     };
     const partienContainer = document.getElementById("partien-container");
-    partienContainer.addEventListener("show.bs.collapse", (e) =>
-      setDistributionCellsVisible(e.target, true),
-    );
+    partienContainer.addEventListener("show.bs.collapse", (e) => {
+      setDistributionCellsVisible(e.target, true);
+      // Bootstrap makes the scorecard measurable right after this event, still before it is painted
+      queueMicrotask(() => this.fitScorecardNames(e.target));
+    });
     partienContainer.addEventListener("hide.bs.collapse", (e) =>
       setDistributionCellsVisible(e.target, false),
+    );
+    window.addEventListener("resize", () =>
+      partienContainer
+        .querySelectorAll(".collapse.show")
+        .forEach((el) => this.fitScorecardNames(el)),
     );
 
     // "identische Bahnen" switch: show the variant with or without isomorph holes
@@ -354,6 +361,24 @@ class StatsTable {
             (variant.dataset.isomorphVariant === "with") !== e.target.checked,
           ),
         );
+    });
+  }
+
+  // compact scorecard (CSS sets --scorecard-name-max): shrink the font of every player name
+  // that is wider than that, each name individually; otherwise reset to the normal size
+  fitScorecardNames(root) {
+    root.querySelectorAll(".scorecard-name").forEach((name) => {
+      name.style.fontSize = "";
+      const maxWidth = parseFloat(
+        getComputedStyle(name).getPropertyValue("--scorecard-name-max"),
+      );
+      if (!maxWidth) return; // full size scorecard
+
+      const width = name.getBoundingClientRect().width;
+      if (width > maxWidth) {
+        const fontSize = parseFloat(getComputedStyle(name).fontSize);
+        name.style.fontSize = `${Math.floor(fontSize * (maxWidth / width) * 10) / 10}px`;
+      }
     });
   }
 
@@ -1174,7 +1199,7 @@ class StatsTable {
 
       sortedPlayers.forEach(([playerKey, playerVal]) => {
         html += `<tr>
-              <th class="text-start" style="line-height: 0.2">${playerKey}</th>`;
+              <th class="text-start" style="line-height: 0.2"><span class="scorecard-name">${playerKey}</span></th>`;
         for (let i = from; i < to; i++) {
           const devFromParOnThisHole = playerVal.holes[i] - par.holes[i];
           const classToAssign =
