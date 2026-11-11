@@ -8140,6 +8140,18 @@ textarea.form-control-lg {
   --bs-text-opacity: 1;
 }
 
+/* only the scorecard scrolls horizontally on narrow screens, not the page */
+.scorecard-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;       /* Firefox */
+}
+
+.scorecard-scroll::-webkit-scrollbar {
+  display: none;               /* Chrome, Safari, mobile browsers */
+}
+
 .scorecard-block {
   --bs-table-bg: transparent;
   background-color: #3E4145;   /* slightly lighter than scorecard background #212529 */

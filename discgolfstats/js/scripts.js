@@ -1093,14 +1093,15 @@ class StatsTable {
         >
           <div
             class="bg-dark text-white p-3 rounded d-inline-block"
-            style="cursor: pointer"
+            style="cursor: pointer; max-width: 100%; min-width: 0;"
             data-bs-toggle="collapse"
             data-bs-target="#${collapseId}"
           >
             <h4>${match.course} <span style="white-space: nowrap;">(${match.layout}) -</span> <span style="white-space: nowrap;">${this.formatDateStringForStatsStringHeader(match.startTime)}</span></h4>
             <h5 class="mb-3">Ergebnis</h5>
+            <div class="scorecard-scroll mb-3">
             <table
-              class="table table-dark table-bordered text-center align-middle w-auto"
+              class="table table-dark table-bordered text-center align-middle w-auto mb-0"
             >
               <tbody>`;
 
@@ -1116,13 +1117,16 @@ class StatsTable {
     statsString += `
             </tbody>
           </table>
+          </div>
           <div class="collapse" id="${collapseId}">
             <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
             <li>Dauer - ${match.duration}</li>
             <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
             <h5 class="mb-3">Scorecard</h5>`;
 
-    // One table per block of 9 holes
+    // One table per block of 9 holes, all in one shared scroll container
+    // so the blocks scroll horizontally together
+    statsString += `<div class="scorecard-scroll">`;
     for (let from = 0; from < match.holes; from += HOLES_PER_ROW) {
       statsString += buildScorecardTable(
         from,
@@ -1131,6 +1135,7 @@ class StatsTable {
     }
 
     statsString += `
+          </div>
           </div>
         </div>
       </div>`;
