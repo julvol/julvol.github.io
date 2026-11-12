@@ -354,6 +354,7 @@ class StatsTable {
     if (linkedSearch) document.getElementById("matchFilter").value = linkedSearch;
 
     this.setupMatchFilter();
+    this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
     this.setupShareableLinks();
 
     // "identische Bahnen" switch: show the variant with or without isomorph holes
@@ -450,12 +451,6 @@ class StatsTable {
   // Opening one sets its parameter, closing it removes the parameter again. When the page is
   // loaded with such parameters, the matching sections are opened and the first one is scrolled to.
   setupShareableLinks() {
-    const linkedCollapses = [...document.querySelectorAll("[data-link-param]")];
-    const findCollapse = (param, value) =>
-      linkedCollapses.find(
-        (el) => el.dataset.linkParam === param && el.dataset.linkValue === value,
-      );
-
     const updateUrl = (change) => {
       const params = new URLSearchParams(window.location.search);
       change(params);
@@ -469,36 +464,15 @@ class StatsTable {
 
     // open the sections named in the URL
     const params = new URLSearchParams(window.location.search);
-    let firstOpened = null;
+    let scrolled = false;
     ["partie", "spieler", "parcours"].forEach((param) => {
       const value = params.get(param);
       if (value === null) return;
-      const collapse = findCollapse(param, value);
-      if (!collapse) {
-        // the linked item does not exist (anymore): remove it, so the URL does not lie
-        updateUrl((p) => p.delete(param));
-        return;
-      }
-      bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
-      firstOpened ??= collapse;
+      // only the first one found is scrolled to
+      if (this.openLinkedSection(param, value, !scrolled)) scrolled = true;
+      // the linked item does not exist (anymore): remove it, so the URL does not lie
+      else updateUrl((p) => p.delete(param));
     });
-    if (firstOpened) {
-      // scroll once it is fully open, so the layout above it has settled
-      // below the fixed navbar, whose height depends on the screen width (wraps on phones)
-      firstOpened.addEventListener(
-        "shown.bs.collapse",
-        () => {
-          const target =
-            firstOpened.closest(".match-card") ?? firstOpened.closest(".accordion-item");
-          const navHeight = document.getElementById("mainNav")?.offsetHeight ?? 0;
-          window.scrollTo({
-            top: target.getBoundingClientRect().top + window.scrollY - navHeight - 8,
-            behavior: "smooth",
-          });
-        },
-        { once: true },
-      );
-    }
 
     // keep the URL in sync with what is open
     document.addEventListener("shown.bs.collapse", (e) => {
@@ -534,6 +508,43 @@ class StatsTable {
       },
       true,
     );
+  }
+
+  // opens the match / player / course with this link value (see getLinkAttributes) and,
+  // if scroll is true, scrolls to it. Returns false if there is no such section.
+  openLinkedSection(param, value, scroll = true) {
+    const collapse = [...document.querySelectorAll("[data-link-param]")].find(
+      (el) => el.dataset.linkParam === param && el.dataset.linkValue === value,
+    );
+    if (!collapse) return false;
+
+    // a match hidden by the match filter could not be seen: clear the filter
+    const card = collapse.closest(".match-card");
+    if (card?.classList.contains("filtered-out")) {
+      const filter = document.getElementById("matchFilter");
+      filter.value = "";
+      filter.dispatchEvent(new Event("input"));
+    }
+
+    // below the fixed navbar, whose height depends on the screen width (wraps on phones)
+    const scrollToSection = () => {
+      const target = card ?? collapse.closest(".accordion-item");
+      const navHeight = document.getElementById("mainNav")?.offsetHeight ?? 0;
+      window.scrollTo({
+        top: target.getBoundingClientRect().top + window.scrollY - navHeight - 8,
+        behavior: "smooth",
+      });
+    };
+
+    if (collapse.classList.contains("show")) {
+      if (scroll) scrollToSection();
+    } else {
+      // scroll once it is fully open, so the layout above it has settled
+      if (scroll)
+        collapse.addEventListener("shown.bs.collapse", scrollToSection, { once: true });
+      bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+    }
+    return true;
   }
 
   // phones: the system share sheet; otherwise: copy to the clipboard
@@ -988,6 +999,294 @@ class StatsTable {
     return distribution;
   }
 
+  // ---------------------------------------------------------------------------
+  // "Verlauf": line chart of a player's completed rounds on one layout
+  // (the chart is drawn by renderScoreHistory once the player section is opened,
+  // because it needs the width of the section)
+  // ---------------------------------------------------------------------------
+
+  // completed rounds of a player, grouped by layout, the most played layout first
+  getScoreHistory(player) {
+    const layouts = {};
+    Object.values(this.matches)
+      .filter((m) => this.hasPlayerCompletedMatch(m, player))
+      .sort((a, b) => a.startTime - b.startTime)
+      .forEach((m) => {
+        const key = m.course + m.layout;
+        layouts[key] ??= { key, course: m.course, layout: m.layout, rounds: [] };
+        layouts[key].rounds.push({
+          time: m.startTime,
+          dev: m.players[player.name].devFromPar,
+          total: m.players[player.name].total,
+          linkValue: this.getMatchLinkValue(m),
+        });
+      });
+    return Object.values(layouts).sort(
+      (a, b) =>
+        b.rounds.length - a.rounds.length ||
+        b.rounds.at(-1).time - a.rounds.at(-1).time,
+    );
+  }
+
+  getScoreHistoryString(player) {
+    const layouts = this.getScoreHistory(player);
+    if (layouts.length === 0) return "";
+
+    this.scoreHistories ??= [];
+    const index = this.scoreHistories.push(layouts) - 1;
+
+    const name = (l) => this.escapeHtml(`${l.course} (${l.layout})`);
+    const rounds = (l) => `${l.rounds.length} ${l.rounds.length === 1 ? "Runde" : "Runden"}`;
+    const chooser =
+      layouts.length === 1
+        ? `<div class="mb-2">${name(layouts[0])} · ${rounds(layouts[0])}</div>`
+        : `<select class="form-select form-select-sm score-history-select mb-2" aria-label="Layout für den Verlauf">
+            ${layouts.map((l, i) => `<option value="${i}">${name(l)} · ${rounds(l)}</option>`).join("")}
+          </select>`;
+
+    return `
+      <h5>Verlauf</h5>
+      <div class="score-history mb-3" data-history-index="${index}">
+        ${chooser}
+        <div class="score-history-chart"></div>
+        <div class="small text-secondary">
+          Nur vollständige Runden.
+          <span class="score-history-hint-touch">Tippe auf einen Punkt für Details.</span>
+          <span class="score-history-hint-mouse">Zeige auf einen Punkt für Details.</span>
+        </div>
+        <details class="mt-1">
+          <summary class="small" style="cursor: pointer">Als Tabelle</summary>
+          <div class="score-history-table mt-2"></div>
+        </details>
+      </div>`;
+  }
+
+  setupScoreHistoryCharts() {
+    const accordion = document.getElementById("playersAccordion");
+    const renderAll = (root) =>
+      root.querySelectorAll(".score-history").forEach((el) => this.renderScoreHistory(el));
+
+    // Bootstrap makes the section measurable right after this event (see fitScorecardNames)
+    accordion.addEventListener("show.bs.collapse", (e) =>
+      queueMicrotask(() => renderAll(e.target)),
+    );
+    accordion.addEventListener("change", (e) => {
+      if (e.target.classList.contains("score-history-select"))
+        this.renderScoreHistory(e.target.closest(".score-history"));
+    });
+    let resizeFrame;
+    window.addEventListener("resize", () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() =>
+        accordion.querySelectorAll(".collapse.show").forEach(renderAll),
+      );
+    });
+
+    // touch: a tap outside of a chart closes its tooltip
+    document.addEventListener("pointerdown", (e) => {
+      document.querySelectorAll(".score-history-chart").forEach((chart) => {
+        if (!chart.contains(e.target)) chart.hideTooltip?.();
+      });
+    });
+  }
+
+  renderScoreHistory(container) {
+    const chart = container.querySelector(".score-history-chart");
+    const width = chart.clientWidth;
+    if (width === 0) return; // section closed
+
+    const layouts = this.scoreHistories[container.dataset.historyIndex];
+    const select = container.querySelector(".score-history-select");
+    const { rounds } = layouts[select ? Number(select.value) : 0];
+    const n = rounds.length;
+
+    // colors of the site: under par blue, par dark, over par orange
+    const devColor = (dev) => (dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529");
+    const SURFACE = "#fff9f3"; // background of the player section
+    const GRID = "#e3dcd3";
+    const MUTED = "#6c757d";
+
+    // --- geometry ---
+    const height = width < 400 ? 190 : 220;
+    const m = { top: 22, right: 16, bottom: 26, left: 34 };
+    const inset = 10; // keeps the first and last point away from the axis
+    const plotLeft = m.left + inset;
+    const plotRight = width - m.right - inset;
+    const x = (i) => (n === 1 ? (plotLeft + plotRight) / 2 : plotLeft + (i * (plotRight - plotLeft)) / (n - 1));
+
+    // y: clean integer ticks, with room above and below for the labels
+    const devs = rounds.map((r) => r.dev);
+    let min = Math.min(...devs);
+    let max = Math.max(...devs);
+    const step = [1, 2, 5, 10, 20, 50].find((s) => (max - min) / s <= 4) ?? 100;
+    let lo = Math.floor(min / step) * step;
+    let hi = Math.ceil(max / step) * step;
+    if (hi - max < step * 0.4) hi += step;
+    if (min - lo < step * 0.6) lo -= step; // more room below: the PB label sits there
+    const y = (dev) => m.top + ((hi - dev) * (height - m.top - m.bottom)) / (hi - lo);
+
+    let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="score-history-svg"
+      tabindex="0" role="img" aria-label="Verlauf: ${n} ${n === 1 ? "Runde" : "Runden"}, Ergebnisse siehe Tabelle">`;
+
+    // gridlines + y labels (the par line a bit stronger)
+    for (let t = lo; t <= hi; t += step) {
+      svg += `<line x1="${m.left}" x2="${width - m.right}" y1="${y(t)}" y2="${y(t)}"
+        stroke="${t === 0 ? "#b9b0a5" : GRID}" stroke-width="1" shape-rendering="crispEdges"/>
+        <text x="${m.left - 6}" y="${y(t)}" dy="0.32em" text-anchor="end" class="score-history-tick">${this.formatDevFromPar(t)}</text>`;
+    }
+
+    // x labels: dates, as many as fit (always the first and the last round)
+    const shortDate = (t) =>
+      new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(t);
+    const maxLabels = Math.max(2, Math.floor((plotRight - plotLeft) / 70) + 1);
+    const labelIndices = new Set();
+    if (n <= maxLabels) rounds.forEach((_, i) => labelIndices.add(i));
+    else for (let k = 0; k < maxLabels; k++) labelIndices.add(Math.round((k * (n - 1)) / (maxLabels - 1)));
+    labelIndices.forEach((i) => {
+      const anchor = n > 1 && i === 0 ? "start" : n > 1 && i === n - 1 ? "end" : "middle";
+      const offset = anchor === "start" ? -inset : anchor === "end" ? inset : 0;
+      svg += `<text x="${x(i) + offset}" y="${height - 6}" text-anchor="${anchor}" class="score-history-tick">${shortDate(rounds[i].time)}</text>`;
+    });
+
+    // crosshair (moved by the hover layer)
+    svg += `<line class="score-history-crosshair" y1="${m.top}" y2="${height - m.bottom}" stroke="#b9b0a5" stroke-width="1" visibility="hidden"/>`;
+
+    // the line and the points
+    if (n > 1) {
+      const path = rounds.map((r, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(r.dev)}`).join("");
+      svg += `<path d="${path}" fill="none" stroke="${MUTED}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+    rounds.forEach((r, i) => {
+      svg += `<circle class="score-history-dot" cx="${x(i)}" cy="${y(r.dev)}" r="4.5"
+        fill="${devColor(r.dev)}" stroke="${SURFACE}" stroke-width="2"/>`;
+    });
+
+    // direct labels: only the personal best (first time achieved) and the newest round
+    const pbIndex = devs.indexOf(min);
+    const lastIndex = n - 1;
+    // the PB is the lowest point, so its label goes below it (above, it would sit on the line)
+    const label = (i, text, preferBelow = false) => {
+      const px = x(i);
+      const py = y(rounds[i].dev);
+      const above = preferBelow ? py + 19 > height - m.bottom + 4 : py - 11 > m.top - 8;
+      const anchor = px > width - m.right - 24 ? "end" : px < m.left + 24 ? "start" : "middle";
+      const dx = anchor === "end" ? 6 : anchor === "start" ? -6 : 0;
+      return `<text x="${px + dx}" y="${above ? py - 10 : py + 19}" text-anchor="${anchor}" class="score-history-label">${text}</text>`;
+    };
+    if (pbIndex === lastIndex) {
+      svg += label(lastIndex, `${this.formatDevFromPar(rounds[lastIndex].dev)} PB`, true);
+    } else {
+      svg += label(lastIndex, this.formatDevFromPar(rounds[lastIndex].dev));
+      svg += label(pbIndex, "PB", true);
+    }
+
+    // hover layer: bigger than the points, the nearest round is picked
+    svg += `<rect class="score-history-hit" x="${m.left}" y="0" width="${width - m.left - m.right}" height="${height}" fill="transparent"/>`;
+    svg += `</svg>`;
+
+    chart.innerHTML = svg + `<div class="score-history-tooltip" hidden></div>`;
+    this.setupScoreHistoryHover(chart, rounds, x, y, devColor);
+
+    // table view (newest first)
+    container.querySelector(".score-history-table").innerHTML = `
+      <table class="table table-bordered table-sm text-center align-middle w-auto mb-0">
+        <thead><tr>
+          <th style="font-size: 0.75rem;">Datum</th>
+          <th style="font-size: 0.75rem;">Ergebnis</th>
+        </tr></thead>
+        <tbody>
+          ${[...rounds].reverse().map((r) => `
+            <tr>
+              <td>${this.formatDate(r.time)}</td>
+              <td><b style="color: ${devColor(r.dev)};">${this.formatDevFromPar(r.dev)}</b> (${r.total})${r.dev === min ? " PB" : ""}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  setupScoreHistoryHover(chart, rounds, x, y, devColor) {
+    const svg = chart.querySelector("svg");
+    const crosshair = svg.querySelector(".score-history-crosshair");
+    const dots = [...svg.querySelectorAll(".score-history-dot")];
+    const tooltip = chart.querySelector(".score-history-tooltip");
+    let current = null;
+
+    const show = (i) => {
+      current = i;
+      const r = rounds[i];
+      crosshair.setAttribute("x1", x(i));
+      crosshair.setAttribute("x2", x(i));
+      crosshair.setAttribute("visibility", "visible");
+      dots.forEach((d, k) => d.setAttribute("r", k === i ? 6.5 : 4.5));
+
+      // value first, then the date; text in text colors, the colored dot carries the color
+      tooltip.innerHTML = `
+        <div class="d-flex align-items-center gap-2">
+          <span class="score-history-tooltip-key" style="background: ${devColor(r.dev)}"></span>
+          <span><b>${this.formatDevFromPar(r.dev)}</b> (${r.total})</span>
+        </div>
+        <div class="text-secondary">${this.formatDateStringForStatsStringHeader(r.time)}</div>
+        <button type="button" class="btn btn-link btn-sm p-0 score-history-goto">Zur Partie</button>`;
+      tooltip.querySelector(".score-history-goto").addEventListener("click", () =>
+        this.openLinkedSection("partie", r.linkValue),
+      );
+      tooltip.hidden = false;
+
+      // above the point, kept inside the chart; below it if there is no room above
+      const tipWidth = tooltip.offsetWidth;
+      const tipHeight = tooltip.offsetHeight;
+      const left = Math.min(Math.max(x(i) - tipWidth / 2, 0), chart.clientWidth - tipWidth);
+      const top = y(r.dev) - tipHeight - 12 >= 0 ? y(r.dev) - tipHeight - 12 : y(r.dev) + 14;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    };
+    const hide = () => {
+      current = null;
+      crosshair.setAttribute("visibility", "hidden");
+      dots.forEach((d) => d.setAttribute("r", 4.5));
+      tooltip.hidden = true;
+    };
+    chart.hideTooltip = hide;
+
+    const nearest = (clientX) => {
+      const px = clientX - svg.getBoundingClientRect().left;
+      let best = 0;
+      rounds.forEach((_, i) => {
+        if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i;
+      });
+      return best;
+    };
+
+    svg.addEventListener("pointermove", (e) => {
+      if (e.pointerType === "mouse") show(nearest(e.clientX));
+    });
+    svg.addEventListener("pointerdown", (e) => show(nearest(e.clientX)));
+    // mouse: hide when leaving the chart (the tooltip belongs to it, so its button stays reachable)
+    // (a property, not addEventListener: the chart element stays when the chart is redrawn)
+    chart.onpointerleave = (e) => {
+      if (e.pointerType === "mouse") hide();
+    };
+
+    // keyboard: arrow keys move through the rounds
+    svg.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const start = current ?? (e.key === "ArrowLeft" ? rounds.length : -1);
+      show(Math.min(Math.max(start + (e.key === "ArrowLeft" ? -1 : 1), 0), rounds.length - 1));
+    });
+    svg.addEventListener("blur", (e) => {
+      if (!tooltip.contains(e.relatedTarget)) hide();
+    });
+  }
+
+  escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   getRecentScoresString(player) {
     const MAX_RECENT = 4;
     const label = (courseKey) => {
@@ -1299,6 +1598,7 @@ class StatsTable {
                     ).join("")}
                   </tbody>
                 </table>`;
+    playerString += this.getScoreHistoryString(player);
     playerString += this.getRecentScoresString(player);
     playerString += `
                 ${this.getShareButtonString("btn-outline-secondary")}

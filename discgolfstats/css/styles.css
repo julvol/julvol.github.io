@@ -11198,3 +11198,90 @@ html {
 .copyright {
   background-color: #1a252f;
 }
+/* "Verlauf": line chart of a player's completed rounds on one layout (see renderScoreHistory) */
+.score-history-select {
+  width: auto;
+  max-width: 100%;
+}
+
+.score-history-chart {
+  position: relative;
+}
+
+.score-history-svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y; /* vertical swipes still scroll the page */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.score-history-svg:focus {
+  outline: none;
+}
+
+.score-history-svg:focus-visible {
+  outline: 2px solid #408ce2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.score-history-tick {
+  font-size: 11px;
+  fill: #6c757d;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-history-label {
+  font-size: 12px;
+  font-weight: 700;
+  fill: #212529;
+  paint-order: stroke;
+  stroke: #fff9f3; /* keeps the label readable where it crosses the line */
+  stroke-width: 3px;
+}
+
+.score-history-tooltip {
+  position: absolute;
+  z-index: 5;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.score-history-tooltip-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.score-history-goto {
+  font-size: 0.85rem;
+  color: #50432c;
+  text-decoration: underline;
+}
+
+.score-history-goto:hover,
+.score-history-goto:focus {
+  color: #2c2418;
+}
+
+/* "Tippe ..." on touch screens, "Zeige ..." with a mouse */
+.score-history-hint-mouse {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .score-history-hint-touch {
+    display: none;
+  }
+
+  .score-history-hint-mouse {
+    display: inline;
+  }
+}
