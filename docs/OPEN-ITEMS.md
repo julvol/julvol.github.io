@@ -6,7 +6,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 ## Charts and trends
 
-- [ ] **#1 Score over time per player and layout:** a line chart of a player's rounds on one layout, to show whether they are improving.
+- [x] **#1 Score over time per player and layout:** "Verlauf" in every player section: a line chart of the completed rounds on one layout (chosen in a dropdown), with the PB and the newest round labeled, a tooltip per round with a link to the match, and a table view.
 - [ ] **#2 Rolling average or handicap:** a UDisc-style rating, so players can compete fairly across different courses.
 - [ ] **#3 Hole difficulty ranking:** the average score relative to par for each hole, sorted from hardest to easiest. The per-hole data already exists.
 
