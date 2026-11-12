@@ -18,7 +18,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 ## Usability
 
-- [ ] **#7 Shareable links:** encode the filter, open match or player in the URL (e.g. `#match=2026-10-03`) so a link opens that exact view.
+- [x] **#7 Shareable links:** the URL always describes what is open (`?partie=2026-10-03-1430`, `?spieler=…`, `?parcours=Course (Layout)`, `?suche=…`), so a link opens that exact view. Every match, player and course also has a "Link teilen" button.
 - [ ] **#8 Dark mode toggle:** a light/dark switch, possibly using Bootstrap's built-in color modes.
 - [ ] **#9 Installable app:** add a web app manifest and a service worker so the site can go on a phone's home screen and still show the last data offline.
 - [ ] **#10 Last data update:** show when the data was last updated.

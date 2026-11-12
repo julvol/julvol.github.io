@@ -13,6 +13,8 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
   <img width="483" height="821" alt="image" src="https://github.com/user-attachments/assets/5fc3e6d5-f39e-4508-a8be-316e9a9b6e9b" />
 
   
+- Links can be shared: the URL always reflects what is open, e.g. `?partie=2026-10-03-1430` for a match, `?spieler=Name` for a player, `?parcours=Course (Layout)` for a course and `?suche=2026` for the match filter. Opening such a link opens and scrolls to that section. The "Link teilen" button in every match, player and course copies a link to it (on phones it opens the share menu).
+
 Personal bests require a round to be completed, i.e. not missing any holes.
 
 ## How to make one for your own friends group

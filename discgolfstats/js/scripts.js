@@ -349,7 +349,12 @@ class StatsTable {
         .forEach((el) => this.fitScorecardNames(el)),
     );
 
+    // a search term from the link has to be in the field before the filter is set up
+    const linkedSearch = new URLSearchParams(window.location.search).get("suche");
+    if (linkedSearch) document.getElementById("matchFilter").value = linkedSearch;
+
     this.setupMatchFilter();
+    this.setupShareableLinks();
 
     // "identische Bahnen" switch: show the variant with or without isomorph holes
     document.addEventListener("change", (e) => {
@@ -429,13 +434,151 @@ class StatsTable {
     input.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       input.value = "";
-      applyFilter();
+      // an input event (not applyFilter directly), so the link in the URL is updated too
+      input.dispatchEvent(new Event("input"));
       setOpen(false);
       input.blur();
     });
 
     applyFilter(); // in case the browser restored a value
     if (input.value !== "") setOpen(true);
+  }
+
+  // Shareable links: the URL always describes what is open, e.g.
+  //   ?partie=2026-10-03-1430   ?spieler=Julian   ?parcours=Aachen Kronenbergpark (Main)   ?suche=2026
+  // Every collapse that can be linked has data-link-param and data-link-value (see getLinkAttributes).
+  // Opening one sets its parameter, closing it removes the parameter again. When the page is
+  // loaded with such parameters, the matching sections are opened and the first one is scrolled to.
+  setupShareableLinks() {
+    const linkedCollapses = [...document.querySelectorAll("[data-link-param]")];
+    const findCollapse = (param, value) =>
+      linkedCollapses.find(
+        (el) => el.dataset.linkParam === param && el.dataset.linkValue === value,
+      );
+
+    const updateUrl = (change) => {
+      const params = new URLSearchParams(window.location.search);
+      change(params);
+      const query = params.toString();
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + (query ? `?${query}` : "") + window.location.hash,
+      );
+    };
+
+    // open the sections named in the URL
+    const params = new URLSearchParams(window.location.search);
+    let firstOpened = null;
+    ["partie", "spieler", "parcours"].forEach((param) => {
+      const value = params.get(param);
+      if (value === null) return;
+      const collapse = findCollapse(param, value);
+      if (!collapse) {
+        // the linked item does not exist (anymore): remove it, so the URL does not lie
+        updateUrl((p) => p.delete(param));
+        return;
+      }
+      bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+      firstOpened ??= collapse;
+    });
+    if (firstOpened) {
+      // scroll once it is fully open, so the layout above it has settled
+      // below the fixed navbar, whose height depends on the screen width (wraps on phones)
+      firstOpened.addEventListener(
+        "shown.bs.collapse",
+        () => {
+          const target =
+            firstOpened.closest(".match-card") ?? firstOpened.closest(".accordion-item");
+          const navHeight = document.getElementById("mainNav")?.offsetHeight ?? 0;
+          window.scrollTo({
+            top: target.getBoundingClientRect().top + window.scrollY - navHeight - 8,
+            behavior: "smooth",
+          });
+        },
+        { once: true },
+      );
+    }
+
+    // keep the URL in sync with what is open
+    document.addEventListener("shown.bs.collapse", (e) => {
+      const { linkParam, linkValue } = e.target.dataset;
+      if (linkParam) updateUrl((p) => p.set(linkParam, linkValue));
+    });
+    document.addEventListener("hidden.bs.collapse", (e) => {
+      const { linkParam, linkValue } = e.target.dataset;
+      // only remove it if the URL still points to this one (another one may have been opened since)
+      if (linkParam)
+        updateUrl((p) => p.get(linkParam) === linkValue && p.delete(linkParam));
+    });
+    document.getElementById("matchFilter").addEventListener("input", (e) => {
+      const value = e.target.value.trim();
+      updateUrl((p) => (value ? p.set("suche", value) : p.delete("suche")));
+    });
+
+    // "Link teilen" buttons: a link to just this match / player / course.
+    // Bootstrap listens for its collapse clicks on document in the capture phase, so this
+    // listens on window in the capture phase (runs before it) and stops the click there.
+    // Otherwise sharing would also close the match card.
+    window.addEventListener(
+      "click",
+      (e) => {
+        const button = e.target.closest?.(".share-link");
+        if (!button) return;
+        e.stopPropagation();
+
+        const { linkParam, linkValue } = button.closest("[data-link-param]").dataset;
+        const url = new URL(window.location.pathname, window.location.origin);
+        url.searchParams.set(linkParam, linkValue);
+        this.shareLink(button, url.toString());
+      },
+      true,
+    );
+  }
+
+  // phones: the system share sheet; otherwise: copy to the clipboard
+  async shareLink(button, url) {
+    if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+      try {
+        await navigator.share({ url });
+      } catch (error) {
+        // closing the share sheet without choosing anything is not an error
+        if (error.name !== "AbortError") console.error(error);
+      }
+      return;
+    }
+
+    const label = button.querySelector(".share-link-label");
+    try {
+      await navigator.clipboard.writeText(url);
+      label.textContent = "Link kopiert";
+    } catch (error) {
+      // clipboard blocked: at least show the link, so it can be copied by hand
+      window.prompt("Link zum Kopieren:", url);
+      return;
+    }
+    clearTimeout(button.resetTimer);
+    button.resetTimer = setTimeout(() => (label.textContent = "Link teilen"), 2000);
+  }
+
+  getShareButtonString(buttonClass) {
+    return `<div class="text-end mb-2">
+      <button type="button" class="btn btn-sm ${buttonClass} share-link">
+        <i class="fas fa-share-nodes"></i> <span class="share-link-label">Link teilen</span>
+      </button>
+    </div>`;
+  }
+
+  getLinkAttributes(param, value) {
+    const escaped = String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+    return `data-link-param="${param}" data-link-value="${escaped}"`;
+  }
+
+  // start time of the match, e.g. 2026-10-03-1430
+  getMatchLinkValue(match) {
+    const t = match.startTime;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}-${pad(t.getHours())}${pad(t.getMinutes())}`;
   }
 
   // compact scorecard (CSS sets --scorecard-name-max): shrink the font of every player name
@@ -1096,8 +1239,10 @@ class StatsTable {
               class="accordion-collapse collapse"
               aria-labelledby="heading-${playerNameWithoutSpecialChars}"
               data-bs-parent="#myAccordion"
+              ${this.getLinkAttributes("spieler", player.name)}
             >
               <div class="accordion-body" style="background-color: #fff9f3;">
+                ${this.getShareButtonString("btn-outline-secondary")}
                 <h5>Gespielte Partien: ${player.playedCoursesCount}</h5>
                 <table
                   class="table table-bordered text-center align-middle w-auto"
@@ -1210,8 +1355,10 @@ class StatsTable {
               class="accordion-collapse collapse"
               aria-labelledby="heading-${courseNameWithoutSpecialChars}"
               data-bs-parent="#myAccordion"
+              ${this.getLinkAttributes("parcours", `${course.course} (${course.layout})`)}
             >
               <div class="accordion-body" style="background-color: #fff9f3;">
+                ${this.getShareButtonString("btn-outline-secondary")}
                 <h5>Bestenliste:</h5>
                 <table
                   class="table table-bordered text-center align-middle w-auto"
@@ -1342,7 +1489,8 @@ class StatsTable {
             </tbody>
           </table>
           </div>
-          <div class="collapse" id="${collapseId}">
+          <div class="collapse" id="${collapseId}" ${this.getLinkAttributes("partie", this.getMatchLinkValue(match))}>
+            ${this.getShareButtonString("btn-outline-light")}
             <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
             <li>Dauer - ${match.duration}</li>
             <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
