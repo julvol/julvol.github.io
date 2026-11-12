@@ -1000,64 +1000,35 @@ class StatsTable {
   }
 
   // ---------------------------------------------------------------------------
-  // "Verlauf": line chart of a player's completed rounds on one layout
-  // (the chart is drawn by renderScoreHistory once the player section is opened,
-  // because it needs the width of the section)
+  // Score history: line chart of a player's completed rounds on one layout, at the top
+  // of that layout in "Letzte Ergebnisse". It is drawn by renderScoreHistory once the
+  // layout is opened, because it needs the width it has there.
   // ---------------------------------------------------------------------------
 
-  // completed rounds of a player, grouped by layout, the most played layout first
-  getScoreHistory(player) {
-    const layouts = {};
-    Object.values(this.matches)
-      .filter((m) => this.hasPlayerCompletedMatch(m, player))
+  getScoreHistoryString(player, course) {
+    const rounds = Object.values(this.matches)
+      .filter(
+        (m) =>
+          m.course === course.course &&
+          m.layout === course.layout &&
+          this.hasPlayerCompletedMatch(m, player),
+      )
       .sort((a, b) => a.startTime - b.startTime)
-      .forEach((m) => {
-        const key = m.course + m.layout;
-        layouts[key] ??= { key, course: m.course, layout: m.layout, rounds: [] };
-        layouts[key].rounds.push({
-          time: m.startTime,
-          dev: m.players[player.name].devFromPar,
-          total: m.players[player.name].total,
-          linkValue: this.getMatchLinkValue(m),
-        });
-      });
-    return Object.values(layouts).sort(
-      (a, b) =>
-        b.rounds.length - a.rounds.length ||
-        b.rounds.at(-1).time - a.rounds.at(-1).time,
-    );
-  }
-
-  getScoreHistoryString(player) {
-    const layouts = this.getScoreHistory(player);
-    if (layouts.length === 0) return "";
+      .map((m) => ({
+        time: m.startTime,
+        dev: m.players[player.name].devFromPar,
+        total: m.players[player.name].total,
+        linkValue: this.getMatchLinkValue(m),
+      }));
+    if (rounds.length === 0) return "";
 
     this.scoreHistories ??= [];
-    const index = this.scoreHistories.push(layouts) - 1;
-
-    const name = (l) => this.escapeHtml(`${l.course} (${l.layout})`);
-    const rounds = (l) => `${l.rounds.length} ${l.rounds.length === 1 ? "Runde" : "Runden"}`;
-    const chooser =
-      layouts.length === 1
-        ? `<div class="mb-2">${name(layouts[0])} · ${rounds(layouts[0])}</div>`
-        : `<select class="form-select form-select-sm score-history-select mb-2" aria-label="Layout für den Verlauf">
-            ${layouts.map((l, i) => `<option value="${i}">${name(l)} · ${rounds(l)}</option>`).join("")}
-          </select>`;
+    const index = this.scoreHistories.push(rounds) - 1;
 
     return `
-      <h5>Verlauf</h5>
-      <div class="score-history mb-3" data-history-index="${index}">
-        ${chooser}
+      <div class="score-history mt-2 mb-3" data-history-index="${index}">
         <div class="score-history-chart"></div>
-        <div class="small text-secondary">
-          Nur vollständige Runden.
-          <span class="score-history-hint-touch">Tippe auf einen Punkt für Details.</span>
-          <span class="score-history-hint-mouse">Zeige auf einen Punkt für Details.</span>
-        </div>
-        <details class="mt-1">
-          <summary class="small" style="cursor: pointer">Als Tabelle</summary>
-          <div class="score-history-table mt-2"></div>
-        </details>
+        <div style="font-size: 0.75rem;">enthält nur vollständige Runden</div>
       </div>`;
   }
 
@@ -1070,10 +1041,14 @@ class StatsTable {
     accordion.addEventListener("show.bs.collapse", (e) =>
       queueMicrotask(() => renderAll(e.target)),
     );
-    accordion.addEventListener("change", (e) => {
-      if (e.target.classList.contains("score-history-select"))
-        this.renderScoreHistory(e.target.closest(".score-history"));
-    });
+    // a layout in "Letzte Ergebnisse" is opened (toggle does not bubble, hence capture)
+    accordion.addEventListener(
+      "toggle",
+      (e) => {
+        if (e.target.open) renderAll(e.target);
+      },
+      true,
+    );
     let resizeFrame;
     window.addEventListener("resize", () => {
       cancelAnimationFrame(resizeFrame);
@@ -1093,11 +1068,9 @@ class StatsTable {
   renderScoreHistory(container) {
     const chart = container.querySelector(".score-history-chart");
     const width = chart.clientWidth;
-    if (width === 0) return; // section closed
+    if (width === 0) return; // section or layout closed
 
-    const layouts = this.scoreHistories[container.dataset.historyIndex];
-    const select = container.querySelector(".score-history-select");
-    const { rounds } = layouts[select ? Number(select.value) : 0];
+    const rounds = this.scoreHistories[container.dataset.historyIndex];
     const n = rounds.length;
 
     // colors of the site: under par blue, par dark, over par orange
@@ -1126,7 +1099,7 @@ class StatsTable {
     const y = (dev) => m.top + ((hi - dev) * (height - m.top - m.bottom)) / (hi - lo);
 
     let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="score-history-svg"
-      tabindex="0" role="img" aria-label="Verlauf: ${n} ${n === 1 ? "Runde" : "Runden"}, Ergebnisse siehe Tabelle">`;
+      tabindex="0" role="img" aria-label="Verlauf: ${n} ${n === 1 ? "vollständige Runde" : "vollständige Runden"}, mit den Pfeiltasten durchgehen">`;
 
     // gridlines + y labels (the par line a bit stronger)
     for (let t = lo; t <= hi; t += step) {
@@ -1186,22 +1159,6 @@ class StatsTable {
 
     chart.innerHTML = svg + `<div class="score-history-tooltip" hidden></div>`;
     this.setupScoreHistoryHover(chart, rounds, x, y, devColor);
-
-    // table view (newest first)
-    container.querySelector(".score-history-table").innerHTML = `
-      <table class="table table-bordered table-sm text-center align-middle w-auto mb-0">
-        <thead><tr>
-          <th style="font-size: 0.75rem;">Datum</th>
-          <th style="font-size: 0.75rem;">Ergebnis</th>
-        </tr></thead>
-        <tbody>
-          ${[...rounds].reverse().map((r) => `
-            <tr>
-              <td>${this.formatDate(r.time)}</td>
-              <td><b style="color: ${devColor(r.dev)};">${this.formatDevFromPar(r.dev)}</b> (${r.total})${r.dev === min ? " PB" : ""}</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
   }
 
   setupScoreHistoryHover(chart, rounds, x, y, devColor) {
@@ -1225,7 +1182,7 @@ class StatsTable {
           <span class="score-history-tooltip-key" style="background: ${devColor(r.dev)}"></span>
           <span><b>${this.formatDevFromPar(r.dev)}</b> (${r.total})</span>
         </div>
-        <div class="text-secondary">${this.formatDateStringForStatsStringHeader(r.time)}</div>
+        <div class="text-secondary">${this.formatDate(r.time)}</div>
         <button type="button" class="btn btn-link btn-sm p-0 score-history-goto">Zur Partie</button>`;
       tooltip.querySelector(".score-history-goto").addEventListener("click", () =>
         this.openLinkedSection("partie", r.linkValue),
@@ -1279,14 +1236,6 @@ class StatsTable {
     });
   }
 
-  escapeHtml(text) {
-    return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
   getRecentScoresString(player) {
     const MAX_RECENT = 4;
     const label = (courseKey) => {
@@ -1307,6 +1256,7 @@ class StatsTable {
       html += `
     <details class="mb-2">
       <summary style="cursor: pointer">${course.course} (${course.layout})</summary>
+      ${this.getScoreHistoryString(player, course)}
       <table class="table table-bordered text-center align-middle w-auto mt-2">
         <thead>
           <tr>
@@ -1598,7 +1548,6 @@ class StatsTable {
                     ).join("")}
                   </tbody>
                 </table>`;
-    playerString += this.getScoreHistoryString(player);
     playerString += this.getRecentScoresString(player);
     playerString += `
                 ${this.getShareButtonString("btn-outline-secondary")}

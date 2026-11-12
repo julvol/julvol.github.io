@@ -11198,12 +11198,7 @@ html {
 .copyright {
   background-color: #1a252f;
 }
-/* "Verlauf": line chart of a player's completed rounds on one layout (see renderScoreHistory) */
-.score-history-select {
-  width: auto;
-  max-width: 100%;
-}
-
+/* score history: line chart of a player's completed rounds on one layout (see renderScoreHistory) */
 .score-history-chart {
   position: relative;
 }
@@ -11271,17 +11266,3 @@ html {
   color: #2c2418;
 }
 
-/* "Tippe ..." on touch screens, "Zeige ..." with a mouse */
-.score-history-hint-mouse {
-  display: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .score-history-hint-touch {
-    display: none;
-  }
-
-  .score-history-hint-mouse {
-    display: inline;
-  }
-}
