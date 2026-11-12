@@ -39,4 +39,6 @@ node --test
 - [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, and identical holes have the same length.
 - [sheet-data.test.mjs](tests/sheet-data.test.mjs) loads the Google Sheet and checks that every played layout has hole lengths, with as many lengths as the layout has holes. It is skipped when there is no internet connection.
 
+The tests also run automatically on GitHub ([.github/workflows/tests.yml](.github/workflows/tests.yml)): on every push, and once a day because new rounds go into the Google Sheet without a commit. GitHub sends an email when they fail. They can also be started by hand with "Run workflow" on the Actions tab.
+
 A failing test says which line or layout to fix, e.g. `Discgolfpark Herzogenrath (Main): played, but missing in hole_lengths.csv (add a line with 8 lengths)`.
