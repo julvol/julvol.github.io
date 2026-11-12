@@ -1,0 +1,22 @@
+# Runs the course data tests (see "Checking the course data" in the README).
+# Besides every push, it also runs once a day: new rounds go into the Google Sheet
+# without a commit, so a newly played layout without hole lengths is noticed anyway.
+# GitHub sends an email when a run fails.
+name: Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *" # daily at 06:00 UTC
+  workflow_dispatch: # "Run workflow" button on the Actions tab
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test
