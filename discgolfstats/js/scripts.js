@@ -1040,7 +1040,8 @@ class StatsTable {
         total: m.players[player.name].total,
         linkValue: this.getMatchLinkValue(m),
       }));
-    if (rounds.length === 0) return "";
+    // a chart only says something from 3 completed rounds on
+    if (rounds.length <= 2) return "";
 
     this.scoreHistories ??= [];
     const index = this.scoreHistories.push(rounds) - 1;
