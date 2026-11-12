@@ -548,23 +548,31 @@ class StatsTable {
       return;
     }
 
-    const label = button.querySelector(".share-link-label");
     try {
       await navigator.clipboard.writeText(url);
-      label.textContent = "Link kopiert";
     } catch (error) {
       // clipboard blocked: at least show the link, so it can be copied by hand
       window.prompt("Link zum Kopieren:", url);
       return;
     }
+    // confirmation: a check mark instead of the share icon for 2 seconds
+    const setCopied = (copied) => {
+      button.querySelector(".share-icon").classList.toggle("d-none", copied);
+      button.querySelector(".share-icon-copied").classList.toggle("d-none", !copied);
+      button.title = copied ? "Link kopiert" : "Link teilen";
+    };
+    setCopied(true);
     clearTimeout(button.resetTimer);
-    button.resetTimer = setTimeout(() => (label.textContent = "Link teilen"), 2000);
+    button.resetTimer = setTimeout(() => setCopied(false), 2000);
   }
 
+  // icon only, placed at the bottom right of the match card / player / course
+  // (the icons are wrapped in spans, because Font Awesome replaces the <i> with an <svg>)
   getShareButtonString(buttonClass) {
-    return `<div class="text-end mb-2">
-      <button type="button" class="btn btn-sm ${buttonClass} share-link">
-        <i class="fas fa-share-nodes"></i> <span class="share-link-label">Link teilen</span>
+    return `<div class="text-end mt-1">
+      <button type="button" class="btn btn-sm ${buttonClass} share-link" title="Link teilen" aria-label="Link teilen">
+        <span class="share-icon"><i class="fas fa-share-nodes"></i></span>
+        <span class="share-icon-copied d-none"><i class="fas fa-check"></i></span>
       </button>
     </div>`;
   }
@@ -1242,7 +1250,6 @@ class StatsTable {
               ${this.getLinkAttributes("spieler", player.name)}
             >
               <div class="accordion-body" style="background-color: #fff9f3;">
-                ${this.getShareButtonString("btn-outline-secondary")}
                 <h5>Gespielte Partien: ${player.playedCoursesCount}</h5>
                 <table
                   class="table table-bordered text-center align-middle w-auto"
@@ -1294,6 +1301,7 @@ class StatsTable {
                 </table>`;
     playerString += this.getRecentScoresString(player);
     playerString += `
+                ${this.getShareButtonString("btn-outline-secondary")}
               </div>
             </div>
           </div>`;
@@ -1358,7 +1366,6 @@ class StatsTable {
               ${this.getLinkAttributes("parcours", `${course.course} (${course.layout})`)}
             >
               <div class="accordion-body" style="background-color: #fff9f3;">
-                ${this.getShareButtonString("btn-outline-secondary")}
                 <h5>Bestenliste:</h5>
                 <table
                   class="table table-bordered text-center align-middle w-auto"
@@ -1372,6 +1379,7 @@ class StatsTable {
                   <tbody>${pbRowsString}</tbody>
                 </table>
                 ${this.getHoleStatsString(course)}
+                ${this.getShareButtonString("btn-outline-secondary")}
               </div>
             </div>
           </div>`;
@@ -1490,7 +1498,6 @@ class StatsTable {
           </table>
           </div>
           <div class="collapse" id="${collapseId}" ${this.getLinkAttributes("partie", this.getMatchLinkValue(match))}>
-            ${this.getShareButtonString("btn-outline-light")}
             <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
             <li>Dauer - ${match.duration}</li>
             <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
@@ -1508,6 +1515,7 @@ class StatsTable {
 
     statsString += `
           </div>
+          ${this.getShareButtonString("btn-outline-light")}
           </div>
         </div>
       </div>`;
