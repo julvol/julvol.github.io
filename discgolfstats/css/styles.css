@@ -11266,3 +11266,11 @@ html {
   color: #2c2418;
 }
 
+
+/* player names in the results of a match card: link to the player's stats */
+.player-link,
+.player-link:hover,
+.player-link:focus-visible {
+  color: inherit;
+  text-decoration: none;
+}

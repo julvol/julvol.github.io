@@ -508,6 +508,22 @@ class StatsTable {
       },
       true,
     );
+
+    // player names in the results of a match card: go to that player's stats
+    // (also stopped in the capture phase, so the match card does not toggle)
+    window.addEventListener(
+      "click",
+      (e) => {
+        const link = e.target.closest?.(".player-link");
+        if (!link) return;
+        e.stopPropagation();
+        // Ctrl / Cmd / Shift click: let the browser open the link in a new tab or window
+        if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+        e.preventDefault();
+        this.openLinkedSection("spieler", link.dataset.player);
+      },
+      true,
+    );
   }
 
   // opens the match / player / course with this link value (see getLinkAttributes) and,
@@ -586,6 +602,10 @@ class StatsTable {
         <span class="share-icon-copied d-none"><i class="fas fa-check"></i></span>
       </button>
     </div>`;
+  }
+
+  getPlayerLinkAttribute(name) {
+    return `data-player="${String(name).replace(/&/g, "&amp;").replace(/"/g, "&quot;")}"`;
   }
 
   getLinkAttributes(param, value) {
@@ -1735,7 +1755,7 @@ class StatsTable {
 
     sortedPlayers.forEach(([playerKey, playerVal]) => {
       statsString += `<tr>
-        <th class="text-start">${playerKey}</th>
+        <th class="text-start"><a class="player-link" href="?spieler=${encodeURIComponent(playerKey)}" ${this.getPlayerLinkAttribute(playerKey)}>${playerKey}</a></th>
         <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
         ${playerVal.howManyHolesNotPlayedInThisMatch > 0 ? "<td><span style='font-size: 0.7rem'>THRU</span> " + (match.holes - playerVal.howManyHolesNotPlayedInThisMatch) + "</td>" : ""}
         ${this.getMatchDistributionCell(playerVal, par.holes, collapseId)}
