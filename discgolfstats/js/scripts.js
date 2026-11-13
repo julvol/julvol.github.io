@@ -379,8 +379,11 @@ class StatsTable {
     );
 
     // a search term from the link has to be in the field before the filter is set up
-    const linkedSearch = new URLSearchParams(window.location.search).get("suche");
-    if (linkedSearch) document.getElementById("matchFilter").value = linkedSearch;
+    const linkedSearch = new URLSearchParams(window.location.search).get(
+      "suche",
+    );
+    if (linkedSearch)
+      document.getElementById("matchFilter").value = linkedSearch;
 
     this.setupMatchFilter();
     this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
@@ -407,7 +410,9 @@ class StatsTable {
   setupMatchFilter() {
     const input = document.getElementById("matchFilter");
     const info = document.getElementById("matchFilterInfo");
-    const cards = [...document.querySelectorAll("#partien-container .match-card")];
+    const cards = [
+      ...document.querySelectorAll("#partien-container .match-card"),
+    ];
 
     const pad = (n) => n.padStart(2, "0");
     const matchesTerm = (card, term) => {
@@ -487,7 +492,9 @@ class StatsTable {
       history.replaceState(
         null,
         "",
-        window.location.pathname + (query ? `?${query}` : "") + window.location.hash,
+        window.location.pathname +
+          (query ? `?${query}` : "") +
+          window.location.hash,
       );
     };
 
@@ -530,7 +537,8 @@ class StatsTable {
         if (!button) return;
         e.stopPropagation();
 
-        const { linkParam, linkValue } = button.closest("[data-link-param]").dataset;
+        const { linkParam, linkValue } =
+          button.closest("[data-link-param]").dataset;
         const url = new URL(window.location.pathname, window.location.origin);
         url.searchParams.set(linkParam, linkValue);
         this.shareLink(button, url.toString());
@@ -579,7 +587,8 @@ class StatsTable {
       const target = card ?? collapse.closest(".accordion-item");
       const navHeight = document.getElementById("mainNav")?.offsetHeight ?? 0;
       window.scrollTo({
-        top: target.getBoundingClientRect().top + window.scrollY - navHeight - 8,
+        top:
+          target.getBoundingClientRect().top + window.scrollY - navHeight - 8,
         behavior: "smooth",
       });
     };
@@ -589,8 +598,12 @@ class StatsTable {
     } else {
       // scroll once it is fully open, so the layout above it has settled
       if (scroll)
-        collapse.addEventListener("shown.bs.collapse", scrollToSection, { once: true });
-      bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+        collapse.addEventListener("shown.bs.collapse", scrollToSection, {
+          once: true,
+        });
+      bootstrap.Collapse.getOrCreateInstance(collapse, {
+        toggle: false,
+      }).show();
     }
     return true;
   }
@@ -617,7 +630,9 @@ class StatsTable {
     // confirmation: a check mark instead of the share icon for 2 seconds
     const setCopied = (copied) => {
       button.querySelector(".share-icon").classList.toggle("d-none", copied);
-      button.querySelector(".share-icon-copied").classList.toggle("d-none", !copied);
+      button
+        .querySelector(".share-icon-copied")
+        .classList.toggle("d-none", !copied);
       button.title = copied ? "Link kopiert" : "Link teilen";
     };
     setCopied(true);
@@ -641,7 +656,9 @@ class StatsTable {
   }
 
   getLinkAttributes(param, value) {
-    const escaped = String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+    const escaped = String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;");
     return `data-link-param="${param}" data-link-value="${escaped}"`;
   }
 
@@ -1088,7 +1105,9 @@ class StatsTable {
   setupScoreHistoryCharts() {
     const accordion = document.getElementById("playersAccordion");
     const renderAll = (root) =>
-      root.querySelectorAll(".score-history").forEach((el) => this.renderScoreHistory(el));
+      root
+        .querySelectorAll(".score-history")
+        .forEach((el) => this.renderScoreHistory(el));
 
     // Bootstrap makes the section measurable right after this event (see fitScorecardNames)
     accordion.addEventListener("show.bs.collapse", (e) =>
@@ -1127,7 +1146,8 @@ class StatsTable {
     const n = rounds.length;
 
     // colors of the site: under par blue, par dark, over par orange
-    const devColor = (dev) => (dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529");
+    const devColor = (dev) =>
+      dev > 0 ? "#e26028" : dev < 0 ? "#408ce2" : "#212529";
     const SURFACE = "#fff9f3"; // background of the player section
     const GRID = "#e3dcd3";
     const MUTED = "#6c757d";
@@ -1138,7 +1158,10 @@ class StatsTable {
     const inset = 10; // keeps the first and last point away from the axis
     const plotLeft = m.left + inset;
     const plotRight = width - m.right - inset;
-    const x = (i) => (n === 1 ? (plotLeft + plotRight) / 2 : plotLeft + (i * (plotRight - plotLeft)) / (n - 1));
+    const x = (i) =>
+      n === 1
+        ? (plotLeft + plotRight) / 2
+        : plotLeft + (i * (plotRight - plotLeft)) / (n - 1);
 
     // y: clean integer ticks, with room above and below for the labels
     const devs = rounds.map((r) => r.dev);
@@ -1149,7 +1172,8 @@ class StatsTable {
     let hi = Math.ceil(max / step) * step;
     if (hi - max < step * 0.4) hi += step;
     if (min - lo < step * 0.6) lo -= step; // more room below: the PB label sits there
-    const y = (dev) => m.top + ((hi - dev) * (height - m.top - m.bottom)) / (hi - lo);
+    const y = (dev) =>
+      m.top + ((hi - dev) * (height - m.top - m.bottom)) / (hi - lo);
 
     let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="score-history-svg"
       tabindex="0" role="img" aria-label="Verlauf: ${n} ${n === 1 ? "vollständige Runde" : "vollständige Runden"}, mit den Pfeiltasten durchgehen">`;
@@ -1163,13 +1187,20 @@ class StatsTable {
 
     // x labels: dates, as many as fit (always the first and the last round)
     const shortDate = (t) =>
-      new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(t);
+      new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      }).format(t);
     const maxLabels = Math.max(2, Math.floor((plotRight - plotLeft) / 70) + 1);
     const labelIndices = new Set();
     if (n <= maxLabels) rounds.forEach((_, i) => labelIndices.add(i));
-    else for (let k = 0; k < maxLabels; k++) labelIndices.add(Math.round((k * (n - 1)) / (maxLabels - 1)));
+    else
+      for (let k = 0; k < maxLabels; k++)
+        labelIndices.add(Math.round((k * (n - 1)) / (maxLabels - 1)));
     labelIndices.forEach((i) => {
-      const anchor = n > 1 && i === 0 ? "start" : n > 1 && i === n - 1 ? "end" : "middle";
+      const anchor =
+        n > 1 && i === 0 ? "start" : n > 1 && i === n - 1 ? "end" : "middle";
       const offset = anchor === "start" ? -inset : anchor === "end" ? inset : 0;
       svg += `<text x="${x(i) + offset}" y="${height - 6}" text-anchor="${anchor}" class="score-history-tick">${shortDate(rounds[i].time)}</text>`;
     });
@@ -1179,7 +1210,9 @@ class StatsTable {
 
     // the line and the points
     if (n > 1) {
-      const path = rounds.map((r, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(r.dev)}`).join("");
+      const path = rounds
+        .map((r, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(r.dev)}`)
+        .join("");
       svg += `<path d="${path}" fill="none" stroke="${MUTED}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     }
     rounds.forEach((r, i) => {
@@ -1194,13 +1227,24 @@ class StatsTable {
     const label = (i, text, preferBelow = false) => {
       const px = x(i);
       const py = y(rounds[i].dev);
-      const above = preferBelow ? py + 19 > height - m.bottom + 4 : py - 11 > m.top - 8;
-      const anchor = px > width - m.right - 24 ? "end" : px < m.left + 24 ? "start" : "middle";
+      const above = preferBelow
+        ? py + 19 > height - m.bottom + 4
+        : py - 11 > m.top - 8;
+      const anchor =
+        px > width - m.right - 24
+          ? "end"
+          : px < m.left + 24
+            ? "start"
+            : "middle";
       const dx = anchor === "end" ? 6 : anchor === "start" ? -6 : 0;
       return `<text x="${px + dx}" y="${above ? py - 10 : py + 19}" text-anchor="${anchor}" class="score-history-label">${text}</text>`;
     };
     if (pbIndex === lastIndex) {
-      svg += label(lastIndex, `${this.formatDevFromPar(rounds[lastIndex].dev)} PB`, true);
+      svg += label(
+        lastIndex,
+        `${this.formatDevFromPar(rounds[lastIndex].dev)} PB`,
+        true,
+      );
     } else {
       svg += label(lastIndex, this.formatDevFromPar(rounds[lastIndex].dev));
       svg += label(pbIndex, "PB", true);
@@ -1237,16 +1281,24 @@ class StatsTable {
         </div>
         <div class="text-secondary">${this.formatDate(r.time)}</div>
         <button type="button" class="btn btn-link btn-sm p-0 score-history-goto">Zur Partie</button>`;
-      tooltip.querySelector(".score-history-goto").addEventListener("click", () =>
-        this.openLinkedSection("partie", r.linkValue),
-      );
+      tooltip
+        .querySelector(".score-history-goto")
+        .addEventListener("click", () =>
+          this.openLinkedSection("partie", r.linkValue),
+        );
       tooltip.hidden = false;
 
       // above the point, kept inside the chart; below it if there is no room above
       const tipWidth = tooltip.offsetWidth;
       const tipHeight = tooltip.offsetHeight;
-      const left = Math.min(Math.max(x(i) - tipWidth / 2, 0), chart.clientWidth - tipWidth);
-      const top = y(r.dev) - tipHeight - 12 >= 0 ? y(r.dev) - tipHeight - 12 : y(r.dev) + 14;
+      const left = Math.min(
+        Math.max(x(i) - tipWidth / 2, 0),
+        chart.clientWidth - tipWidth,
+      );
+      const top =
+        y(r.dev) - tipHeight - 12 >= 0
+          ? y(r.dev) - tipHeight - 12
+          : y(r.dev) + 14;
       tooltip.style.left = `${left}px`;
       tooltip.style.top = `${top}px`;
     };
@@ -1282,7 +1334,12 @@ class StatsTable {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       e.preventDefault();
       const start = current ?? (e.key === "ArrowLeft" ? rounds.length : -1);
-      show(Math.min(Math.max(start + (e.key === "ArrowLeft" ? -1 : 1), 0), rounds.length - 1));
+      show(
+        Math.min(
+          Math.max(start + (e.key === "ArrowLeft" ? -1 : 1), 0),
+          rounds.length - 1,
+        ),
+      );
     });
     svg.addEventListener("blur", (e) => {
       if (!tooltip.contains(e.relatedTarget)) hide();
@@ -1376,7 +1433,12 @@ class StatsTable {
           true, // player section: by default incl. isomorph holes
         );
       } else {
-        html += this.getRecentHolesTableString(player, course, MAX_RECENT, false);
+        html += this.getRecentHolesTableString(
+          player,
+          course,
+          MAX_RECENT,
+          false,
+        );
       }
 
       html += `
@@ -1840,7 +1902,9 @@ class StatsTable {
           name,
           match,
           scores: round.holes,
-          devs: round.holes.map((score, i) => (score === "-" ? null : score - par[i])),
+          devs: round.holes.map((score, i) =>
+            score === "-" ? null : score - par[i],
+          ),
         }));
     });
   }
@@ -1905,18 +1969,16 @@ class StatsTable {
         empty: "Noch kein Ass.",
       },
       {
-        title: "Meiste Birdies in einer Partie",
+        title: "Meiste Sub-Par in einer Partie",
         icon: "dove",
         entries: birdieRounds,
         empty: "Noch kein Birdie.",
-        note: "zählt alle Ergebnisse unter Par",
       },
       {
         title: "Längste Birdie-Serie",
         icon: "fire",
         entries: streaks,
         empty: "Noch keine zwei Birdies hintereinander.",
-        note: "Birdies auf aufeinanderfolgenden Bahnen einer Partie",
       },
       {
         title: "Meiste Partien",
@@ -1938,7 +2000,9 @@ class StatsTable {
     );
     ranked.forEach((entry, i) => {
       entry.rank =
-        i > 0 && entry.value === ranked[i - 1].value ? ranked[i - 1].rank : i + 1;
+        i > 0 && entry.value === ranked[i - 1].value
+          ? ranked[i - 1].rank
+          : i + 1;
     });
     return ranked.filter((entry) => entry.rank <= 3);
   }

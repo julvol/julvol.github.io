@@ -14,7 +14,12 @@ function match(day, scores) {
       howManyHolesNotPlayedInThisMatch: holes.length - played.length,
     };
   }
-  return { startTime: new Date(2026, 0, day, 10), course: "Park", layout: "Main", players };
+  return {
+    startTime: new Date(2026, 0, day, 10),
+    course: "Park",
+    layout: "Main",
+    players,
+  };
 }
 
 // arrays made inside scripts.js (a vm context) have other prototypes; deepEqual compares those too
@@ -26,18 +31,32 @@ function recordsFor(matches) {
   table.players = {};
   for (const m of matches)
     for (const name of Object.keys(m.players).filter((n) => n !== "Par")) {
-      table.players[name] ??= { name, playedCoursesCount: 0, playedCourses: [] };
+      table.players[name] ??= {
+        name,
+        playedCoursesCount: 0,
+        playedCourses: [],
+      };
       table.players[name].playedCoursesCount++;
     }
-  const records = Object.fromEntries(table.getRecords().map((r) => [r.title, r]));
+  const records = Object.fromEntries(
+    table.getRecords().map((r) => [r.title, r]),
+  );
   const top = (title) =>
-    plain(table.rankRecordEntries(records[title].entries).map((e) => [e.rank, e.name, e.value, e.detail]));
+    plain(
+      table
+        .rankRecordEntries(records[title].entries)
+        .map((e) => [e.rank, e.name, e.value, e.detail]),
+    );
   return { top, table };
 }
 
 const matches = [
   match(1, { Anna: [1, 2, 2, 4, 3, "-"], Ben: [3, 3, 3, 3, 3, 3] }),
-  match(2, { Anna: [3, 3, 3, 3, 3, 3], Ben: [2, 3, 2, 2, 2, 1], Cleo: [4, 4, 4, 4, 4, 4] }),
+  match(2, {
+    Anna: [3, 3, 3, 3, 3, 3],
+    Ben: [2, 3, 2, 2, 2, 1],
+    Cleo: [4, 4, 4, 4, 4, 4],
+  }),
   match(3, { Anna: [1, 3, 3, 3, 3, 3], Ben: [3, 3, 3, 3, 3, 4] }),
 ];
 
@@ -52,7 +71,7 @@ test("aces: counted per player, with the most recent one", () => {
 test("birdies in a round: every score below par, also in incomplete rounds", () => {
   const { top } = recordsFor(matches);
   assert.deepEqual(
-    top("Meiste Birdies in einer Partie").map((r) => r.slice(0, 3)),
+    top("Meiste Sub-Par in einer Partie").map((r) => r.slice(0, 3)),
     [
       [1, "Ben", 5],
       [2, "Anna", 3],
@@ -78,13 +97,10 @@ test("ties share a rank, are shown in full, and the earlier one is listed first"
     { name: "D", value: 5, match: { startTime: new Date(2026, 0, 4) } },
     { name: "E", value: 1, match: { startTime: new Date(2026, 0, 4) } },
   ]);
-  assert.deepEqual(
-    plain(rows.map((e) => [e.rank, e.name])),
-    [
-      [1, "A"],
-      [2, "C"],
-      [2, "B"],
-      [2, "D"], // ties are shown in full; E (rank 5) is not
-    ],
-  );
+  assert.deepEqual(plain(rows.map((e) => [e.rank, e.name])), [
+    [1, "A"],
+    [2, "C"],
+    [2, "B"],
+    [2, "D"], // ties are shown in full; E (rank 5) is not
+  ]);
 });
