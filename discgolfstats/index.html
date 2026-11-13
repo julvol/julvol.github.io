@@ -11,6 +11,13 @@
     <title>discgolfstats</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <!-- Installable app (see manifest.webmanifest and sw.js)-->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#50432c" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Disc Golf" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <!-- Font Awesome icons (free version)-->
     <script
       src="https://use.fontawesome.com/releases/v6.3.0/js/all.js"
@@ -117,6 +124,8 @@
                 />
               </div>
               <div id="matchFilterInfo" class="small text-secondary mt-1"></div>
+              <!-- shown when the Google Sheet can't be loaded (see fetchAndRenderData) -->
+              <div id="offlineNotice" class="small text-secondary mt-1" hidden></div>
             </div>
           </div>
 
@@ -199,6 +208,11 @@
       );
 
       discgolfstatsTable.initialize();
+
+      // makes the site installable and usable offline (see sw.js)
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+      }
     </script>
   </body>
 </html>

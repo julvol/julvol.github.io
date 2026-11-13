@@ -14,6 +14,7 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
 
   
 - Links can be shared: the URL always reflects what is open, e.g. `?partie=2026-10-03-1430` for a match, `?spieler=Name` for a player, `?parcours=Course (Layout)` for a course and `?suche=2026` for the match filter. Opening such a link opens and scrolls to that section. The share button (bottom right) in every match, player and course copies a link to it (on phones it opens the share menu).
+- The site can be installed as an app: on Android/Chrome via "Install app" or "Add to home screen" in the browser menu, on iPhone via Share → "Add to Home Screen". Without internet it still opens and shows the data from the last visit, with a note when that data was loaded ([sw.js](discgolfstats/sw.js), [manifest.webmanifest](discgolfstats/manifest.webmanifest)).
 
 Personal bests require a round to be completed, i.e. not missing any holes.
 
