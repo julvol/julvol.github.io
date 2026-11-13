@@ -1,6 +1,6 @@
 {
-  "name": "Disc Golf - Statistiken",
-  "short_name": "Disc Golf",
+  "name": "discgolfstats",
+  "short_name": "discgolfstats",
   "description": "Statistiken unserer Disc-Golf-Partien",
   "lang": "de",
   "id": "./",
