@@ -1839,8 +1839,6 @@ class StatsTable {
         .map(([name, round]) => ({
           name,
           match,
-          total: round.total,
-          complete: round.howManyHolesNotPlayedInThisMatch === 0,
           scores: round.holes,
           devs: round.holes.map((score, i) => (score === "-" ? null : score - par[i])),
         }));
@@ -1893,25 +1891,6 @@ class StatsTable {
       })
       .filter((entry) => entry.value >= 2);
 
-    // winner's lead over the second, only between completed rounds of the same match
-    const margins = Object.values(this.matches).flatMap((match) => {
-      const complete = rounds
-        .filter((round) => round.match === match && round.complete)
-        .sort((a, b) => a.total - b.total);
-      if (complete.length < 2) return [];
-      const margin = complete[1].total - complete[0].total;
-      if (margin <= 0) return []; // shared win
-      const seconds = complete.filter((round) => round.total === complete[1].total);
-      return [
-        {
-          name: complete[0].name,
-          match,
-          value: margin,
-          detail: `vor ${seconds.map((round) => round.name).join(", ")}`,
-        },
-      ];
-    });
-
     const mostRounds = Object.values(this.players).map((player) => ({
       name: player.name,
       value: player.playedCoursesCount,
@@ -1943,14 +1922,6 @@ class StatsTable {
         note: "Birdies auf aufeinanderfolgenden Bahnen einer Partie",
       },
       {
-        title: "Größter Vorsprung",
-        icon: "trophy",
-        unit: ["Wurf", "Würfe"],
-        entries: margins,
-        empty: "Noch keine Partie mit zwei vollständigen Runden.",
-        note: "Vorsprung des Siegers auf den Zweiten, nur vollständige Runden",
-      },
-      {
         title: "Meiste Partien",
         icon: "calendar-check",
         unit: ["Partie", "Partien"],
@@ -1961,9 +1932,8 @@ class StatsTable {
   }
 
   // best first; equal values share a rank (1, 1, 3) and the one who got there first is listed
-  // first. Shows the ranks 1 to 3, at most MAX_ROWS rows (the rest of a tie is counted below).
+  // first. Shows everyone on the ranks 1 to 3, so ties are shown in full.
   rankRecordEntries(entries) {
-    const MAX_ROWS = 3;
     const ranked = [...entries].sort(
       (a, b) =>
         b.value - a.value ||
@@ -1974,8 +1944,7 @@ class StatsTable {
       entry.rank =
         i > 0 && entry.value === ranked[i - 1].value ? ranked[i - 1].rank : i + 1;
     });
-    const top = ranked.filter((entry) => entry.rank <= 3);
-    return { rows: top.slice(0, MAX_ROWS), more: Math.max(top.length - MAX_ROWS, 0) };
+    return ranked.filter((entry) => entry.rank <= 3);
   }
 
   renderRecords() {
@@ -1985,7 +1954,7 @@ class StatsTable {
   }
 
   getRecordCardString({ title, icon, unit, entries, empty, note }) {
-    const { rows, more } = this.rankRecordEntries(entries);
+    const rows = this.rankRecordEntries(entries);
 
     const rowStrings = rows.map((entry) => {
       const context = [entry.detail];
@@ -2006,7 +1975,7 @@ class StatsTable {
     });
 
     return `
-      <div class="col-md-6 col-xl-4">
+      <div class="col-md-6">
         <div class="record-card h-100">
           <h5 class="record-title"><span class="record-icon"><i class="fas fa-${icon}"></i></span>${title}</h5>
           ${
@@ -2014,7 +1983,6 @@ class StatsTable {
               ? `<ol class="record-list">${rowStrings.join("")}</ol>`
               : `<p class="text-muted mb-0">${empty}</p>`
           }
-          ${more ? `<div class="record-note">und ${more} ${more === 1 ? "weiterer" : "weitere"} mit gleichem Wert</div>` : ""}
           ${note ? `<div class="record-note">${note}</div>` : ""}
         </div>
       </div>`;

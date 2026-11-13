@@ -11,7 +11,7 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
   <img width="570" height="1354" alt="image" src="https://github.com/user-attachments/assets/20de0351-9b48-49b6-8207-761da48ccf6e" />
 - For every course and layout, it shows the layout leaderbord and the per-hole distribution (only from rounds played on that layout).<br>
   <img width="483" height="821" alt="image" src="https://github.com/user-attachments/assets/5fc3e6d5-f39e-4508-a8be-316e9a9b6e9b" />
-- The records section shows the top 3 for most aces, most birdies in a round (every score below par), longest birdie streak, biggest winning margin (completed rounds only) and most rounds played. Names link to the player, dates to the match.<br>
+- The records section shows the top 3 for most aces, most birdies in a round (every score below par), longest birdie streak and most rounds played (ties are shown in full). Names link to the player, dates to the match.<br>
 
   
 - Links can be shared: the URL always reflects what is open, e.g. `?partie=2026-10-03-1430` for a match, `?spieler=Name` for a player, `?parcours=Course (Layout)` for a course and `?suche=2026` for the match filter. Opening such a link opens and scrolls to that section. The share button (bottom right) in every match, player and course copies a link to it (on phones it opens the share menu).
@@ -40,7 +40,7 @@ node --test
 
 - [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, and identical holes have the same length.
 - [sheet-data.test.mjs](tests/sheet-data.test.mjs) loads the Google Sheet and checks that every played layout has hole lengths, with as many lengths as the layout has holes. It is skipped when there is no internet connection.
-- [records.test.mjs](tests/records.test.mjs) checks the records with made-up rounds (aces, birdies, streaks, winning margin, shared ranks).
+- [records.test.mjs](tests/records.test.mjs) checks the records with made-up rounds (aces, birdies, streaks, shared ranks).
 
 The tests also run automatically on GitHub ([.github/workflows/tests.yml](.github/workflows/tests.yml)): on every push, and once a day because new rounds go into the Google Sheet without a commit. GitHub sends an email when they fail. They can also be started by hand with "Run workflow" on the Actions tab.
 

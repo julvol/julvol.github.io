@@ -31,7 +31,7 @@ function recordsFor(matches) {
     }
   const records = Object.fromEntries(table.getRecords().map((r) => [r.title, r]));
   const top = (title) =>
-    plain(table.rankRecordEntries(records[title].entries).rows.map((e) => [e.rank, e.name, e.value, e.detail]));
+    plain(table.rankRecordEntries(records[title].entries).map((e) => [e.rank, e.name, e.value, e.detail]));
   return { top, table };
 }
 
@@ -69,21 +69,9 @@ test("birdie streak: consecutive holes only, from 2 on", () => {
   ]);
 });
 
-test("winning margin: only completed rounds, shared wins don't count", () => {
-  const { top } = recordsFor([
-    ...matches,
-    match(4, { Anna: [3, 3, 3, 3, 3, 3], Ben: [3, 3, 3, 3, 3, 3] }), // shared win
-  ]);
-  // match 1: Anna did not finish, so Ben has no opponent
-  assert.deepEqual(top("Größter Vorsprung"), [
-    [1, "Ben", 6, "vor Anna"],
-    [2, "Anna", 3, "vor Ben"],
-  ]);
-});
-
-test("ties share a rank and the earlier one is listed first", () => {
+test("ties share a rank, are shown in full, and the earlier one is listed first", () => {
   const { table } = recordsFor([]);
-  const { rows, more } = table.rankRecordEntries([
+  const rows = table.rankRecordEntries([
     { name: "B", value: 5, match: { startTime: new Date(2026, 0, 2) } },
     { name: "A", value: 7, match: { startTime: new Date(2026, 0, 3) } },
     { name: "C", value: 5, match: { startTime: new Date(2026, 0, 1) } },
@@ -96,7 +84,7 @@ test("ties share a rank and the earlier one is listed first", () => {
       [1, "A"],
       [2, "C"],
       [2, "B"],
+      [2, "D"], // ties are shown in full; E (rank 5) is not
     ],
   );
-  assert.equal(more, 1); // D (also rank 2) is only counted
 });
