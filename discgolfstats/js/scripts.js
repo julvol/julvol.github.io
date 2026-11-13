@@ -1846,7 +1846,6 @@ class StatsTable {
   }
 
   // entries: { name, value, match?, detail? }; higher value is better.
-  // unit (singular, plural) is shown after the value; without it, only the number is shown.
   getRecords() {
     const rounds = this.getAllRounds();
     const isBirdie = (dev) => dev !== null && dev <= -1;
@@ -1902,7 +1901,6 @@ class StatsTable {
       {
         title: "Meiste Asse",
         icon: "bullseye",
-        unit: ["Ass", "Asse"],
         entries: [...aces.values()],
         empty: "Noch kein Ass.",
       },
@@ -1916,7 +1914,6 @@ class StatsTable {
       {
         title: "Längste Birdie-Serie",
         icon: "fire",
-        unit: ["Bahn", "Bahnen"],
         entries: streaks,
         empty: "Noch keine zwei Birdies hintereinander.",
         note: "Birdies auf aufeinanderfolgenden Bahnen einer Partie",
@@ -1952,7 +1949,7 @@ class StatsTable {
       .join("");
   }
 
-  getRecordCardString({ title, icon, unit, entries, empty, note }) {
+  getRecordCardString({ title, icon, entries, empty, note }) {
     const rows = this.rankRecordEntries(entries);
 
     const rowStrings = rows.map((entry) => {
@@ -1969,7 +1966,7 @@ class StatsTable {
             <a class="player-link fw-bold" href="?spieler=${encodeURIComponent(entry.name)}" ${this.getPlayerLinkAttribute(entry.name)}>${entry.name}</a>
             <div class="record-context">${context.filter(Boolean).join(" · ")}</div>
           </div>
-          <span class="record-value"><b>${entry.value}</b>${unit ? ` ${unit[entry.value === 1 ? 0 : 1]}` : ""}</span>
+          <span class="record-value"><b>${entry.value}</b></span>
         </li>`;
     });
 
