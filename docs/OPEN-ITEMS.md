@@ -10,7 +10,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 ## Records
 
-- [ ] **#6 Records page:** most aces, most birdies in a round, longest birdie streak, biggest winning margin, most rounds played.
+- [x] **#6 Records page:** a "Rekorde" section with the top 3 for most aces, most birdies in a round, longest birdie streak, biggest winning margin and most rounds played, linking to the players and matches.
 
 ## Usability
 

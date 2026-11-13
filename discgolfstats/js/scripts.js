@@ -345,6 +345,8 @@ class StatsTable {
       .sort((a, b) => (a.course + a.layout).localeCompare(b.course + b.layout))
       .forEach((course) => this.getCourseString(course));
 
+    this.renderRecords();
+
     // popover content inline style is restricted by Bootstrap; allow inline styles on <span> only
     bootstrap.Popover.Default.allowList.span = ["style"];
 
@@ -536,18 +538,21 @@ class StatsTable {
       true,
     );
 
-    // player names in the results of a match card: go to that player's stats
+    // player names (in the results of a match card and in the records): go to that player's
+    // stats; match links (in the records): go to that match
     // (also stopped in the capture phase, so the match card does not toggle)
     window.addEventListener(
       "click",
       (e) => {
-        const link = e.target.closest?.(".player-link");
+        const link = e.target.closest?.(".player-link, .match-link");
         if (!link) return;
         e.stopPropagation();
         // Ctrl / Cmd / Shift click: let the browser open the link in a new tab or window
         if (e.ctrlKey || e.metaKey || e.shiftKey) return;
         e.preventDefault();
-        this.openLinkedSection("spieler", link.dataset.player);
+        if (link.classList.contains("player-link"))
+          this.openLinkedSection("spieler", link.dataset.player);
+        else this.openLinkedSection("partie", link.dataset.match);
       },
       true,
     );
@@ -1818,6 +1823,201 @@ class StatsTable {
       </div>`;
 
     document.getElementById("partien-container").innerHTML += statsString;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Records (open item #6): one card per record with the top 3, in the "Rekorde" section.
+  // A birdie counts every score below par (like "Unter" in the player stats).
+  // ---------------------------------------------------------------------------
+
+  // every round of every player, with the deviation from par per hole (null = not played)
+  getAllRounds() {
+    return Object.values(this.matches).flatMap((match) => {
+      const par = match.players["Par"].holes;
+      return Object.entries(match.players)
+        .filter(([name]) => name !== "Par")
+        .map(([name, round]) => ({
+          name,
+          match,
+          total: round.total,
+          complete: round.howManyHolesNotPlayedInThisMatch === 0,
+          scores: round.holes,
+          devs: round.holes.map((score, i) => (score === "-" ? null : score - par[i])),
+        }));
+    });
+  }
+
+  // entries: { name, value, match?, detail? }; higher value is better
+  getRecords() {
+    const rounds = this.getAllRounds();
+    const isBirdie = (dev) => dev !== null && dev <= -1;
+
+    // aces per player, with the most recent one
+    const aces = new Map();
+    rounds.forEach((round) =>
+      round.scores.forEach((score, i) => {
+        if (score !== 1) return;
+        const entry = aces.get(round.name) ?? { name: round.name, value: 0 };
+        entry.value++;
+        if (!entry.match || round.match.startTime > entry.match.startTime) {
+          entry.match = round.match;
+          entry.detail = `zuletzt Bahn ${i + 1}`;
+        }
+        aces.set(round.name, entry);
+      }),
+    );
+
+    const birdieRounds = rounds
+      .map((round) => ({
+        name: round.name,
+        match: round.match,
+        value: round.devs.filter(isBirdie).length,
+      }))
+      .filter((entry) => entry.value > 0);
+
+    // longest run of birdies on consecutive holes within one round (unplayed holes end a run)
+    const streaks = rounds
+      .map((round) => {
+        let best = { value: 0, end: 0 };
+        let run = 0;
+        round.devs.forEach((dev, i) => {
+          run = isBirdie(dev) ? run + 1 : 0;
+          if (run > best.value) best = { value: run, end: i + 1 };
+        });
+        return {
+          name: round.name,
+          match: round.match,
+          value: best.value,
+          detail: `Bahn ${best.end - best.value + 1}–${best.end}`,
+        };
+      })
+      .filter((entry) => entry.value >= 2);
+
+    // winner's lead over the second, only between completed rounds of the same match
+    const margins = Object.values(this.matches).flatMap((match) => {
+      const complete = rounds
+        .filter((round) => round.match === match && round.complete)
+        .sort((a, b) => a.total - b.total);
+      if (complete.length < 2) return [];
+      const margin = complete[1].total - complete[0].total;
+      if (margin <= 0) return []; // shared win
+      const seconds = complete.filter((round) => round.total === complete[1].total);
+      return [
+        {
+          name: complete[0].name,
+          match,
+          value: margin,
+          detail: `vor ${seconds.map((round) => round.name).join(", ")}`,
+        },
+      ];
+    });
+
+    const mostRounds = Object.values(this.players).map((player) => ({
+      name: player.name,
+      value: player.playedCoursesCount,
+      detail: `auf ${player.playedCourses.length} Parcours`,
+    }));
+
+    return [
+      {
+        title: "Meiste Asse",
+        icon: "bullseye",
+        unit: ["Ass", "Asse"],
+        entries: [...aces.values()],
+        empty: "Noch kein Ass.",
+      },
+      {
+        title: "Meiste Birdies in einer Partie",
+        icon: "dove",
+        unit: ["Birdie", "Birdies"],
+        entries: birdieRounds,
+        empty: "Noch kein Birdie.",
+        note: "zählt alle Ergebnisse unter Par",
+      },
+      {
+        title: "Längste Birdie-Serie",
+        icon: "fire",
+        unit: ["Bahn", "Bahnen"],
+        entries: streaks,
+        empty: "Noch keine zwei Birdies hintereinander.",
+        note: "Birdies auf aufeinanderfolgenden Bahnen einer Partie",
+      },
+      {
+        title: "Größter Vorsprung",
+        icon: "trophy",
+        unit: ["Wurf", "Würfe"],
+        entries: margins,
+        empty: "Noch keine Partie mit zwei vollständigen Runden.",
+        note: "Vorsprung des Siegers auf den Zweiten, nur vollständige Runden",
+      },
+      {
+        title: "Meiste Partien",
+        icon: "calendar-check",
+        unit: ["Partie", "Partien"],
+        entries: mostRounds,
+        empty: "Noch keine Partie.",
+      },
+    ];
+  }
+
+  // best first; equal values share a rank (1, 1, 3) and the one who got there first is listed
+  // first. Shows the ranks 1 to 3, at most MAX_ROWS rows (the rest of a tie is counted below).
+  rankRecordEntries(entries) {
+    const MAX_ROWS = 3;
+    const ranked = [...entries].sort(
+      (a, b) =>
+        b.value - a.value ||
+        (a.match?.startTime ?? 0) - (b.match?.startTime ?? 0) ||
+        a.name.localeCompare(b.name),
+    );
+    ranked.forEach((entry, i) => {
+      entry.rank =
+        i > 0 && entry.value === ranked[i - 1].value ? ranked[i - 1].rank : i + 1;
+    });
+    const top = ranked.filter((entry) => entry.rank <= 3);
+    return { rows: top.slice(0, MAX_ROWS), more: Math.max(top.length - MAX_ROWS, 0) };
+  }
+
+  renderRecords() {
+    document.getElementById("recordsContainer").innerHTML = this.getRecords()
+      .map((record) => this.getRecordCardString(record))
+      .join("");
+  }
+
+  getRecordCardString({ title, icon, unit, entries, empty, note }) {
+    const { rows, more } = this.rankRecordEntries(entries);
+
+    const rowStrings = rows.map((entry) => {
+      const context = [entry.detail];
+      if (entry.match) {
+        context.push(
+          `<a class="match-link" href="?partie=${this.getMatchLinkValue(entry.match)}" data-match="${this.getMatchLinkValue(entry.match)}">${this.formatDate(entry.match.startTime)}, ${entry.match.course} (${entry.match.layout})</a>`,
+        );
+      }
+      return `
+        <li class="record-row">
+          <span class="record-rank${entry.rank === 1 ? " record-rank-first" : ""}">${entry.rank}</span>
+          <div class="record-who">
+            <a class="player-link fw-bold" href="?spieler=${encodeURIComponent(entry.name)}" ${this.getPlayerLinkAttribute(entry.name)}>${entry.name}</a>
+            <div class="record-context">${context.filter(Boolean).join(" · ")}</div>
+          </div>
+          <span class="record-value"><b>${entry.value}</b> ${unit[entry.value === 1 ? 0 : 1]}</span>
+        </li>`;
+    });
+
+    return `
+      <div class="col-md-6 col-xl-4">
+        <div class="record-card h-100">
+          <h5 class="record-title"><span class="record-icon"><i class="fas fa-${icon}"></i></span>${title}</h5>
+          ${
+            rows.length
+              ? `<ol class="record-list">${rowStrings.join("")}</ol>`
+              : `<p class="text-muted mb-0">${empty}</p>`
+          }
+          ${more ? `<div class="record-note">und ${more} ${more === 1 ? "weiterer" : "weitere"} mit gleichem Wert</div>` : ""}
+          ${note ? `<div class="record-note">${note}</div>` : ""}
+        </div>
+      </div>`;
   }
 
   // hidden by default, shown while the scorecard of this match is expanded
