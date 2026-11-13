@@ -1845,7 +1845,8 @@ class StatsTable {
     });
   }
 
-  // entries: { name, value, match?, detail? }; higher value is better
+  // entries: { name, value, match?, detail? }; higher value is better.
+  // unit (singular, plural) is shown after the value; without it, only the number is shown.
   getRecords() {
     const rounds = this.getAllRounds();
     const isBirdie = (dev) => dev !== null && dev <= -1;
@@ -1908,7 +1909,6 @@ class StatsTable {
       {
         title: "Meiste Birdies in einer Partie",
         icon: "dove",
-        unit: ["Birdie", "Birdies"],
         entries: birdieRounds,
         empty: "Noch kein Birdie.",
         note: "zählt alle Ergebnisse unter Par",
@@ -1924,7 +1924,6 @@ class StatsTable {
       {
         title: "Meiste Partien",
         icon: "calendar-check",
-        unit: ["Partie", "Partien"],
         entries: mostRounds,
         empty: "Noch keine Partie.",
       },
@@ -1970,7 +1969,7 @@ class StatsTable {
             <a class="player-link fw-bold" href="?spieler=${encodeURIComponent(entry.name)}" ${this.getPlayerLinkAttribute(entry.name)}>${entry.name}</a>
             <div class="record-context">${context.filter(Boolean).join(" · ")}</div>
           </div>
-          <span class="record-value"><b>${entry.value}</b> ${unit[entry.value === 1 ? 0 : 1]}</span>
+          <span class="record-value"><b>${entry.value}</b>${unit ? ` ${unit[entry.value === 1 ? 0 : 1]}` : ""}</span>
         </li>`;
     });
 
