@@ -91,22 +91,49 @@ class StatsTable {
   fetchAndRenderData(url, cacheKey, renderFunction) {
     fetch(url)
       .then((res) => res.text())
-      .then((rep) => {
-        let jsonData = JSON.parse(rep.substr(47).slice(0, -2));
+      .then((rep) => JSON.parse(rep.substr(47).slice(0, -2)))
+      .then(
+        (jsonData) => {
+          // Speichere die Daten im Cache (localStorage)
+          let cacheData = {
+            data: jsonData,
+            expiry: Date.now() + this.cacheDuration,
+            savedAt: Date.now(),
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
 
-        // Speichere die Daten im Cache (localStorage)
-        let cacheData = {
-          data: jsonData,
-          expiry: Date.now() + this.cacheDuration,
-        };
-        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+          // Rendere die Tabelle mit den Daten
+          renderFunction(jsonData);
+        },
+        (error) => {
+          console.error("Fehler beim Abrufen der Daten: ", error);
+          this.renderLastData(cacheKey, renderFunction);
+        },
+      );
+  }
 
-        // Rendere die Tabelle mit den Daten
-        renderFunction(jsonData);
-      })
-      .catch((error) => {
-        console.error("Fehler beim Abrufen der Daten: ", error);
-      });
+  // offline (or the sheet is unavailable): show the last loaded data, even if it's old
+  renderLastData(cacheKey, renderFunction) {
+    const notice = document.getElementById("offlineNotice");
+    let cached = null;
+    try {
+      cached = JSON.parse(localStorage.getItem(cacheKey));
+    } catch (error) {}
+
+    notice.hidden = false;
+    if (!cached?.data) {
+      notice.textContent =
+        "Keine Verbindung – die Partien konnten nicht geladen werden.";
+      return;
+    }
+    // older cache entries have no savedAt, but their expiry tells the same
+    const savedAt = cached.savedAt ?? cached.expiry - this.cacheDuration;
+    const time = new Intl.DateTimeFormat("de-DE", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(savedAt);
+    notice.textContent = `Keine Verbindung – angezeigt werden die Daten vom ${this.formatDate(savedAt)}, ${time} Uhr.`;
+    renderFunction(cached.data);
   }
 
   isCacheValid(cacheKey) {
