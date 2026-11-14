@@ -926,7 +926,7 @@ class StatsTable {
   // popover of the average on a hole in "Letzte Ergebnisse" of a player: how often each number
   // of throws was played (like the "Verteilung" of a course, but absolute throws instead of
   // the categories), from the fewest to the most throws; numbers never played are dimmed
-  getThrowsDistributionPopoverContent(entries, par) {
+  getThrowsDistributionPopoverContent(entries) {
     const counts = {};
     entries.forEach(({ score }) => (counts[score] = (counts[score] ?? 0) + 1));
     const throws = entries.map((e) => e.score);
@@ -937,7 +937,7 @@ class StatsTable {
       const count = counts[n] ?? 0;
       const percent = Math.round((count / total) * 100);
       lines += `<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap;${count === 0 ? " opacity: 0.4;" : ""}">
-          <span class="badge bg-scorecard-${this.getScoreClass(n - par)}" style="display: inline-block; width: 22px; text-align: center; padding-left: 0; padding-right: 0;">${n}</span>
+          <span style="min-width: 2ch; text-align: right;"><b>${n}</b></span>
           <span style="min-width: 2ch; text-align: right;">${count}</span>
           <span style="min-width: 4ch; text-align: right;">${percent}%</span>
         </span>`;
@@ -1606,7 +1606,6 @@ class StatsTable {
       }).format(average);
       const throwsPopover = this.getThrowsDistributionPopoverContent(
         this.getCombinedScores(player, course, hole, includeIsomorphs),
-        originalPar,
       );
       html += `
         <td style="padding: 3px; width: 46px; line-height: 1; vertical-align: middle; cursor: pointer;" ${this.getPopoverAttributes(throwsPopover)}>
