@@ -2050,23 +2050,45 @@ class StatsTable {
       }))
       .filter((entry) => entry.value > 0);
 
-    // longest run of birdies on consecutive holes within one round (unplayed holes end a run)
-    const streaks = rounds
-      .map((round) => {
-        let best = { value: 0, end: 0 };
-        let run = 0;
-        round.devs.forEach((dev, i) => {
-          run = isBirdie(dev) ? run + 1 : 0;
-          if (run > best.value) best = { value: run, end: i + 1 };
-        });
-        return {
+    // longest run of holes matching isHit within one round (unplayed holes end a run)
+    const getStreaks = (isHit) =>
+      rounds
+        .map((round) => {
+          let best = { value: 0, end: 0 };
+          let run = 0;
+          round.devs.forEach((dev, i) => {
+            run = isHit(dev) ? run + 1 : 0;
+            if (run > best.value) best = { value: run, end: i + 1 };
+          });
+          return {
+            name: round.name,
+            match: round.match,
+            value: best.value,
+            detail: `Bahn ${best.end - best.value + 1}–${best.end}`,
+          };
+        })
+        .filter((entry) => entry.value >= 2);
+
+    const streaks = getStreaks(isBirdie);
+    const bogeyFreeStreaks = getStreaks((dev) => dev !== null && dev <= 0);
+
+    // completed rounds without a hole over par, per player, with the most recent one
+    const bogeyFree = new Map();
+    rounds
+      .filter((round) => round.devs.every((dev) => dev !== null && dev <= 0))
+      .forEach((round) => {
+        const entry = bogeyFree.get(round.name) ?? {
           name: round.name,
-          match: round.match,
-          value: best.value,
-          detail: `Bahn ${best.end - best.value + 1}–${best.end}`,
+          value: 0,
         };
-      })
-      .filter((entry) => entry.value >= 2);
+        entry.value++;
+        if (!entry.match || round.match.startTime > entry.match.startTime) {
+          entry.match = round.match;
+          const total = round.devs.reduce((a, b) => a + b, 0);
+          entry.detail = `zuletzt ${this.formatDevFromPar(total)}`;
+        }
+        bogeyFree.set(round.name, entry);
+      });
 
     const mostRounds = Object.values(this.players).map((player) => ({
       name: player.name,
@@ -2092,6 +2114,18 @@ class StatsTable {
         icon: "fire",
         entries: streaks,
         empty: "Noch keine zwei Birdies hintereinander.",
+      },
+      {
+        title: "Längste Bogey-freie Serie",
+        icon: "equals",
+        entries: bogeyFreeStreaks,
+        empty: "Noch keine zwei Bahnen ohne Bogey hintereinander.",
+      },
+      {
+        title: "Bogey-freie Runden",
+        icon: "shield-halved",
+        entries: [...bogeyFree.values()],
+        empty: "Noch keine Runde ohne Bogey.",
       },
       {
         title: "Meiste Partien",

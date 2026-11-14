@@ -13,7 +13,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 - [x] **#6 Records page:** a "Rekorde" section with the top 3 for most aces, most birdies in a round, longest birdie streak and most rounds played (ties shown in full), linking to the players and matches.
 - [ ] **#16 Milestones:** small badges in a player's section, e.g. first ace, first round under par, 10/50/100 rounds, every course played, each with the date and a link to the match.
-- [ ] **#17 More records:** bogey-free rounds, most pars in a row, biggest improvement of a PB, most different courses played, most rounds on one day.
+- [x] **#17 More records:** two more cards in "Rekorde": the longest bogey-free run (par or better on consecutive holes) within one round, and the number of completed bogey-free rounds (no hole over par) per player, linking to the most recent one.
 
 ## Usability
 
