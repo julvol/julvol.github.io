@@ -568,6 +568,28 @@ class StatsTable {
       },
       true,
     );
+
+    // "Disc Golf - Statistiken" in the navbar: back to the start, i.e. everything closed,
+    // the search cleared and a plain URL (no ?partie=… etc. and no #page-top)
+    document
+      .querySelector("#mainNav .navbar-brand")
+      .addEventListener("click", (e) => {
+        e.preventDefault();
+        document
+          .querySelectorAll(".collapse.show")
+          .forEach((el) =>
+            bootstrap.Collapse.getOrCreateInstance(el, { toggle: false }).hide(),
+          );
+        document
+          .querySelectorAll("details[open]")
+          .forEach((details) => (details.open = false));
+        // like Escape in the search field: clears it and closes it
+        document
+          .getElementById("matchFilter")
+          .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        history.replaceState(null, "", window.location.pathname);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
   }
 
   // opens the match / player / course with this link value (see getLinkAttributes) and,
