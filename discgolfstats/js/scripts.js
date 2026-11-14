@@ -675,38 +675,16 @@ class StatsTable {
     const lines = [
       `Partie am ${pad(t.getDate())}.${pad(t.getMonth() + 1)}.${t.getFullYear()} auf ${match.course} (${match.layout})`,
     ];
-    lines.push(
-      ...this.getAlignedScoreLines(
-        sortedPlayers.map(([name, p]) => ({
-          label: name,
-          dev: p.devFromPar,
-          total: p.total,
-          suffix:
-            p.howManyHolesNotPlayedInThisMatch > 0
-              ? ` - THRU ${match.holes - p.howManyHolesNotPlayedInThisMatch}`
-              : "",
-        })),
-      ),
-    );
+    sortedPlayers.forEach(([name, p]) => {
+      const thru =
+        p.howManyHolesNotPlayedInThisMatch > 0
+          ? ` - THRU ${match.holes - p.howManyHolesNotPlayedInThisMatch}`
+          : "";
+      lines.push(
+        `${name} - ${this.formatDevFromPar(p.devFromPar)} (${p.total})${thru}`,
+      );
+    });
     return lines.join("\n");
-  }
-
-  // lines of the share texts like "Nina           - +17 (44)", padded with spaces so the
-  // labels and the scores line up below each other (exactly only in a monospace font)
-  getAlignedScoreLines(rows) {
-    const cells = rows.map((r) => ({
-      ...r,
-      dev: this.formatDevFromPar(r.dev),
-      total: `(${r.total})`,
-    }));
-    const width = (key) => Math.max(...cells.map((c) => c[key].length));
-    const [labelWidth, devWidth, totalWidth] = ["label", "dev", "total"].map(
-      width,
-    );
-    return cells.map(
-      (c) =>
-        `${c.label.padEnd(labelWidth)} - ${c.dev.padStart(devWidth)} ${c.total.padStart(totalWidth)}${c.suffix ?? ""}`.trimEnd(),
-    );
   }
 
   getPlayerLinkAttribute(name) {
@@ -1727,23 +1705,13 @@ class StatsTable {
     const shareLines = [
       `${player.name} - ${player.playedCoursesCount} ${player.playedCoursesCount === 1 ? "Partie" : "Partien"}`,
     ];
-    const pbRows = player.playedCourses
-      .map((course) => ({
-        label: `${course.course} (${course.layout})`,
-        pb: this.getPersonalBestTotal(player, course),
-      }))
-      .filter(({ pb }) => pb !== null);
-    if (pbRows.length > 0)
-      shareLines.push(
-        "PBs:",
-        ...this.getAlignedScoreLines(
-          pbRows.map(({ label, pb }) => ({
-            label,
-            dev: pb.dev,
-            total: pb.total,
-          })),
-        ),
-      );
+    player.playedCourses.forEach((course) => {
+      const pb = this.getPersonalBestTotal(player, course);
+      if (pb !== null)
+        shareLines.push(
+          `${course.course} (${course.layout}) - PB ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
+        );
+    });
     playerString += `
                 ${this.getShareButtonString("btn-outline-secondary", shareLines.join("\n"))}
               </div>
@@ -1827,12 +1795,9 @@ class StatsTable {
                   "btn-outline-secondary",
                   [
                     `Bestenliste ${course.course} (${course.layout})`,
-                    ...this.getAlignedScoreLines(
-                      pbRows.map(({ name, pb }, i) => ({
-                        label: `${String(i + 1).padStart(String(pbRows.length).length)}. ${name}`,
-                        dev: pb.dev,
-                        total: pb.total,
-                      })),
+                    ...pbRows.map(
+                      ({ name, pb }, i) =>
+                        `${i + 1}. ${name} - ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
                     ),
                   ].join("\n"),
                 )}
