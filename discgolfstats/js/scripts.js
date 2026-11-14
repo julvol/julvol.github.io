@@ -668,7 +668,7 @@ class StatsTable {
     </div>`;
   }
 
-  // e.g. "Partie am 03.10.2026 auf Course (Layout)", then one line per player: "Name - +3 (33)"
+  // e.g. "Partie am 03.10.2026 auf Course (Layout)", then one line per player: "Name +3 (33)"
   getMatchShareText(match, sortedPlayers) {
     const pad = (n) => String(n).padStart(2, "0");
     const t = match.startTime;
@@ -681,7 +681,7 @@ class StatsTable {
           ? ` - THRU ${match.holes - p.howManyHolesNotPlayedInThisMatch}`
           : "";
       lines.push(
-        `${name} - ${this.formatDevFromPar(p.devFromPar)} (${p.total})${thru}`,
+        `${name} ${this.formatDevFromPar(p.devFromPar)} (${p.total})${thru}`,
       );
     });
     return lines.join("\n");
@@ -1797,7 +1797,7 @@ class StatsTable {
                     `Bestenliste ${course.course} (${course.layout})`,
                     ...pbRows.map(
                       ({ name, pb }, i) =>
-                        `${i + 1}. ${name} - ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
+                        `${i + 1}. ${name} ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
                     ),
                   ].join("\n"),
                 )}
