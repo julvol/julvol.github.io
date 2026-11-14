@@ -526,14 +526,15 @@ class StatsTable {
       updateUrl((p) => (value ? p.set("suche", value) : p.delete("suche")));
     });
 
-    // "Link teilen" buttons: a link to just this match / player / course.
+    // "Link kopieren" / "Teilen" buttons of a match / player / course: the link button copies
+    // a link to just this one, the share button shares a short summary text with that link.
     // Bootstrap listens for its collapse clicks on document in the capture phase, so this
     // listens on window in the capture phase (runs before it) and stops the click there.
     // Otherwise sharing would also close the match card.
     window.addEventListener(
       "click",
       (e) => {
-        const button = e.target.closest?.(".share-link");
+        const button = e.target.closest?.(".share-link, .share-text");
         if (!button) return;
         e.stopPropagation();
 
@@ -541,7 +542,9 @@ class StatsTable {
           button.closest("[data-link-param]").dataset;
         const url = new URL(window.location.pathname, window.location.origin);
         url.searchParams.set(linkParam, linkValue);
-        this.shareLink(button, url.toString());
+        if (button.classList.contains("share-link"))
+          this.copyToClipboard(button, url.toString());
+        else this.shareText(button, `${button.dataset.shareText}\n${url}`);
       },
       true,
     );
@@ -609,46 +612,78 @@ class StatsTable {
   }
 
   // phones: the system share sheet; otherwise: copy to the clipboard
-  async shareLink(button, url) {
+  async shareText(button, text) {
     if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
       try {
-        await navigator.share({ url });
+        await navigator.share({ text });
       } catch (error) {
         // closing the share sheet without choosing anything is not an error
         if (error.name !== "AbortError") console.error(error);
       }
       return;
     }
+    this.copyToClipboard(button, text);
+  }
 
+  async copyToClipboard(button, text) {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(text);
     } catch (error) {
-      // clipboard blocked: at least show the link, so it can be copied by hand
-      window.prompt("Link zum Kopieren:", url);
+      // clipboard blocked: at least show the text, so it can be copied by hand
+      window.prompt("Zum Kopieren:", text);
       return;
     }
-    // confirmation: a check mark instead of the share icon for 2 seconds
+    // confirmation: a check mark instead of the icon for 2 seconds
+    button.originalTitle ??= button.title;
     const setCopied = (copied) => {
       button.querySelector(".share-icon").classList.toggle("d-none", copied);
       button
         .querySelector(".share-icon-copied")
         .classList.toggle("d-none", !copied);
-      button.title = copied ? "Link kopiert" : "Link teilen";
+      button.title = copied ? "Kopiert" : button.originalTitle;
     };
     setCopied(true);
     clearTimeout(button.resetTimer);
     button.resetTimer = setTimeout(() => setCopied(false), 2000);
   }
 
-  // icon only, placed at the bottom right of the match card / player / course
+  // icons only, placed at the bottom right of the match card / player / course: copy the link,
+  // and share shareText (a few lines summing it up) followed by the link
   // (the icons are wrapped in spans, because Font Awesome replaces the <i> with an <svg>)
-  getShareButtonString(buttonClass) {
-    return `<div class="text-end mt-1">
-      <button type="button" class="btn btn-sm ${buttonClass} share-link" title="Link teilen" aria-label="Link teilen">
-        <span class="share-icon"><i class="fas fa-share-nodes"></i></span>
-        <span class="share-icon-copied d-none"><i class="fas fa-check"></i></span>
+  getShareButtonString(buttonClass, shareText) {
+    const icons = (icon) => `
+        <span class="share-icon"><i class="fas ${icon}"></i></span>
+        <span class="share-icon-copied d-none"><i class="fas fa-check"></i></span>`;
+    const escaped = shareText
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/\n/g, "&#10;");
+    return `<div class="d-flex justify-content-end gap-1 mt-1">
+      <button type="button" class="btn btn-sm ${buttonClass} share-link" title="Link kopieren" aria-label="Link kopieren">${icons("fa-link")}
+      </button>
+      <button type="button" class="btn btn-sm ${buttonClass} share-text" title="Teilen" aria-label="Teilen" data-share-text="${escaped}">${icons("fa-share-nodes")}
       </button>
     </div>`;
+  }
+
+  // e.g. "Partie am 03.10.2026 auf Course (Layout)", then one line per player: "Name - +3 (33)"
+  getMatchShareText(match, sortedPlayers) {
+    const pad = (n) => String(n).padStart(2, "0");
+    const t = match.startTime;
+    const lines = [
+      `Partie am ${pad(t.getDate())}.${pad(t.getMonth() + 1)}.${t.getFullYear()} auf ${match.course} (${match.layout})`,
+    ];
+    sortedPlayers.forEach(([name, p]) => {
+      const thru =
+        p.howManyHolesNotPlayedInThisMatch > 0
+          ? ` - THRU ${match.holes - p.howManyHolesNotPlayedInThisMatch}`
+          : "";
+      lines.push(
+        `${name} - ${this.formatDevFromPar(p.devFromPar)} (${p.total})${thru}`,
+      );
+    });
+    return lines.join("\n");
   }
 
   getPlayerLinkAttribute(name) {
@@ -1664,8 +1699,20 @@ class StatsTable {
                   </tbody>
                 </table>`;
     playerString += this.getRecentScoresString(player);
+
+    // share text: the number of matches and the PB per layout
+    const shareLines = [
+      `${player.name} - ${player.playedCoursesCount} ${player.playedCoursesCount === 1 ? "Partie" : "Partien"}`,
+    ];
+    player.playedCourses.forEach((course) => {
+      const pb = this.getPersonalBestTotal(player, course);
+      if (pb !== null)
+        shareLines.push(
+          `${course.course} (${course.layout}) - PB ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
+        );
+    });
     playerString += `
-                ${this.getShareButtonString("btn-outline-secondary")}
+                ${this.getShareButtonString("btn-outline-secondary", shareLines.join("\n"))}
               </div>
             </div>
           </div>`;
@@ -1743,7 +1790,16 @@ class StatsTable {
                   <tbody>${pbRowsString}</tbody>
                 </table>
                 ${this.getHoleStatsString(course)}
-                ${this.getShareButtonString("btn-outline-secondary")}
+                ${this.getShareButtonString(
+                  "btn-outline-secondary",
+                  [
+                    `Bestenliste ${course.course} (${course.layout})`,
+                    ...pbRows.map(
+                      ({ name, pb }, i) =>
+                        `${i + 1}. ${name} - ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
+                    ),
+                  ].join("\n"),
+                )}
               </div>
             </div>
           </div>`;
@@ -1879,7 +1935,7 @@ class StatsTable {
 
     statsString += `
           </div>
-          ${this.getShareButtonString("btn-outline-light")}
+          ${this.getShareButtonString("btn-outline-light", this.getMatchShareText(match, sortedPlayers))}
           </div>
         </div>
       </div>`;
