@@ -925,7 +925,7 @@ class StatsTable {
 
   // popover of the average on a hole in "Letzte Ergebnisse" of a player: how often each number
   // of throws was played (like the "Verteilung" of a course, but absolute throws instead of
-  // the categories), from the fewest to the most throws; numbers never played are dimmed
+  // the categories), from 1 (an ace) to the most throws; numbers never played are dimmed
   getThrowsDistributionPopoverContent(entries) {
     const counts = {};
     entries.forEach(({ score }) => (counts[score] = (counts[score] ?? 0) + 1));
@@ -933,11 +933,11 @@ class StatsTable {
     const total = entries.length;
 
     let lines = "";
-    for (let n = Math.min(...throws); n <= Math.max(...throws); n++) {
+    for (let n = 1; n <= Math.max(...throws); n++) {
       const count = counts[n] ?? 0;
       const percent = Math.round((count / total) * 100);
       lines += `<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap;${count === 0 ? " opacity: 0.4;" : ""}">
-          <span style="min-width: 2ch; text-align: right;"><b>${n}</b></span>
+          <span style="min-width: 2ch; text-align: right;"><b>${n}:</b></span>
           <span style="min-width: 2ch; text-align: right;">${count}</span>
           <span style="min-width: 4ch; text-align: right;">${percent}%</span>
         </span>`;
