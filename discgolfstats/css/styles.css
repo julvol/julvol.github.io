@@ -8245,6 +8245,13 @@ textarea.form-control-lg {
   width: 30px;
 }
 
+/* lengths (in the header): the same vertical padding as the other header cells, since the
+   header rows are bottom aligned; otherwise the lengths sit lower than "Länge" */
+.scorecard-block.table thead .scorecard-cell {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
 .scorecard-block .scorecard-badge {
   display: inline-block;
   width: 30px;
