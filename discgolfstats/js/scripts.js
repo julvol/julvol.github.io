@@ -648,7 +648,7 @@ class StatsTable {
     button.resetTimer = setTimeout(() => setCopied(false), 2000);
   }
 
-  // icons only, placed at the bottom right of the match card / player / course: copy the link,
+  // icons only, at the bottom right of the match card / player / course: copy the link,
   // and share shareText (a few lines summing it up) followed by the link
   // (the icons are wrapped in spans, because Font Awesome replaces the <i> with an <svg>)
   getShareButtonString(buttonClass, shareText) {
@@ -660,11 +660,20 @@ class StatsTable {
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
       .replace(/\n/g, "&#10;");
-    return `<div class="d-flex justify-content-end gap-1 mt-1">
+    return `<div class="link-buttons">
       <button type="button" class="btn btn-sm ${buttonClass} copy-link-button" title="Link kopieren" aria-label="Link kopieren">${icons("fa-link")}
       </button>
       <button type="button" class="btn btn-sm ${buttonClass} summary-button" title="Teilen" aria-label="Teilen" data-summary="${escaped}">${icons("fa-share-nodes")}
       </button>
+    </div>`;
+  }
+
+  // the link buttons to the right of content, bottom aligned, if there is enough space
+  // next to it; otherwise below it (see .with-link-buttons in styles.css)
+  getWithLinkButtons(content, buttonClass, shareText) {
+    return `<div class="with-link-buttons">
+      <div class="link-buttons-content">${content}</div>
+      ${this.getShareButtonString(buttonClass, shareText)}
     </div>`;
   }
 
@@ -1699,7 +1708,6 @@ class StatsTable {
                     ).join("")}
                   </tbody>
                 </table>`;
-    playerString += this.getRecentScoresString(player);
 
     // share text: the number of matches and the PB per layout
     const shareLines = [
@@ -1713,7 +1721,7 @@ class StatsTable {
         );
     });
     playerString += `
-                ${this.getShareButtonString("btn-outline-secondary", shareLines.join("\n"))}
+                ${this.getWithLinkButtons(this.getRecentScoresString(player), "btn-outline-secondary", shareLines.join("\n"))}
               </div>
             </div>
           </div>`;
@@ -1790,8 +1798,8 @@ class StatsTable {
                   </thead>
                   <tbody>${pbRowsString}</tbody>
                 </table>
-                ${this.getHoleStatsString(course)}
-                ${this.getShareButtonString(
+                ${this.getWithLinkButtons(
+                  this.getHoleStatsString(course),
                   "btn-outline-secondary",
                   [
                     `Bestenliste ${course.course} (${course.layout})`,
@@ -1925,8 +1933,8 @@ class StatsTable {
             <h5 class="mb-3">Scorecard</h5>`;
 
     // One table per block of 9 holes, all in one shared scroll container
-    // so the blocks scroll horizontally together
-    statsString += `<div class="scorecard-scroll">`;
+    // so the blocks scroll horizontally together; the link buttons go next to it if they fit
+    statsString += `<div class="with-link-buttons scorecard-row"><div class="scorecard-scroll">`;
     for (let from = 0; from < match.holes; from += HOLES_PER_ROW) {
       statsString += buildScorecardTable(
         from,
@@ -1937,6 +1945,7 @@ class StatsTable {
     statsString += `
           </div>
           ${this.getShareButtonString("btn-outline-light", this.getMatchShareText(match, sortedPlayers))}
+          </div>
           </div>
         </div>
       </div>`;

@@ -8188,6 +8188,47 @@ textarea.form-control-lg {
   container-type: inline-size; /* the scorecard sizes itself by the available width */
 }
 
+/* link buttons (copy link / share) at the bottom right of a match, player or course:
+   next to the last block, aligned with its bottom, if there is enough space (e.g. a wide
+   screen); otherwise they wrap below it (e.g. on phones) */
+.with-link-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: 0.5rem;
+  row-gap: 0.25rem;
+}
+
+.with-link-buttons > .link-buttons {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+/* fills the space left of the buttons (so e.g. the score chart gets that width) */
+.with-link-buttons > .link-buttons-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* the bottom of the buttons lines up with the last line of text / the last table */
+.with-link-buttons > .link-buttons-content > :last-child,
+.scorecard-row .scorecard-block:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* match: the row is the container the compact scorecard sizes itself by (instead of
+   .scorecard-scroll), so the scorecard can sit next to the buttons with its own width */
+.scorecard-row {
+  container-type: inline-size;
+}
+
+.scorecard-row > .scorecard-scroll {
+  container-type: normal;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .scorecard-scroll::-webkit-scrollbar {
   display: none;               /* Chrome, Safari, mobile browsers */
 }
