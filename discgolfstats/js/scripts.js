@@ -528,13 +528,14 @@ class StatsTable {
 
     // "Link kopieren" / "Teilen" buttons of a match / player / course: the link button copies
     // a link to just this one, the share button shares a short summary text with that link.
+    // (no "share" in their class names: ad blockers hide e.g. .share-text as a social widget)
     // Bootstrap listens for its collapse clicks on document in the capture phase, so this
     // listens on window in the capture phase (runs before it) and stops the click there.
     // Otherwise sharing would also close the match card.
     window.addEventListener(
       "click",
       (e) => {
-        const button = e.target.closest?.(".share-link, .share-text");
+        const button = e.target.closest?.(".copy-link-button, .summary-button");
         if (!button) return;
         e.stopPropagation();
 
@@ -542,9 +543,9 @@ class StatsTable {
           button.closest("[data-link-param]").dataset;
         const url = new URL(window.location.pathname, window.location.origin);
         url.searchParams.set(linkParam, linkValue);
-        if (button.classList.contains("share-link"))
+        if (button.classList.contains("copy-link-button"))
           this.copyToClipboard(button, url.toString());
-        else this.shareText(button, `${button.dataset.shareText}\n${url}`);
+        else this.shareText(button, `${button.dataset.summary}\n${url}`);
       },
       true,
     );
@@ -636,9 +637,9 @@ class StatsTable {
     // confirmation: a check mark instead of the icon for 2 seconds
     button.originalTitle ??= button.title;
     const setCopied = (copied) => {
-      button.querySelector(".share-icon").classList.toggle("d-none", copied);
+      button.querySelector(".button-icon").classList.toggle("d-none", copied);
       button
-        .querySelector(".share-icon-copied")
+        .querySelector(".button-icon-done")
         .classList.toggle("d-none", !copied);
       button.title = copied ? "Kopiert" : button.originalTitle;
     };
@@ -652,17 +653,17 @@ class StatsTable {
   // (the icons are wrapped in spans, because Font Awesome replaces the <i> with an <svg>)
   getShareButtonString(buttonClass, shareText) {
     const icons = (icon) => `
-        <span class="share-icon"><i class="fas ${icon}"></i></span>
-        <span class="share-icon-copied d-none"><i class="fas fa-check"></i></span>`;
+        <span class="button-icon"><i class="fas ${icon}"></i></span>
+        <span class="button-icon-done d-none"><i class="fas fa-check"></i></span>`;
     const escaped = shareText
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
       .replace(/\n/g, "&#10;");
     return `<div class="d-flex justify-content-end gap-1 mt-1">
-      <button type="button" class="btn btn-sm ${buttonClass} share-link" title="Link kopieren" aria-label="Link kopieren">${icons("fa-link")}
+      <button type="button" class="btn btn-sm ${buttonClass} copy-link-button" title="Link kopieren" aria-label="Link kopieren">${icons("fa-link")}
       </button>
-      <button type="button" class="btn btn-sm ${buttonClass} share-text" title="Teilen" aria-label="Teilen" data-share-text="${escaped}">${icons("fa-share-nodes")}
+      <button type="button" class="btn btn-sm ${buttonClass} summary-button" title="Teilen" aria-label="Teilen" data-summary="${escaped}">${icons("fa-share-nodes")}
       </button>
     </div>`;
   }
