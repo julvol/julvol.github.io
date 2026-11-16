@@ -127,6 +127,18 @@
                   autocomplete="off"
                   tabindex="-1"
                 />
+                <!-- order of the matches (see setupMatchSort in scripts.js) -->
+                <select
+                  id="matchSort"
+                  class="form-select match-sort"
+                  aria-label="Partien sortieren"
+                  title="Partien sortieren"
+                >
+                  <option value="alt">Datum (alt → neu)</option>
+                  <option value="neu">Datum (neu → alt)</option>
+                  <option value="spieler">Spieleranzahl (viele → wenige)</option>
+                  <option value="ergebnis">Siegerergebnis (bestes zuerst)</option>
+                </select>
               </div>
               <div id="matchFilterInfo" class="small text-secondary mt-1"></div>
               <!-- shown when the Google Sheet can't be loaded (see fetchAndRenderData) -->

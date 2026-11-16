@@ -449,8 +449,16 @@ class StatsTable {
     );
     if (linkedSearch)
       document.getElementById("matchFilter").value = linkedSearch;
+    // the same for the order of the matches
+    const linkedSort = new URLSearchParams(window.location.search).get(
+      "sortierung",
+    );
+    const sortSelect = document.getElementById("matchSort");
+    if ([...sortSelect.options].some((o) => o.value === linkedSort))
+      sortSelect.value = linkedSort;
 
     this.setupMatchFilter();
+    this.setupMatchSort();
     this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
     this.setupShareableLinks();
 
@@ -544,6 +552,37 @@ class StatsTable {
     if (input.value !== "") setOpen(true);
   }
 
+  // dropdown next to the search: order of the match cards. Ties (and matches without a
+  // completed round when sorting by result) are ordered newest first.
+  //   alt: date old -> new (default)   neu: date new -> old
+  //   spieler: most players first      ergebnis: best winning deviation from par first
+  setupMatchSort() {
+    const select = document.getElementById("matchSort");
+    const container = document.getElementById("partien-container");
+    const cards = [...container.querySelectorAll(".match-card")];
+
+    const newestFirst = (a, b) => b.dataset.start - a.dataset.start;
+    const winningDev = (card) =>
+      card.dataset.winningDev === ""
+        ? Infinity
+        : Number(card.dataset.winningDev);
+    const compare = {
+      alt: (a, b) => a.dataset.start - b.dataset.start,
+      neu: newestFirst,
+      spieler: (a, b) =>
+        b.dataset.playerCount - a.dataset.playerCount || newestFirst(a, b),
+      ergebnis: (a, b) =>
+        winningDev(a) - winningDev(b) || newestFirst(a, b),
+    };
+
+    const applySort = () => {
+      // append() moves the cards; they are the last elements in the container
+      container.append(...[...cards].sort(compare[select.value] ?? compare.alt));
+    };
+    select.addEventListener("change", applySort);
+    applySort();
+  }
+
   // Shareable links: the URL always describes what is open, e.g.
   //   ?partie=2026-10-03-1430   ?spieler=Julian   ?parcours=Aachen Kronenbergpark (Main)   ?suche=2026
   // Every collapse that can be linked has data-link-param and data-link-value (see getLinkAttributes).
@@ -589,6 +628,13 @@ class StatsTable {
     document.getElementById("matchFilter").addEventListener("input", (e) => {
       const value = e.target.value.trim();
       updateUrl((p) => (value ? p.set("suche", value) : p.delete("suche")));
+    });
+    // the default order (old -> new) is not in the URL
+    document.getElementById("matchSort").addEventListener("change", (e) => {
+      const value = e.target.value;
+      updateUrl((p) =>
+        value !== "alt" ? p.set("sortierung", value) : p.delete("sortierung"),
+      );
     });
 
     // "Link kopieren" / "Teilen" buttons of a match / player / course: the link button copies
@@ -652,6 +698,12 @@ class StatsTable {
         document
           .getElementById("matchFilter")
           .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        // back to the default order
+        const sort = document.getElementById("matchSort");
+        if (sort.value !== "alt") {
+          sort.value = "alt";
+          sort.dispatchEvent(new Event("change"));
+        }
         history.replaceState(null, "", window.location.pathname);
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
@@ -1999,6 +2051,13 @@ class StatsTable {
       return html;
     };
 
+    // what the match sort orders by (see setupMatchSort): the best deviation from par of a
+    // completed round (empty if nobody completed it)
+    const completedDevs = sortedPlayers
+      .filter(([, p]) => p.howManyHolesNotPlayedInThisMatch === 0)
+      .map(([, p]) => p.devFromPar);
+    const winningDev = completedDevs.length ? Math.min(...completedDevs) : "";
+
     // what the match filter searches in (see setupMatchFilter)
     const filterText = [
       match.course,
@@ -2020,6 +2079,9 @@ class StatsTable {
           style="margin-bottom: 10px"
           data-filter-text="${filterText.replace(/"/g, "&quot;")}"
           data-filter-dates="${filterDates}"
+          data-start="${match.startTime.getTime()}"
+          data-player-count="${sortedPlayers.length}"
+          data-winning-dev="${winningDev}"
         >
           <div
             class="bg-dark text-white p-3 rounded d-inline-block"
