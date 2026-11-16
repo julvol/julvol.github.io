@@ -8179,6 +8179,13 @@ textarea.form-control-lg {
   display: none !important;
 }
 
+/* comment of a match from the sheet (row below the players), keeps its line breaks */
+.match-comment {
+  font-style: italic;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 /* only the scorecard scrolls horizontally on narrow screens, not the page */
 .scorecard-scroll {
   max-width: 100%;

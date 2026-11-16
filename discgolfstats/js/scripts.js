@@ -148,12 +148,22 @@ class StatsTable {
     this.renderMatchesStats(jsonData);
   }
 
+  // a comment row in the sheet: text in column A only (no course and no start date);
+  // completely empty rows are not delivered by the sheet at all
+  isCommentRow(row) {
+    return (
+      row.c[1]?.v == null &&
+      row.c[3]?.v == null &&
+      String(row.c[0]?.v ?? "").trim() !== ""
+    );
+  }
+
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
 
     rows.forEach((row) => {
       let howManyHoles = this.howManyHolesHasLayout(row);
-      if (row.c[3]?.v === "StartDate") {
+      if (row.c[3]?.v === "StartDate" || this.isCommentRow(row)) {
         return;
       } else if (row.c[1]?.v + row.c[2]?.v in this.courses) {
         // new combination of player+round for existing course found
@@ -194,9 +204,16 @@ class StatsTable {
       }
     });
 
-    // we always have (1 header row + 1 par row + 1 row for each player) per match in the sheet
+    // we always have (1 header row + 1 par row + 1 row for each player) per match in the sheet,
+    // optionally followed by a comment row (text in column A only) for the match above it
+    let lastMatchKey = null;
     rows.forEach((row) => {
       if (row.c[3]?.v === "StartDate") {
+        return;
+      } else if (this.isCommentRow(row)) {
+        if (lastMatchKey in this.matches) {
+          this.matches[lastMatchKey].comment = String(row.c[0].v).trim();
+        }
         return;
       } else if (row.c[3]?.v in this.matches) {
         // new player for existing match found --> add to corresponding match
@@ -282,6 +299,7 @@ class StatsTable {
           match.players["Par"].holes.push(row.c[7 + i]?.v);
         }
         this.matches[row.c[3]?.v] = match;
+        lastMatchKey = row.c[3]?.v;
       }
     });
     // console.log(this.matches);
@@ -1686,6 +1704,14 @@ class StatsTable {
     return `${hourminute} Uhr`;
   }
 
+  escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   getPlayerString(player) {
     const playerNameWithoutSpecialChars = player.name.replace(
       /[^a-zA-Z0-9]/g,
@@ -1938,6 +1964,7 @@ class StatsTable {
       match.course,
       match.layout,
       ...sortedPlayers.map(([playerKey]) => playerKey),
+      match.comment ?? "",
     ]
       .join(" ")
       .toLowerCase();
@@ -1980,6 +2007,7 @@ class StatsTable {
             </tbody>
           </table>
           </div>
+          ${match.comment ? `<p class="match-comment mb-3">${this.escapeHtml(match.comment)}</p>` : ""}
           <div class="collapse" id="${collapseId}" ${this.getLinkAttributes("partie", this.getMatchLinkValue(match))}>
             <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
             <li>Dauer - ${match.duration}</li>
