@@ -554,7 +554,7 @@ class StatsTable {
 
   // dropdown next to the search: order of the match cards. Ties (and matches without a
   // completed round when sorting by result) are ordered newest first.
-  //   alt: date old -> new (default)   neu: date new -> old
+  //   neu: date new -> old (default)   alt: date old -> new
   //   spieler: most players first      ergebnis: best winning deviation from par first
   setupMatchSort() {
     const select = document.getElementById("matchSort");
@@ -577,7 +577,7 @@ class StatsTable {
 
     const applySort = () => {
       // append() moves the cards; they are the last elements in the container
-      container.append(...[...cards].sort(compare[select.value] ?? compare.alt));
+      container.append(...[...cards].sort(compare[select.value] ?? compare.neu));
     };
     select.addEventListener("change", applySort);
     applySort();
@@ -629,11 +629,11 @@ class StatsTable {
       const value = e.target.value.trim();
       updateUrl((p) => (value ? p.set("suche", value) : p.delete("suche")));
     });
-    // the default order (old -> new) is not in the URL
+    // the default order (new -> old) is not in the URL
     document.getElementById("matchSort").addEventListener("change", (e) => {
       const value = e.target.value;
       updateUrl((p) =>
-        value !== "alt" ? p.set("sortierung", value) : p.delete("sortierung"),
+        value !== "neu" ? p.set("sortierung", value) : p.delete("sortierung"),
       );
     });
 
@@ -700,8 +700,8 @@ class StatsTable {
           .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
         // back to the default order
         const sort = document.getElementById("matchSort");
-        if (sort.value !== "alt") {
-          sort.value = "alt";
+        if (sort.value !== "neu") {
+          sort.value = "neu";
           sort.dispatchEvent(new Event("change"));
         }
         history.replaceState(null, "", window.location.pathname);
