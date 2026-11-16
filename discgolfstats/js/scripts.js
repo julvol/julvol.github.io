@@ -301,6 +301,13 @@ class StatsTable {
           return acc;
         }, {}),
       );
+      // most played first; ties alphabetically by course, then layout
+      playedCoursesCounts.sort(
+        (a, b) =>
+          b.count - a.count ||
+          a.course.localeCompare(b.course, "de") ||
+          a.layout.localeCompare(b.layout, "de"),
+      );
       player.playedCourses = playedCoursesCounts;
 
       player.devFromParPerHole = this.createDistribution(player.devs);
