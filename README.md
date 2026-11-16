@@ -7,6 +7,7 @@ Visit https://julvol.github.io/discgolfstats/ for the stats.
 This tool displays disc golf match csv exports from UDisc on a website hosted on GitHub pages.
 - For every match, it shows a section with the total score, deviation from par and scorecard. Click on it to expand it.<br>
   <img width="721" height="513" alt="image" src="https://github.com/user-attachments/assets/cbe83374-f7b4-4877-85cb-f9d1b04cb3b5" />
+- A match can have a comment, shown in its section below the result (also when collapsed). Matches can also be marked as unranked, e.g. when played in a storm, as doubles or with mulligans: they are still shown in the match list with an "Unranked" badge, but don't count for any statistics (players, courses, personal bests, records). See step 8 below for how to add both in the Google Sheet. The match filter also searches the comments, and "unranked" finds all unranked matches.
 - For every player, it shows the played courses with their personal best, the distribution of played holes, the most recent score for every layout and hole, with a chart of the score over time on that layout (completed rounds only, shown from 3 rounds on; tap or hover a point to see the round and jump to the match). If the same hole is included in multiple layouts, recent results on the isomorphic holes in other layouts are also displayed. Hover over or click on the hole number to see which other holes are isomorphic to it. Hover over or click on a recent score or personal best to see where it originates from and when that result was achieved.<br>
   <img width="570" height="1354" alt="image" src="https://github.com/user-attachments/assets/20de0351-9b48-49b6-8207-761da48ccf6e" />
 - For every course and layout, it shows the layout leaderbord and the per-hole distribution (only from rounds played on that layout).<br>
@@ -28,7 +29,15 @@ Personal bests require a round to be completed, i.e. not missing any holes.
 5. In [index.html](discgolfstats/index.html), near the end of the file, change the id of the Google Sheet to your's.<br>
    <img width="418" height="196" alt="image" src="https://github.com/user-attachments/assets/c87f84df-79ae-4383-b83b-e3b399b4d873" />
 7. When completing a new round of disc golf, export it as csv and paste it into the Google Sheet. The format should look like [this](https://docs.google.com/spreadsheets/d/14up0_1zaAB4xFlMcZLhKO15Wh7Ay9eNCegthaG4RzVk/edit?usp=sharing). Leave one or two rows empty between matches.
-8. If you want to show hole lengths and isomorphic holes on the website, you need to add them manually as they are not included in the csv information. Add the data to [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) in the same format as the example data that is already in the files.
+8. Optionally, add a comment to a match: write it in column A of the row directly below the match's last player row, with all other columns of that row empty. Leave at least one empty row between the comment and the next match. To mark the match as unranked, start that row with "Unranked", optionally followed by the comment, e.g. `Unranked: Sturm`.
+   ```
+   Par             | Aachen Kronenbergpark | Main | ...
+   Anna            | Aachen Kronenbergpark | Main | ...
+   Ben             | Aachen Kronenbergpark | Main | ...
+   Unranked: Sturm |                       |      |
+   (empty row)
+   ```
+9. If you want to show hole lengths and isomorphic holes on the website, you need to add them manually as they are not included in the csv information. Add the data to [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) in the same format as the example data that is already in the files.
 
 ## Checking the course data
 
@@ -41,6 +50,7 @@ node --test
 - [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, and identical holes have the same length.
 - [sheet-data.test.mjs](tests/sheet-data.test.mjs) loads the Google Sheet and checks that every played layout has hole lengths, with as many lengths as the layout has holes. It is skipped when there is no internet connection.
 - [records.test.mjs](tests/records.test.mjs) checks the records with made-up rounds (aces, birdies, streaks, shared ranks).
+- [comments.test.mjs](tests/comments.test.mjs) checks how comment rows and the "Unranked" mark are read, and that unranked matches don't count for the records.
 
 The tests also run automatically on GitHub ([.github/workflows/tests.yml](.github/workflows/tests.yml)): on every push, and once a day because new rounds go into the Google Sheet without a commit. GitHub sends an email when they fail. They can also be started by hand with "Run workflow" on the Actions tab.
 

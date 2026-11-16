@@ -8179,6 +8179,14 @@ textarea.form-control-lg {
   display: none !important;
 }
 
+/* flag of an unranked match (does not count for the statistics) */
+.unranked-badge {
+  font-size: 0.7rem;
+  vertical-align: middle;
+  color: #212529;
+  background-color: #ffc107;
+}
+
 /* comment of a match from the sheet (row below the players), keeps its line breaks */
 .match-comment {
   font-style: italic;

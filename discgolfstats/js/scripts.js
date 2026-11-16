@@ -158,12 +158,44 @@ class StatsTable {
     );
   }
 
+  // text of a comment row; "Unranked" at the start marks the match as unranked
+  // (e.g. "Unranked: Sturm"), the rest is the comment
+  parseCommentRow(row) {
+    const text = String(row.c[0].v).trim();
+    const match = text.match(/^unranked\b[\s:,;.\-–—]*/i);
+    if (!match) return { unranked: false, comment: text };
+    return { unranked: true, comment: text.slice(match[0].length).trim() };
+  }
+
+  // matches that count for the statistics (unranked matches are only in the match list)
+  getRankedMatches() {
+    return Object.values(this.matches).filter((m) => !m.unranked);
+  }
+
   renderMatchesStats(jsonData) {
     let rows = jsonData.table.rows;
 
+    // start dates (= match keys) of unranked matches; their comment row comes after the
+    // player rows, so they have to be known before the rows are processed
+    const unrankedMatchKeys = new Set();
+    let previousStartDate = null;
+    rows.forEach((row) => {
+      if (this.isCommentRow(row)) {
+        if (this.parseCommentRow(row).unranked && previousStartDate != null) {
+          unrankedMatchKeys.add(previousStartDate);
+        }
+      } else {
+        previousStartDate = row.c[3]?.v;
+      }
+    });
+
     rows.forEach((row) => {
       let howManyHoles = this.howManyHolesHasLayout(row);
-      if (row.c[3]?.v === "StartDate" || this.isCommentRow(row)) {
+      if (
+        row.c[3]?.v === "StartDate" ||
+        this.isCommentRow(row) ||
+        unrankedMatchKeys.has(row.c[3]?.v) // unranked: not in the course stats
+      ) {
         return;
       } else if (row.c[1]?.v + row.c[2]?.v in this.courses) {
         // new combination of player+round for existing course found
@@ -212,14 +244,17 @@ class StatsTable {
         return;
       } else if (this.isCommentRow(row)) {
         if (lastMatchKey in this.matches) {
-          this.matches[lastMatchKey].comment = String(row.c[0].v).trim();
+          const { comment } = this.parseCommentRow(row);
+          if (comment) this.matches[lastMatchKey].comment = comment;
         }
         return;
       } else if (row.c[3]?.v in this.matches) {
         // new player for existing match found --> add to corresponding match
+        // unranked match: only in the match list, not in the player stats
+        const counts = !this.matches[row.c[3]?.v].unranked;
 
         // first check if player is already in this.players. Add otherwise
-        if (!(row.c[0]?.v in this.players)) {
+        if (counts && !(row.c[0]?.v in this.players)) {
           // player is not yet in this.players --> add
           let newPlayer = {
             name: row.c[0]?.v,
@@ -242,11 +277,13 @@ class StatsTable {
           if (row.c[7 + i]?.v > 0) {
             // player has played the hole: add score
             newPlayerForMatch.holes.push(row.c[7 + i]?.v);
-            this.players[row.c[0]?.v].playedHolesCount++;
-            this.players[row.c[0]?.v].devs.push(
-              row.c[7 + i]?.v -
-                this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
-            );
+            if (counts) {
+              this.players[row.c[0]?.v].playedHolesCount++;
+              this.players[row.c[0]?.v].devs.push(
+                row.c[7 + i]?.v -
+                  this.matches[row.c[3]?.v].players["Par"].holes[i - 1],
+              );
+            }
           } else {
             // player has not played the hole
             newPlayerForMatch.howManyHolesNotPlayedInThisMatch++;
@@ -254,11 +291,13 @@ class StatsTable {
             // unplayed hole: nothing is added
           }
         }
-        this.players[row.c[0]?.v].playedCoursesCount++;
-        this.players[row.c[0]?.v].playedCourses.push({
-          course: row.c[1]?.v,
-          layout: row.c[2]?.v,
-        });
+        if (counts) {
+          this.players[row.c[0]?.v].playedCoursesCount++;
+          this.players[row.c[0]?.v].playedCourses.push({
+            course: row.c[1]?.v,
+            layout: row.c[2]?.v,
+          });
+        }
 
         this.matches[row.c[3]?.v].players[row.c[0]?.v] = newPlayerForMatch;
       } else {
@@ -279,6 +318,7 @@ class StatsTable {
           par: row.c[5]?.v,
           holes: howManyHoles,
           players: {},
+          unranked: unrankedMatchKeys.has(row.c[3]?.v),
         };
 
         this.holeLengthsSets.forEach((holeLengthSet) => {
@@ -729,7 +769,7 @@ class StatsTable {
     const pad = (n) => String(n).padStart(2, "0");
     const t = match.startTime;
     const lines = [
-      `Partie am ${pad(t.getDate())}.${pad(t.getMonth() + 1)}.${t.getFullYear()} auf ${match.course} (${match.layout})`,
+      `Partie am ${pad(t.getDate())}.${pad(t.getMonth() + 1)}.${t.getFullYear()} auf ${match.course} (${match.layout})${match.unranked ? " - Unranked" : ""}`,
     ];
     sortedPlayers.forEach(([name, p]) => {
       const thru =
@@ -1001,7 +1041,7 @@ class StatsTable {
 
   // last #limit totals (dev from par) of this player on exactly this course/layout, oldest -> newest
   getRecentTotals(player, course, limit) {
-    return Object.values(this.matches)
+    return this.getRankedMatches()
       .filter(
         (m) =>
           m.course === course.course &&
@@ -1068,7 +1108,7 @@ class StatsTable {
   // personal best total on exactly this course/layout, only completed rounds
   // returns { dev, total, time, count } or null (on a tie the earliest round wins)
   getPersonalBestTotal(player, course) {
-    const totals = Object.values(this.matches)
+    const totals = this.getRankedMatches()
       .filter(
         (m) =>
           m.course === course.course &&
@@ -1189,7 +1229,7 @@ class StatsTable {
   // ---------------------------------------------------------------------------
 
   getScoreHistoryString(player, course) {
-    const rounds = Object.values(this.matches)
+    const rounds = this.getRankedMatches()
       .filter(
         (m) =>
           m.course === course.course &&
@@ -1965,6 +2005,7 @@ class StatsTable {
       match.layout,
       ...sortedPlayers.map(([playerKey]) => playerKey),
       match.comment ?? "",
+      match.unranked ? "unranked" : "",
     ]
       .join(" ")
       .toLowerCase();
@@ -1987,7 +2028,7 @@ class StatsTable {
             data-bs-target="#${collapseId}"
           >
             <h4>${match.course} <span style="white-space: nowrap;">(${match.layout}) -</span> <span style="white-space: nowrap;">${this.formatDateStringForStatsStringHeader(match.startTime)}</span></h4>
-            <h5 class="mb-3">Ergebnis</h5>
+            <h5 class="mb-3">Ergebnis${match.unranked ? ` <span class="badge unranked-badge" title="Zählt nicht für die Statistiken">Unranked</span>` : ""}</h5>
             <div class="scorecard-scroll mb-3">
             <table
               class="table table-dark table-bordered text-center align-middle w-auto mb-0"
@@ -1996,7 +2037,7 @@ class StatsTable {
 
     sortedPlayers.forEach(([playerKey, playerVal]) => {
       statsString += `<tr>
-        <th class="text-start"><a class="player-link" href="?spieler=${encodeURIComponent(playerKey)}" ${this.getPlayerLinkAttribute(playerKey)}>${playerKey}</a></th>
+        <th class="text-start">${playerKey in this.players ? `<a class="player-link" href="?spieler=${encodeURIComponent(playerKey)}" ${this.getPlayerLinkAttribute(playerKey)}>${playerKey}</a>` : playerKey}</th>
         <td><b style="color: ${playerVal.devFromPar > 0 ? '#fd6c2e">+' : playerVal.devFromPar == 0 ? '#ffffff">' : '#408ce2">'}${playerVal.devFromPar != 0 ? playerVal.devFromPar : "E"}</b> (${playerVal.total})</td>
         ${playerVal.howManyHolesNotPlayedInThisMatch > 0 ? "<td><span style='font-size: 0.7rem'>THRU</span> " + (match.holes - playerVal.howManyHolesNotPlayedInThisMatch) + "</td>" : ""}
         ${this.getMatchDistributionCell(playerVal, par.holes, collapseId)}
@@ -2042,7 +2083,7 @@ class StatsTable {
 
   // every round of every player, with the deviation from par per hole (null = not played)
   getAllRounds() {
-    return Object.values(this.matches).flatMap((match) => {
+    return this.getRankedMatches().flatMap((match) => {
       const par = match.players["Par"].holes;
       return Object.entries(match.players)
         .filter(([name]) => name !== "Par")
