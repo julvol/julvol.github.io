@@ -2,7 +2,7 @@
 
 Feature ideas for [discgolfstats](../discgolfstats/). Tick an item off once it's done, and remove items that are no longer wanted.
 
-Each item has a fixed number that stays the same when other items are added or removed. New items get the next free number (currently #23); numbers of removed items are not reused.
+Each item has a fixed number that stays the same when other items are added or removed. New items get the next free number (currently #30); numbers of removed items are not reused.
 
 ## Charts and trends
 
@@ -12,15 +12,19 @@ Each item has a fixed number that stays the same when other items are added or r
 ## Records
 
 - [x] **#6 Records page:** a "Rekorde" section with the top 3 for most aces, most birdies in a round, longest birdie streak and most rounds played (ties shown in full), linking to the players and matches.
-- [ ] **#16 Milestones:** small badges in a player's section, e.g. first ace, first round under par, 10/50/100 rounds, every course played, each with the date and a link to the match.
 - [x] **#17 More records:** two more cards in "Rekorde": the longest bogey-free run (par or better on consecutive holes) within one round, and the number of completed bogey-free rounds (no hole over par) per player, linking to the most recent one.
 
 ## Usability
 
 - [x] **#7 Shareable links:** the URL always describes what is open (`?partie=2026-10-03-1430`, `?spieler=…`, `?parcours=Course (Layout)`, `?suche=…`), so a link opens that exact view. Every match, player and course also has two buttons in its bottom right corner: one copies the link, the other shares a short summary (e.g. the result of a match, a player's PBs, a course's leaderboard) followed by the link.
 - [x] **#9 Installable app:** a web app manifest and a service worker, so the site can go on a phone's home screen and still opens offline with the data of the last visit (with a note when it was loaded).
+- [ ] **#27 Highlights in the match card:** small icons in the header of a match for special moments in it, e.g. an ace, a new personal best or a bogey-free round, with a popover saying who. The match filter could find them too (e.g. "ass").
+- [ ] **#29 Playing partners:** in a player's section, who they played with how often (number of shared matches only, no score comparison), each name linking to that player.
+
+## Match details
+
+- [ ] **#23 Weather per match:** the temperature, wind and rain at the start of a match, loaded from a free weather archive (e.g. Open-Meteo, no account needed) using the coordinates of the course, shown next to the duration. Needs the coordinates of each course in a small file in `course_data/`. Could also explain unranked storm rounds at a glance.
 
 ## Data upkeep
 
 - [x] **#11 Warnings for missing course data:** tests in `tests/` (run with `node --test`) check that every played layout has hole lengths with the right number of holes, and that `hole_lengths.csv` and `isomorph_holes.csv` are consistent.
-- [ ] **#22 Data checks for the sheet:** extend the tests in `tests/` (or a warning on the page in dev) for implausible scores in the Google Sheet, e.g. a 0 or more than 10 throws on a hole, or a player with two entries in the same match.
