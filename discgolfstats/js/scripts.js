@@ -990,9 +990,10 @@ class StatsTable {
       );
       const total = segments.reduce((sum, s) => sum + distribution[s.key], 0);
 
-      // color by the rounded value, so "0,0" is not shown as over par
+      // color by the value rounded to whole throws (like the averages in the player
+      // view): -0,50 to +0,49 is par
       const avg = averageToPar;
-      const rounded = avg === null ? 0 : Math.round(avg * 10) / 10;
+      const rounded = avg === null ? 0 : Math.round(avg);
       const avgColor =
         rounded > 0 ? "#e26028" : rounded < 0 ? "#408ce2" : "#212529";
 
