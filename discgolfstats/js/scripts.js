@@ -581,6 +581,22 @@ class StatsTable {
     };
     select.addEventListener("change", applySort);
     applySort();
+
+    // a <select> is as wide as its longest option: fit it to the chosen one instead
+    const fitWidth = () => {
+      const style = getComputedStyle(select);
+      const text = select.options[select.selectedIndex]?.text ?? "";
+      const canvas = (fitWidth.canvas ??= document.createElement("canvas"));
+      const ctx = canvas.getContext("2d");
+      ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      const extra = ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"]
+        .reduce((sum, prop) => sum + parseFloat(style[prop]), 0);
+      select.style.width = `${Math.ceil(ctx.measureText(text).width + extra) + 2}px`;
+    };
+    select.addEventListener("change", fitWidth);
+    fitWidth();
+    // the web font may arrive after the first measurement
+    document.fonts?.ready.then(fitWidth);
   }
 
   // Shareable links: the URL always describes what is open, e.g.

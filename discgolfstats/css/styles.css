@@ -8143,6 +8143,7 @@ textarea.form-control-lg {
 /* match filter: magnifying glass that expands into the search field */
 .match-filter {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
@@ -8166,26 +8167,27 @@ textarea.form-control-lg {
   transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
 }
 
-/* sort dropdown on the right of the search row; the opened search field takes the rest */
+/* sort dropdown on the right of the search row; its width fits the chosen option (see
+   setupMatchSort). It never shrinks: if the opened search field leaves no room, it wraps
+   into a second row (still right aligned). */
 .match-sort {
-  flex: 0 1 auto;
-  width: auto;
-  min-width: 0;
+  flex: 0 0 auto;
   margin-left: auto;
-  text-overflow: ellipsis;
-}
-
-/* on narrow screens the open search field gets at least half of the row */
-.match-filter.open .match-sort {
-  max-width: 45%;
 }
 
 .match-filter.open input.form-control {
-  width: 100%;
+  width: 15rem;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
   border-width: var(--bs-border-width);
   opacity: 1;
+}
+
+/* on phones the dropdown sits in the second row anyway: the search field fills its row */
+@media (max-width: 575.98px) {
+  .match-filter.open input.form-control {
+    flex-grow: 1;
+  }
 }
 
 /* matches hidden by the match filter (beats the !important of .d-flex) */
