@@ -460,6 +460,7 @@ class StatsTable {
     this.setupMatchFilter();
     this.setupMatchSort();
     this.setupMatchWeather(); // before the links, so a linked match loads its weather
+    this.setupCurrentWeather(); // the same for a linked course
     this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
     this.setupShareableLinks();
 
@@ -721,23 +722,100 @@ class StatsTable {
       0,
     );
 
+    item.textContent = this.formatWeather({
+      minTemp,
+      maxTemp,
+      code: codes.length ? Math.max(...codes) : null,
+      wind: wind.length ? Math.max(...wind) : null,
+      gusts: gusts.length ? Math.max(...gusts) : null,
+      rain,
+    });
+  }
+
+  // e.g. "7 bis 8 °C, bewölkt, Wind 9 km/h (Böen 21 km/h), 0,4 mm Niederschlag";
+  // values that are null are left out, the rain only from 0.1 mm on
+  formatWeather({ minTemp, maxTemp, code, wind, gusts, rain }) {
     const parts = [
       minTemp === maxTemp ? `${minTemp} °C` : `${minTemp} bis ${maxTemp} °C`,
     ];
-    if (codes.length)
-      parts.push(this.getWeatherDescription(Math.max(...codes)));
-    if (wind.length)
+    if (code !== null) parts.push(this.getWeatherDescription(code));
+    if (wind !== null)
       parts.push(
-        `Wind ${Math.round(Math.max(...wind))} km/h` +
-          (gusts.length
-            ? ` (Böen ${Math.round(Math.max(...gusts))} km/h)`
-            : ""),
+        `Wind ${Math.round(wind)} km/h` +
+          (gusts !== null ? ` (Böen ${Math.round(gusts)} km/h)` : ""),
       );
     if (rain >= 0.1)
       parts.push(
         `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(rain)} mm Niederschlag`,
       );
-    item.textContent = `${parts.join(", ")}`;
+    return parts.join(", ");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Current weather of a course: an "Aktuelles Wetter" line at the top of an opened course,
+  // loaded from Open-Meteo when it is opened (again after 15 minutes when reopened).
+  // The rain is the one of the last hour.
+
+  getCurrentWeatherString(course) {
+    const coordinates = this.courseCoordinates?.get(course.course);
+    if (!coordinates) return "";
+    return `
+                <h5>Aktuelles Wetter:</h5>
+                <p class="course-weather"
+                  data-latitude="${coordinates.latitude}"
+                  data-longitude="${coordinates.longitude}"
+                >Wetter wird geladen …</p>`;
+  }
+
+  setupCurrentWeather() {
+    const MAX_AGE = 15 * 60 * 1000;
+    document
+      .getElementById("coursesAccordion")
+      .addEventListener("show.bs.collapse", (e) => {
+        const item = e.target.querySelector(".course-weather");
+        if (!item || Date.now() - (Number(item.dataset.loadedAt) || 0) < MAX_AGE)
+          return;
+        item.dataset.loadedAt = Date.now();
+        this.loadCurrentWeather(item).catch((error) => {
+          console.error("Error while loading the current weather: ", error);
+          item.textContent = "Wetter nicht verfügbar";
+          delete item.dataset.loadedAt; // try again the next time it is opened
+        });
+      });
+  }
+
+  async loadCurrentWeather(item) {
+    const { latitude, longitude } = item.dataset;
+    const params = new URLSearchParams({
+      latitude,
+      longitude,
+      current: "temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m",
+      // the rain of the last hour (the current values only have the last 15 minutes)
+      hourly: "precipitation",
+      past_hours: "1",
+      forecast_hours: "1",
+      timezone: "auto",
+    });
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?${params}`,
+    );
+    if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
+    const { current, hourly } = await response.json();
+    const value = (v) => (typeof v === "number" ? v : null);
+    const temperature = Math.round(current.temperature_2m);
+    // the value at the last full hour is the rain of the hour before it
+    const lastFullHour = `${current.time.slice(0, 13)}:00`;
+    const rain = value(
+      hourly?.precipitation?.[hourly.time.indexOf(lastFullHour)],
+    );
+    item.textContent = this.formatWeather({
+      minTemp: temperature,
+      maxTemp: temperature,
+      code: value(current.weather_code),
+      wind: value(current.wind_speed_10m),
+      gusts: value(current.wind_gusts_10m),
+      rain: rain ?? 0,
+    });
   }
 
   // WMO weather codes as used by Open-Meteo
@@ -2177,6 +2255,7 @@ class StatsTable {
               ${this.getLinkAttributes("parcours", `${course.course} (${course.layout})`)}
             >
               <div class="accordion-body" style="background-color: #fff9f3;">
+                ${this.getCurrentWeatherString(course)}
                 <h5>Bestenliste:</h5>
                 <table
                   class="table table-bordered text-center align-middle w-auto"
