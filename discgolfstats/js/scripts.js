@@ -639,7 +639,7 @@ class StatsTable {
           ${this.getPopoverAttributes(label)}
         ></span>`;
       }
-      const weekdays = ["Mo", "Mi", "Fr"]
+      const weekdays = ["Mo", "Mi", "Fr", "So"] // every other row: Monday, Wednesday, …
         .map(
           (name, i) =>
             `<span class="activity-weekday" style="grid-row: ${i * 2 + 2};">${name}</span>`,
