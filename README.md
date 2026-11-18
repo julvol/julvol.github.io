@@ -17,7 +17,7 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
 - The records section shows the top 3 for most aces, most birdies in a round (every score below par), longest birdie streak and most rounds played (ties are shown in full). Names link to the player, dates to the match.<br>
 
   
-- Links can be shared: the URL always reflects what is open, e.g. `?partie=2026-10-03-1430` for a match, `?spieler=Name` for a player, `?parcours=Course (Layout)` for a course, `?suche=2026` for the match filter and `?sortierung=alt` for the order of the matches. Opening such a link opens and scrolls to that section. The share button (bottom right) in every match, player and course copies a link to it (on phones it opens the share menu).
+- Links can be shared: the link button in every match, player and course copies a link like `?partie=2026-10-03-1430` for a match, `?spieler=Name` for a player or `?parcours=Course (Layout)` for a course. Opening such a link opens and scrolls to that section (opening or closing sections does not change the URL). The URL also keeps the match filter (`?suche=2026`) and the order of the matches (`?sortierung=alt`). The share button (bottom right) in every match, player and course copies a link to it (on phones it opens the share menu).
 - The site can be installed as an app: on Android/Chrome via "Install app" or "Add to home screen" in the browser menu, on iPhone via Share → "Add to Home Screen". Without internet it still opens and shows the data from the last visit, with a note when that data was loaded ([sw.js](discgolfstats/sw.js), [manifest.webmanifest](discgolfstats/manifest.webmanifest)).
 
 Personal bests require a round to be completed, i.e. not missing any holes.

@@ -836,11 +836,14 @@ class StatsTable {
     return "Gewitter mit Hagel";
   }
 
-  // Shareable links: the URL always describes what is open, e.g.
+  // Shareable links, e.g.
   //   ?partie=2026-10-03-1430   ?spieler=Julian   ?parcours=Aachen Kronenbergpark (Main)   ?suche=2026
-  // Every collapse that can be linked has data-link-param and data-link-value (see getLinkAttributes).
-  // Opening one sets its parameter, closing it removes the parameter again. When the page is
-  // loaded with such parameters, the matching sections are opened and the first one is scrolled to.
+  // Every collapse that can be linked has data-link-param and data-link-value (see getLinkAttributes);
+  // its link button copies a link with that parameter. Opening or closing a section does not
+  // change the URL. When the page is loaded with such parameters, the matching sections are
+  // opened, the first one is scrolled to, and the parameters are removed from the URL again
+  // (it would no longer describe what is open once something is closed). The match filter and
+  // the order of the matches stay in the URL.
   setupShareableLinks() {
     const updateUrl = (change) => {
       const params = new URLSearchParams(window.location.search);
@@ -863,21 +866,9 @@ class StatsTable {
       if (value === null) return;
       // only the first one found is scrolled to
       if (this.openLinkedSection(param, value, !scrolled)) scrolled = true;
-      // the linked item does not exist (anymore): remove it, so the URL does not lie
-      else updateUrl((p) => p.delete(param));
+      updateUrl((p) => p.delete(param));
     });
 
-    // keep the URL in sync with what is open
-    document.addEventListener("shown.bs.collapse", (e) => {
-      const { linkParam, linkValue } = e.target.dataset;
-      if (linkParam) updateUrl((p) => p.set(linkParam, linkValue));
-    });
-    document.addEventListener("hidden.bs.collapse", (e) => {
-      const { linkParam, linkValue } = e.target.dataset;
-      // only remove it if the URL still points to this one (another one may have been opened since)
-      if (linkParam)
-        updateUrl((p) => p.get(linkParam) === linkValue && p.delete(linkParam));
-    });
     document.getElementById("matchFilter").addEventListener("input", (e) => {
       const value = e.target.value.trim();
       updateUrl((p) => (value ? p.set("suche", value) : p.delete("suche")));
