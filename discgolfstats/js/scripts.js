@@ -877,7 +877,7 @@ class StatsTable {
   }
 
   // the 90 minutes from step start on in the local time of the course, e.g. "17:30 bis 19:00 Uhr",
-  // with "morgen, " / "Fr., 20.11., " in front if they are not today
+  // with "morgen " / "Fr. 20.11. " in front if they are not today
   getWeatherTimeSpan(steps, start, count) {
     // the step times have no time zone: read and written as UTC, so only the clock is used
     const clock = (date) => date.toISOString().slice(11, 16);
@@ -888,14 +888,10 @@ class StatsTable {
     const today = new Date(`${steps.time[0].slice(0, 10)}T00:00Z`);
     const days = Math.floor((from - today) / (24 * 60 * 60 * 1000));
     if (days === 0) return span;
-    if (days === 1) return `morgen, ${span}`;
-    const date = new Intl.DateTimeFormat("de-DE", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
-      timeZone: "UTC",
-    }).format(from);
-    return `${date}, ${span}`;
+    if (days === 1) return `morgen ${span}`;
+    const weekday = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."][from.getUTCDay()];
+    const date = `${from.toISOString().slice(8, 10)}.${from.toISOString().slice(5, 7)}.`;
+    return `${weekday} ${date} ${span}`;
   }
 
   // WMO weather codes as used by Open-Meteo
