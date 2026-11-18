@@ -810,7 +810,7 @@ class StatsTable {
       .slice(1)
       .filter((v) => typeof v === "number")
       .reduce((sum, v) => sum + v, 0);
-    item.textContent = this.formatWeather({
+    const forecast = this.formatWeather({
       minTemp: Math.min(...temperatures),
       maxTemp: Math.max(...temperatures),
       code: codes.length ? Math.max(...codes) : null,
@@ -818,6 +818,16 @@ class StatsTable {
       gusts: gusts.length ? Math.max(...gusts) : null,
       rain,
     });
+    // the time span in the local time of the course, e.g. "17:30 bis 19:00 Uhr"
+    // (the step times have no time zone: read and written as UTC, so only the clock is used)
+    const clock = (date) => date.toISOString().slice(11, 16);
+    const from = new Date(`${steps.time[0]}Z`);
+    const to = new Date(from.getTime() + 90 * 60 * 1000);
+    item.replaceChildren(
+      `${clock(from)} bis ${clock(to)} Uhr`,
+      document.createElement("br"),
+      forecast,
+    );
   }
 
   // WMO weather codes as used by Open-Meteo
