@@ -411,6 +411,7 @@ class StatsTable {
       .forEach((course) => this.getCourseString(course));
 
     this.renderRecords();
+    this.renderActivityCalendar();
 
     // popover content inline style is restricted by Bootstrap; allow inline styles on <span> only
     bootstrap.Popover.Default.allowList.span = ["style"];
@@ -459,6 +460,7 @@ class StatsTable {
 
     this.setupMatchFilter();
     this.setupMatchSort();
+    this.setupActivityCalendar();
     this.setupMatchWeather(); // before the links, so a linked match loads its weather
     this.setupCurrentWeather(); // the same for a linked course
     this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
@@ -552,6 +554,147 @@ class StatsTable {
 
     applyFilter(); // in case the browser restored a value
     if (input.value !== "") setOpen(true);
+
+    // used by the activity calendar: show the matches of one day
+    this.setMatchFilter = (value) => {
+      input.value = value;
+      input.dispatchEvent(new Event("input"));
+      setOpen(value !== "");
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Activity calendar (open item #14): a GitHub-style grid of the ranked matches per day at
+  // the top of the matches, one grid per year (buttons to switch, the latest year first).
+  // Columns are weeks (Monday to Sunday), the color says how many matches were played.
+  // Days with matches show the courses on hover / tap; clicking one filters the matches.
+
+  renderActivityCalendar() {
+    const container = document.getElementById("activityCalendar");
+    const matches = this.getRankedMatches().sort(
+      (a, b) => a.startTime - b.startTime,
+    );
+    if (matches.length === 0) return;
+
+    const pad = (n) => String(n).padStart(2, "0");
+    const dayKey = (d) =>
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const matchesByDay = new Map();
+    matches.forEach((match) => {
+      const key = dayKey(match.startTime);
+      if (!matchesByDay.has(key)) matchesByDay.set(key, []);
+      matchesByDay.get(key).push(match);
+    });
+
+    const years = [
+      ...new Set(matches.map((m) => m.startTime.getFullYear())),
+    ].sort((a, b) => b - a);
+    const today = new Date();
+    const WEEKDAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
+    const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    const partien = (n) => `${n} ${n === 1 ? "Partie" : "Partien"}`;
+
+    const getYearString = (year) => {
+      // the grid starts on the Monday of the week of January 1st
+      const first = new Date(year, 0, 1);
+      const start = new Date(year, 0, 1 - ((first.getDay() + 6) % 7));
+      let months = "";
+      let cells = "";
+      let total = 0;
+      let week = 0;
+      for (
+        let d = new Date(start), i = 0;
+        d.getFullYear() <= year;
+        d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + ++i)
+      ) {
+        const weekday = (d.getDay() + 6) % 7; // Monday = 0
+        week = Math.floor(i / 7);
+        // the name of a month above the first week that starts in it
+        if (weekday === 0 && d.getFullYear() === year && d.getDate() <= 7)
+          months += `<span class="activity-month" style="grid-column: ${week + 2};">${MONTHS[d.getMonth()]}</span>`;
+        // days of the year before or after, and days still to come: no cell
+        if (d.getFullYear() !== year || d > today) continue;
+
+        const dayMatches = matchesByDay.get(dayKey(d)) ?? [];
+        total += dayMatches.length;
+        const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${year}`;
+        const position = `grid-column: ${week + 2}; grid-row: ${weekday + 2};`;
+        if (dayMatches.length === 0) {
+          cells += `<span class="activity-day" style="${position}" title="Keine Partie am ${WEEKDAYS[d.getDay()]} ${date}"></span>`;
+          continue;
+        }
+        const courses = dayMatches
+          .map((m) => this.escapeHtml(`${m.course} (${m.layout})`))
+          .join("<br>");
+        cells += `<span class="activity-day activity-level-${Math.min(dayMatches.length, 4)}"
+          style="${position}" data-filter-date="${date}"
+          ${this.getPopoverAttributes(`<b>${partien(dayMatches.length)}</b> am ${WEEKDAYS[d.getDay()]} ${date}<br>${courses}`)}
+        ></span>`;
+      }
+      const weekdays = ["Mo", "Mi", "Fr"]
+        .map(
+          (name, i) =>
+            `<span class="activity-weekday" style="grid-row: ${i * 2 + 2};">${name}</span>`,
+        )
+        .join("");
+      return `
+        <div class="activity-year${year === years[0] ? "" : " d-none"}" data-year="${year}">
+          <div class="activity-summary">${partien(total)} in ${year}</div>
+          <div class="activity-scroll">
+            <div class="activity-grid" style="--weeks: ${week + 1};">
+              ${months}${weekdays}${cells}
+            </div>
+          </div>
+        </div>`;
+    };
+
+    const yearButtons =
+      years.length < 2
+        ? ""
+        : `<div class="activity-years">${years
+            .map(
+              (year, i) =>
+                `<button type="button" class="btn btn-sm ${i === 0 ? "btn-secondary" : "btn-outline-secondary"}" data-year="${year}">${year}</button>`,
+            )
+            .join("")}</div>`;
+    const legend = `
+      <div class="activity-legend">
+        Weniger
+        ${[0, 1, 2, 3, 4].map((l) => `<span class="activity-day${l ? ` activity-level-${l}` : ""}"></span>`).join("")}
+        Mehr
+      </div>`;
+    container.innerHTML =
+      yearButtons + years.map(getYearString).join("") + legend;
+  }
+
+  setupActivityCalendar() {
+    const container = document.getElementById("activityCalendar");
+    // show the most recent weeks (on phones the grid does not fit and scrolls sideways)
+    const scrollToEnd = (year) => {
+      const scroll = year.querySelector(".activity-scroll");
+      scroll.scrollLeft = scroll.scrollWidth;
+    };
+    const firstYear = container.querySelector(".activity-year");
+    if (firstYear) scrollToEnd(firstYear);
+
+    container.addEventListener("click", (e) => {
+      const button = e.target.closest(".activity-years button");
+      if (button) {
+        container.querySelectorAll(".activity-years button").forEach((b) => {
+          b.classList.toggle("btn-secondary", b === button);
+          b.classList.toggle("btn-outline-secondary", b !== button);
+        });
+        container.querySelectorAll(".activity-year").forEach((year) => {
+          const shown = year.dataset.year === button.dataset.year;
+          year.classList.toggle("d-none", !shown);
+          if (shown) scrollToEnd(year);
+        });
+        return;
+      }
+      // a day with matches: show them below
+      const day = e.target.closest("[data-filter-date]");
+      if (day) this.setMatchFilter(day.dataset.filterDate);
+    });
   }
 
   // dropdown next to the search: order of the match cards. Ties (and matches without a

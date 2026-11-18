@@ -11425,3 +11425,80 @@ html {
 .match-link:hover {
   text-decoration: underline;
 }
+
+/* activity calendar above the matches (see renderActivityCalendar in scripts.js) */
+.activity-calendar {
+  --cell: 11px;
+  margin-bottom: 1.5rem;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+.activity-calendar:empty {
+  display: none;
+}
+.activity-years {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+.activity-summary {
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+.activity-scroll {
+  overflow-x: auto;
+}
+.activity-grid {
+  display: grid;
+  grid-template-columns: auto repeat(var(--weeks), var(--cell));
+  grid-template-rows: auto repeat(7, var(--cell));
+  gap: 3px;
+  width: max-content;
+  margin: 0 auto;
+  padding-bottom: 2px;
+}
+.activity-month {
+  grid-row: 1;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.activity-weekday {
+  grid-column: 1;
+  font-size: 0.65rem;
+  line-height: var(--cell);
+  padding-right: 4px;
+}
+.activity-day {
+  display: block;
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.08);
+}
+.activity-day[data-filter-date] {
+  cursor: pointer;
+}
+.activity-level-1 {
+  background-color: #f3c07a;
+}
+.activity-level-2 {
+  background-color: #e28e19;
+}
+.activity-level-3 {
+  background-color: #b5690a;
+}
+.activity-level-4 {
+  background-color: #7d4504;
+}
+.activity-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 0.5rem;
+}
+.activity-legend .activity-day {
+  margin: 0 1px;
+}
