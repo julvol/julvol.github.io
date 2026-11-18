@@ -1180,11 +1180,13 @@ class StatsTable {
 
   formatAverageToPar(avg) {
     if (avg === null) return "-";
-    return new Intl.NumberFormat("de-DE", {
+    const formatted = new Intl.NumberFormat("de-DE", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
       signDisplay: "exceptZero",
     }).format(avg);
+    // values that round to zero get no sign from exceptZero
+    return /^[+-]/.test(formatted) ? formatted : `±${formatted}`;
   }
 
   getHoleStatsString(course) {
