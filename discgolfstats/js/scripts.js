@@ -750,15 +750,14 @@ class StatsTable {
   }
 
   // ---------------------------------------------------------------------------
-  // Current weather of a course: an "Aktuelles Wetter" line at the top of an opened course,
-  // loaded from Open-Meteo when it is opened (again after 15 minutes when reopened).
-  // The rain is the one of the last hour.
+  // Weather forecast of a course: the weather of the next 90 minutes at the top of an opened
+  // course, loaded from Open-Meteo when it is opened (again after 15 minutes when reopened).
 
   getCurrentWeatherString(course) {
     const coordinates = this.courseCoordinates?.get(course.course);
     if (!coordinates) return "";
     return `
-                <h5>Aktuelles Wetter:</h5>
+                <h5>Wetter in den nächsten 90 Minuten:</h5>
                 <p class="course-weather"
                   data-latitude="${coordinates.latitude}"
                   data-longitude="${coordinates.longitude}"
@@ -775,7 +774,7 @@ class StatsTable {
           return;
         item.dataset.loadedAt = Date.now();
         this.loadCurrentWeather(item).catch((error) => {
-          console.error("Error while loading the current weather: ", error);
+          console.error("Error while loading the weather forecast: ", error);
           item.textContent = "Wetter nicht verfügbar";
           delete item.dataset.loadedAt; // try again the next time it is opened
         });
@@ -784,35 +783,40 @@ class StatsTable {
 
   async loadCurrentWeather(item) {
     const { latitude, longitude } = item.dataset;
+    // 15-minute steps from the current quarter hour on: 7 steps cover the next 90 minutes
     const params = new URLSearchParams({
       latitude,
       longitude,
-      current: "temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m",
-      // the rain of the last hour (the current values only have the last 15 minutes)
-      hourly: "precipitation",
-      past_hours: "1",
-      forecast_hours: "1",
+      minutely_15:
+        "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m",
+      forecast_minutely_15: "7",
       timezone: "auto",
     });
     const response = await fetch(
       `https://api.open-meteo.com/v1/forecast?${params}`,
     );
     if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
-    const { current, hourly } = await response.json();
-    const value = (v) => (typeof v === "number" ? v : null);
-    const temperature = Math.round(current.temperature_2m);
-    // the value at the last full hour is the rain of the hour before it
-    const lastFullHour = `${current.time.slice(0, 13)}:00`;
-    const rain = value(
-      hourly?.precipitation?.[hourly.time.indexOf(lastFullHour)],
-    );
+    const { minutely_15: steps } = await response.json();
+    const values = (name) =>
+      (steps?.[name] ?? []).filter((v) => typeof v === "number");
+    const temperatures = values("temperature_2m").map(Math.round);
+    if (temperatures.length === 0) throw new Error("Open-Meteo: no forecast");
+    const codes = values("weather_code");
+    const wind = values("wind_speed_10m");
+    const gusts = values("wind_gusts_10m");
+    // the precipitation of a step is the one of the 15 minutes before it, so the
+    // first step (the current quarter hour) is left out
+    const rain = (steps.precipitation ?? [])
+      .slice(1)
+      .filter((v) => typeof v === "number")
+      .reduce((sum, v) => sum + v, 0);
     item.textContent = this.formatWeather({
-      minTemp: temperature,
-      maxTemp: temperature,
-      code: value(current.weather_code),
-      wind: value(current.wind_speed_10m),
-      gusts: value(current.wind_gusts_10m),
-      rain: rain ?? 0,
+      minTemp: Math.min(...temperatures),
+      maxTemp: Math.max(...temperatures),
+      code: codes.length ? Math.max(...codes) : null,
+      wind: wind.length ? Math.max(...wind) : null,
+      gusts: gusts.length ? Math.max(...gusts) : null,
+      rain,
     });
   }
 
