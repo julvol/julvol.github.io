@@ -96,3 +96,26 @@ function groups() {
 function describe(rows) {
   return rows.map((r) => `${layoutKey(r.course, r.layout)} hole ${r.hole}`).join(", ");
 }
+
+test("course_coordinates.csv: every course is listed once, coordinates are empty or valid", () => {
+  const problems = [];
+  const seen = new Set();
+  readCsv("course_coordinates.csv").forEach((row, i) => {
+    const where = `line ${i + 2} (${row.course})`;
+    if (seen.has(row.course)) problems.push(`${where}: course is listed twice`);
+    seen.add(row.course);
+    // both empty: no weather for this course yet
+    if (row.latitude === "" && row.longitude === "") return;
+    const latitude = Number(row.latitude);
+    const longitude = Number(row.longitude);
+    if (row.latitude === "" || !(Math.abs(latitude) <= 90))
+      problems.push(`${where}: latitude "${row.latitude}" is not a number between -90 and 90 (use a dot: 50.77)`);
+    if (row.longitude === "" || !(Math.abs(longitude) <= 180))
+      problems.push(`${where}: longitude "${row.longitude}" is not a number between -180 and 180 (use a dot: 6.08)`);
+  });
+  const courses = new Set(readCsv("hole_lengths.csv").map((row) => row.course));
+  courses.forEach((course) => {
+    if (!seen.has(course)) problems.push(`${course}: missing in course_coordinates.csv (add "${course},," at least)`);
+  });
+  assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
+});

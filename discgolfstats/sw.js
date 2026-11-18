@@ -19,6 +19,7 @@ const SITE_FILES = [
   "js/scripts.js",
   "course_data/hole_lengths.csv",
   "course_data/isomorph_holes.csv",
+  "course_data/course_coordinates.csv",
   "manifest.webmanifest",
   "assets/favicon.ico",
   "assets/icons/icon-192.png",

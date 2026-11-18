@@ -8,6 +8,7 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
 - For every match, it shows a section with the total score, deviation from par and scorecard. Click on it to expand it.<br>
   <img width="721" height="513" alt="image" src="https://github.com/user-attachments/assets/cbe83374-f7b4-4877-85cb-f9d1b04cb3b5" />
 - A match can have a comment, shown in its section below the result (also when collapsed). Matches can also be marked as unranked, e.g. when played in a storm, as doubles or with mulligans: they are still shown in the match list with an "Unranked" badge, but don't count for any statistics (players, courses, personal bests, records). See step 8 below for how to add both in the Google Sheet. The match filter also searches the comments, and "unranked" finds all unranked matches.
+- An expanded match shows the weather while it was played: temperature, sky (the worst during the match), wind with gusts and, if any, the rain. It is loaded from [Open-Meteo](https://open-meteo.com/) (free, no account) when the match is opened, for courses with coordinates in [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv) (see step 10 below).
 - The match list can be sorted with the dropdown next to the search: by date (new → old, the default, or old → new), by number of players (most first) or by the winning result (best deviation from par of a completed round first). Ties are shown newest first.
 - For every player, it shows the played courses with their personal best, the distribution of played holes, the most recent score for every layout and hole, with a chart of the score over time on that layout (completed rounds only, shown from 3 rounds on; tap or hover a point to see the round and jump to the match). If the same hole is included in multiple layouts, recent results on the isomorphic holes in other layouts are also displayed. Hover over or click on the hole number to see which other holes are isomorphic to it. Hover over or click on a recent score or personal best to see where it originates from and when that result was achieved.<br>
   <img width="570" height="1354" alt="image" src="https://github.com/user-attachments/assets/20de0351-9b48-49b6-8207-761da48ccf6e" />
@@ -39,6 +40,7 @@ Personal bests require a round to be completed, i.e. not missing any holes.
    (empty row)
    ```
 9. If you want to show hole lengths and isomorphic holes on the website, you need to add them manually as they are not included in the csv information. Add the data to [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) in the same format as the example data that is already in the files.
+10. For the weather of a match, add the coordinates of each course to [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv): one line per course (all layouts share it), latitude and longitude with a dot as decimal separator, e.g. `My Course,50.7753,6.0839`. Courses with empty coordinates just show no weather.
 
 ## Checking the course data
 
@@ -48,7 +50,7 @@ The tests in [tests/](tests/) check the hand-maintained course data. They need [
 node --test
 ```
 
-- [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, and identical holes have the same length.
+- [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv), [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) and [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, identical holes have the same length, and every course has a line in the coordinates file (coordinates empty or valid).
 - [sheet-data.test.mjs](tests/sheet-data.test.mjs) loads the Google Sheet and checks that every played layout has hole lengths, with as many lengths as the layout has holes. It is skipped when there is no internet connection.
 - [records.test.mjs](tests/records.test.mjs) checks the records with made-up rounds (aces, birdies, streaks, shared ranks).
 - [comments.test.mjs](tests/comments.test.mjs) checks how comment rows and the "Unranked" mark are read, and that unranked matches don't count for the records.

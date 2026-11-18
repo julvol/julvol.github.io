@@ -23,7 +23,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 ## Match details
 
-- [ ] **#23 Weather per match:** the temperature, wind and rain at the start of a match, loaded from a free weather archive (e.g. Open-Meteo, no account needed) using the coordinates of the course, shown next to the duration. Needs the coordinates of each course in a small file in `course_data/`. Could also explain unranked storm rounds at a glance.
+- [x] **#23 Weather per match:** a "Wetter" line below start, duration and end of an expanded match with the temperature, sky, wind with gusts and rain while it was played, loaded from Open-Meteo when the match is opened, using the course's coordinates from `course_data/course_coordinates.csv`.
 
 ## Data upkeep
 

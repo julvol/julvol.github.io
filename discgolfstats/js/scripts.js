@@ -459,6 +459,7 @@ class StatsTable {
 
     this.setupMatchFilter();
     this.setupMatchSort();
+    this.setupMatchWeather(); // before the links, so a linked match loads its weather
     this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
     this.setupShareableLinks();
 
@@ -571,13 +572,14 @@ class StatsTable {
       neu: newestFirst,
       spieler: (a, b) =>
         b.dataset.playerCount - a.dataset.playerCount || newestFirst(a, b),
-      ergebnis: (a, b) =>
-        winningDev(a) - winningDev(b) || newestFirst(a, b),
+      ergebnis: (a, b) => winningDev(a) - winningDev(b) || newestFirst(a, b),
     };
 
     const applySort = () => {
       // append() moves the cards; they are the last elements in the container
-      container.append(...[...cards].sort(compare[select.value] ?? compare.neu));
+      container.append(
+        ...[...cards].sort(compare[select.value] ?? compare.neu),
+      );
     };
     select.addEventListener("change", applySort);
     applySort();
@@ -589,14 +591,173 @@ class StatsTable {
       const canvas = (fitWidth.canvas ??= document.createElement("canvas"));
       const ctx = canvas.getContext("2d");
       ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      const extra = ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"]
-        .reduce((sum, prop) => sum + parseFloat(style[prop]), 0);
+      const extra = [
+        "paddingLeft",
+        "paddingRight",
+        "borderLeftWidth",
+        "borderRightWidth",
+      ].reduce((sum, prop) => sum + parseFloat(style[prop]), 0);
       select.style.width = `${Math.ceil(ctx.measureText(text).width + extra) + 2}px`;
     };
     select.addEventListener("change", fitWidth);
     fitWidth();
     // the web font may arrive after the first measurement
     document.fonts?.ready.then(fitWidth);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Weather per match (open item #23): a "Wetter" line in the opened match card with the
+  // temperature, sky, wind and rain while the match was played. Loaded from Open-Meteo
+  // (free, no account) the first time the card is opened, using the course's coordinates
+  // from course_data/course_coordinates.csv. Courses without coordinates show no line.
+  // The match times are local times of the viewer, which is fine as long as viewer and
+  // course are in the same time zone (Open-Meteo returns the course's local times).
+
+  // the list item, filled by loadMatchWeather
+  getWeatherListItem(match) {
+    const coordinates = this.courseCoordinates?.get(match.course);
+    if (!coordinates) return "";
+    return `<li class="match-weather"
+      data-latitude="${coordinates.latitude}"
+      data-longitude="${coordinates.longitude}"
+      data-start="${match.startTime.getTime()}"
+      data-end="${match.endTime.getTime()}"
+    >Wetter wird geladen …</li>`;
+  }
+
+  setupMatchWeather() {
+    document
+      .getElementById("partien-container")
+      .addEventListener("show.bs.collapse", (e) => {
+        const item = e.target.querySelector(
+          ":scope > ul > .match-weather:not([data-loaded])",
+        );
+        if (!item) return;
+        item.dataset.loaded = "";
+        this.loadMatchWeather(item).catch((error) => {
+          console.error("Error while loading the weather: ", error);
+          item.textContent = "Wetter nicht verfügbar";
+          delete item.dataset.loaded; // try again the next time it is opened
+        });
+      });
+  }
+
+  async loadMatchWeather(item) {
+    const start = Number(item.dataset.start);
+    const end = Number(item.dataset.end);
+    const { latitude, longitude } = item.dataset;
+    const HOUR = 60 * 60 * 1000;
+    const pad = (n) => String(n).padStart(2, "0");
+    const day = (ms) => {
+      const d = new Date(ms);
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+    // Open-Meteo's hourly times look like "2026-11-13T15:00"
+    const hourKey = (ms) => `${day(ms)}T${pad(new Date(ms).getHours())}:00`;
+    const hoursBetween = (from, to) => {
+      const keys = [];
+      for (let t = from; t <= to; t += HOUR) keys.push(hourKey(t));
+      return keys;
+    };
+
+    // older matches don't change any more: keep their weather in the browser
+    const ageInDays = (Date.now() - end) / (24 * HOUR);
+    const cacheKey = `weather:${latitude},${longitude},${start}`;
+    let hourly = null;
+    try {
+      hourly = JSON.parse(localStorage.getItem(cacheKey));
+    } catch {}
+
+    if (!hourly) {
+      // the archive is a few days behind: recent matches come from the forecast API
+      const endpoint =
+        ageInDays > 30
+          ? "https://archive-api.open-meteo.com/v1/archive"
+          : "https://api.open-meteo.com/v1/forecast";
+      const params = new URLSearchParams({
+        latitude,
+        longitude,
+        start_date: day(start),
+        end_date: day(end),
+        hourly:
+          "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m",
+        timezone: "auto",
+      });
+      const response = await fetch(`${endpoint}?${params}`);
+      if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
+      hourly = (await response.json()).hourly;
+      if (ageInDays > 7)
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(hourly));
+        } catch {}
+    }
+
+    const valuesAt = (keys, name) =>
+      keys
+        .map((key) => hourly[name]?.[hourly.time.indexOf(key)])
+        .filter((v) => typeof v === "number");
+
+    // the full hours closest to start and end. The precipitation of a full hour is the
+    // one of the hour before it, so the rain uses the hours that end during the match.
+    const roundHour = (ms) => Math.round(ms / HOUR) * HOUR;
+    const firstRainHour = Math.floor(start / HOUR) * HOUR + HOUR;
+    const hours = hoursBetween(roundHour(start), roundHour(end));
+    const rainHours = hoursBetween(
+      firstRainHour,
+      Math.max(Math.ceil(end / HOUR) * HOUR, firstRainHour),
+    );
+
+    const temperatures = valuesAt(hours, "temperature_2m").map(Math.round);
+    if (temperatures.length === 0)
+      throw new Error("Open-Meteo: no data for this time");
+    const minTemp = Math.min(...temperatures);
+    const maxTemp = Math.max(...temperatures);
+    const wind = valuesAt(hours, "wind_speed_10m");
+    const gusts = valuesAt(hours, "wind_gusts_10m");
+    // the worst weather during the match (higher WMO codes are worse)
+    const codes = valuesAt(hours, "weather_code");
+    const rain = valuesAt(rainHours, "precipitation").reduce(
+      (a, b) => a + b,
+      0,
+    );
+
+    const parts = [
+      minTemp === maxTemp ? `${minTemp} °C` : `${minTemp} bis ${maxTemp} °C`,
+    ];
+    if (codes.length)
+      parts.push(this.getWeatherDescription(Math.max(...codes)));
+    if (wind.length)
+      parts.push(
+        `Wind ${Math.round(Math.max(...wind))} km/h` +
+          (gusts.length
+            ? ` (Böen ${Math.round(Math.max(...gusts))} km/h)`
+            : ""),
+      );
+    if (rain >= 0.1)
+      parts.push(
+        `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(rain)} mm Niederschlag`,
+      );
+    item.textContent = `${parts.join(", ")}`;
+  }
+
+  // WMO weather codes as used by Open-Meteo
+  getWeatherDescription(code) {
+    if (code === 0) return "klar";
+    if (code === 1) return "überwiegend klar";
+    if (code === 2) return "teilweise bewölkt";
+    if (code === 3) return "bewölkt";
+    if (code <= 48) return "Nebel";
+    if (code <= 55) return "Nieselregen";
+    if (code <= 57) return "gefrierender Nieselregen";
+    if (code <= 61) return "leichter Regen";
+    if (code <= 63) return "Regen";
+    if (code <= 65) return "starker Regen";
+    if (code <= 67) return "gefrierender Regen";
+    if (code <= 77) return "Schnee";
+    if (code <= 82) return "Regenschauer";
+    if (code <= 86) return "Schneeschauer";
+    if (code === 95) return "Gewitter";
+    return "Gewitter mit Hagel";
   }
 
   // Shareable links: the URL always describes what is open, e.g.
@@ -705,7 +866,9 @@ class StatsTable {
         document
           .querySelectorAll(".collapse.show")
           .forEach((el) =>
-            bootstrap.Collapse.getOrCreateInstance(el, { toggle: false }).hide(),
+            bootstrap.Collapse.getOrCreateInstance(el, {
+              toggle: false,
+            }).hide(),
           );
         document
           .querySelectorAll("details[open]")
@@ -2131,7 +2294,8 @@ class StatsTable {
           <div class="collapse" id="${collapseId}" ${this.getLinkAttributes("partie", this.getMatchLinkValue(match))}>
             <ul><li>Start - ${this.formatDateStringForStatsStringCollapsed(match.startTime)}</li>
             <li>Dauer - ${match.duration}</li>
-            <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li></ul>
+            <li>Ende - ${this.formatDateStringForStatsStringCollapsed(match.endTime)}</li>
+            ${this.getWeatherListItem(match)}</ul>
             <h5 class="mb-3">Scorecard</h5>`;
 
     // One table per block of 9 holes, all in one shared scroll container
@@ -2427,10 +2591,24 @@ class StatsTable {
   }
 
   async loadReferenceData() {
-    const [lengthsText, isomorphText] = await Promise.all([
+    const [lengthsText, isomorphText, coordinatesText] = await Promise.all([
       fetch("course_data/hole_lengths.csv").then((res) => res.text()),
       fetch("course_data/isomorph_holes.csv").then((res) => res.text()),
+      // optional: without it there is just no weather
+      fetch("course_data/course_coordinates.csv")
+        .then((res) => (res.ok ? res.text() : ""))
+        .catch(() => ""),
     ]);
+
+    // course -> { latitude, longitude }; courses without coordinates are left out
+    this.courseCoordinates = new Map();
+    if (coordinatesText)
+      this.parseCsv(coordinatesText).forEach((row) => {
+        const latitude = parseFloat(row.latitude);
+        const longitude = parseFloat(row.longitude);
+        if (Number.isFinite(latitude) && Number.isFinite(longitude))
+          this.courseCoordinates.set(row.course, { latitude, longitude });
+      });
 
     this.holeLengthsSets = this.parseCsv(lengthsText).map((row) => ({
       course: row.course,
