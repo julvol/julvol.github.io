@@ -2059,7 +2059,8 @@ class StatsTable {
                         </tr>`,
                     ).join("")}
                   </tbody>
-                </table>`;
+                </table>
+                ${this.getPlayingPartnersString(player)}`;
 
     // share text: the number of matches and the PB per layout
     const shareLines = [
@@ -2079,6 +2080,44 @@ class StatsTable {
           </div>`;
 
     document.getElementById("playersAccordion").innerHTML += playerString;
+  }
+
+  // Playing partners (open item #29): who a player played with, by the number of shared
+  // matches (unranked ones don't count, like everywhere else), most first, ties by name
+  getPlayingPartners(name) {
+    const counts = new Map();
+    Object.values(this.matches).forEach((match) => {
+      if (match.unranked || !(name in match.players)) return;
+      Object.keys(match.players).forEach((other) => {
+        if (other === name || other === "Par" || !(other in this.players)) return;
+        counts.set(other, (counts.get(other) ?? 0) + 1);
+      });
+    });
+    return [...counts]
+      .map(([partner, count]) => ({ name: partner, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "de"));
+  }
+
+  getPlayingPartnersString(player) {
+    const partners = this.getPlayingPartners(player.name);
+    if (partners.length === 0) return "";
+    return `
+                <h5>Mitspieler:</h5>
+                <table
+                  class="table table-bordered text-center align-middle w-auto"
+                >
+                  <tbody>
+                    ${partners
+                      .map(
+                        ({ name, count }) => `
+                        <tr>
+                          <th class="text-start"><a class="player-link" href="?spieler=${encodeURIComponent(name)}" ${this.getPlayerLinkAttribute(name)}>${this.escapeHtml(name)}</a></th>
+                          <td>${count}</td>
+                        </tr>`,
+                      )
+                      .join("")}
+                  </tbody>
+                </table>`;
   }
 
   getCourseString(course) {
