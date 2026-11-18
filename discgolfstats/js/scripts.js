@@ -566,7 +566,7 @@ class StatsTable {
   // ---------------------------------------------------------------------------
   // Activity calendar (open item #14): a GitHub-style grid of the ranked matches per day at
   // the top of the matches, one grid per year (buttons to switch, the latest year first).
-  // Columns are weeks (Monday to Sunday), the color says if none, one or more matches were played.
+  // Columns are weeks (Monday to Sunday), days with at least one match are darker.
   // Days with matches show the courses on hover / tap; clicking one filters the matches.
 
   renderActivityCalendar() {
@@ -626,7 +626,7 @@ class StatsTable {
         const courses = dayMatches
           .map((m) => this.escapeHtml(`${m.course} (${m.layout})`))
           .join("<br>");
-        cells += `<span class="activity-day activity-level-${dayMatches.length === 1 ? 1 : 2}"
+        cells += `<span class="activity-day activity-played"
           style="${position}" data-filter-date="${date}"
           ${this.getPopoverAttributes(`<b>${partien(dayMatches.length)}</b> am ${WEEKDAYS[d.getDay()]} ${date}<br>${courses}`)}
         ></span>`;
@@ -657,14 +657,8 @@ class StatsTable {
                 `<button type="button" class="btn btn-sm ${i === 0 ? "btn-secondary" : "btn-outline-secondary"}" data-year="${year}">${year}</button>`,
             )
             .join("")}</div>`;
-    const legend = `
-      <div class="activity-legend">
-        <span class="activity-day"></span> keine
-        <span class="activity-day activity-level-1"></span> 1 Partie
-        <span class="activity-day activity-level-2"></span> mehrere
-      </div>`;
     container.innerHTML =
-      yearButtons + years.map(getYearString).join("") + legend;
+      yearButtons + years.map(getYearString).join("");
   }
 
   setupActivityCalendar() {

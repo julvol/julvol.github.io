@@ -11480,21 +11480,8 @@ html {
 .activity-day[data-filter-date] {
   cursor: pointer;
 }
-/* one match / more than one: darker black than the days without (not orange, which
+/* days with at least one match: darker black than the days without (not orange, which
    would look like the bogey color of the scorecards) */
-.activity-level-1 {
+.activity-played {
   background-color: rgba(0, 0, 0, 0.35);
-}
-.activity-level-2 {
-  background-color: rgba(0, 0, 0, 0.65);
-}
-.activity-legend {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  margin-top: 0.5rem;
-}
-.activity-legend .activity-day {
-  margin-left: 0.5rem;
 }

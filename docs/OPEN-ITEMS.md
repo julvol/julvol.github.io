@@ -7,7 +7,7 @@ Each item has a fixed number that stays the same when other items are added or r
 ## Charts and trends
 
 - [x] **#1 Score over time per player and layout:** a line chart of the completed rounds at the top of each layout in "Letzte Ergebnisse" of a player (from 3 completed rounds on), with the PB and the newest round labeled and a tooltip per round with a link to the match.
-- [x] **#14 Activity calendar:** a GitHub-style grid at the top of the matches with the number of ranked matches per day, one year at a time (buttons to switch the year). Hovering or tapping a day shows the courses played, clicking it filters the matches to that day.
+- [x] **#14 Activity calendar:** a GitHub-style grid at the top of the matches marking the days with ranked matches, one year at a time (buttons to switch the year). Hovering or tapping a day shows the courses played, clicking it filters the matches to that day.
 
 ## Records
 
