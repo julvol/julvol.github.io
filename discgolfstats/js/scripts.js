@@ -517,6 +517,7 @@ class StatsTable {
           : visibleCount === 0
             ? "Keine Partien gefunden"
             : `${visibleCount} von ${cards.length} Partien`;
+      this.updateActivityCalendar();
     };
 
     input.addEventListener("input", applyFilter);
@@ -568,6 +569,8 @@ class StatsTable {
   // the top of the matches, one grid per year (buttons to switch, the latest year first).
   // Columns are weeks (Monday to Sunday), days with at least one match are darker.
   // Days with matches show the courses on hover / tap; clicking one filters the matches.
+  // Only the matches shown in the match list (see the match filter) are marked; the number
+  // of matches per year above the grid stays the same.
 
   renderActivityCalendar() {
     const container = document.getElementById("activityCalendar");
@@ -593,6 +596,7 @@ class StatsTable {
     const WEEKDAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
     const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
     const partien = (n) => `${n} ${n === 1 ? "Partie" : "Partien"}`;
+    this.activityDays = new Map(); // "03.10.2026" -> { label, matches: [{ link, course }] }
 
     const getYearString = (year) => {
       // the grid starts on the Monday of the week of January 1st
@@ -623,12 +627,16 @@ class StatsTable {
           cells += `<span class="activity-day" style="${position}" title="Keine Partie am ${WEEKDAYS[d.getDay()]} ${date}"></span>`;
           continue;
         }
-        const courses = dayMatches
-          .map((m) => this.escapeHtml(`${m.course} (${m.layout})`))
-          .join("<br>");
-        cells += `<span class="activity-day activity-played"
-          style="${position}" data-filter-date="${date}"
-          ${this.getPopoverAttributes(`<b>${partien(dayMatches.length)}</b> am ${WEEKDAYS[d.getDay()]} ${date}<br>${courses}`)}
+        const label = `${WEEKDAYS[d.getDay()]} ${date}`;
+        this.activityDays.set(date, {
+          label,
+          matches: dayMatches.map((m) => ({
+            link: this.getMatchLinkValue(m),
+            course: this.escapeHtml(`${m.course} (${m.layout})`),
+          })),
+        });
+        cells += `<span class="activity-day" style="${position}" data-day="${date}"
+          ${this.getPopoverAttributes(label)}
         ></span>`;
       }
       const weekdays = ["Mo", "Mi", "Fr"]
@@ -661,6 +669,42 @@ class StatsTable {
       yearButtons + years.map(getYearString).join("");
   }
 
+  // marks the days with matches that the match list shows (not filtered out) and puts
+  // only those matches in their popovers; the other days look like days without a match
+  updateActivityCalendar() {
+    if (!this.activityDays) return;
+    const shownMatches = new Set(
+      [
+        ...document.querySelectorAll(
+          '#partien-container .match-card:not(.filtered-out) [data-link-param="partie"]',
+        ),
+      ].map((el) => el.dataset.linkValue),
+    );
+    document
+      .querySelectorAll("#activityCalendar [data-day]")
+      .forEach((cell) => {
+        const { label, matches } = this.activityDays.get(cell.dataset.day);
+        const shown = matches.filter((m) => shownMatches.has(m.link));
+        const popover = bootstrap.Popover.getInstance(cell);
+        cell.classList.toggle("activity-played", shown.length > 0);
+        if (shown.length === 0) {
+          delete cell.dataset.filterDate; // not clickable
+          cell.title = `Keine Partie am ${label}`;
+          popover?.hide();
+          popover?.disable();
+          return;
+        }
+        cell.dataset.filterDate = cell.dataset.day;
+        cell.removeAttribute("title");
+        popover?.enable();
+        const content = `<b>${shown.length} ${shown.length === 1 ? "Partie" : "Partien"}</b> am ${label}<br>${shown.map((m) => m.course).join("<br>")}`;
+        if (cell.dataset.content !== content) {
+          cell.dataset.content = content;
+          popover?.setContent({ ".popover-body": content });
+        }
+      });
+  }
+
   setupActivityCalendar() {
     const container = document.getElementById("activityCalendar");
     // show the most recent weeks (on phones the grid does not fit and scrolls sideways)
@@ -670,6 +714,7 @@ class StatsTable {
     };
     const firstYear = container.querySelector(".activity-year");
     if (firstYear) scrollToEnd(firstYear);
+    this.updateActivityCalendar(); // the filter may already be set (link or restored value)
 
     container.addEventListener("click", (e) => {
       const button = e.target.closest(".activity-years button");
