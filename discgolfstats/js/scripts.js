@@ -752,6 +752,8 @@ class StatsTable {
   // ---------------------------------------------------------------------------
   // Weather forecast of a course: the weather of the next 90 minutes at the top of an opened
   // course, loaded from Open-Meteo when it is opened (again after 15 minutes when reopened).
+  // If that is no disc golf weather (rain or gusts over 30 km/h), the next 90 minutes in
+  // daylight without either are shown below it ("Nächstes Disc Golf-Wetter").
 
   getCurrentWeatherString(course) {
     const coordinates = this.courseCoordinates?.get(course.course);
@@ -761,7 +763,8 @@ class StatsTable {
                 <p class="course-weather"
                   data-latitude="${coordinates.latitude}"
                   data-longitude="${coordinates.longitude}"
-                >Wetter wird geladen …</p>`;
+                >Wetter wird geladen …</p>
+                <div class="course-weather-next"></div>`;
   }
 
   setupCurrentWeather() {
@@ -776,6 +779,7 @@ class StatsTable {
         this.loadCurrentWeather(item).catch((error) => {
           console.error("Error while loading the weather forecast: ", error);
           item.textContent = "Wetter nicht verfügbar";
+          item.nextElementSibling?.replaceChildren();
           delete item.dataset.loadedAt; // try again the next time it is opened
         });
       });
@@ -783,13 +787,16 @@ class StatsTable {
 
   async loadCurrentWeather(item) {
     const { latitude, longitude } = item.dataset;
-    // 15-minute steps from the current quarter hour on: 7 steps cover the next 90 minutes
+    // 15-minute steps from the current quarter hour on, for the next 7 days
+    // (7 steps cover 90 minutes)
+    const SPAN = 7;
+    const DAYS = 7;
     const params = new URLSearchParams({
       latitude,
       longitude,
       minutely_15:
-        "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m",
-      forecast_minutely_15: "7",
+        "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
+      forecast_minutely_15: String(DAYS * 96),
       timezone: "auto",
     });
     const response = await fetch(
@@ -797,37 +804,98 @@ class StatsTable {
     );
     if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
     const { minutely_15: steps } = await response.json();
+    const now = this.getWeatherOfSteps(steps, 0, SPAN);
+    if (!now) throw new Error("Open-Meteo: no forecast");
+    item.replaceChildren(
+      this.getWeatherTimeSpan(steps, 0, SPAN),
+      document.createElement("br"),
+      this.formatWeather(now),
+    );
+
+    const next = item.nextElementSibling;
+    if (!next) return;
+    if (this.isDiscGolfWeather(now)) {
+      next.replaceChildren();
+      return;
+    }
+    // the first 90 minutes in daylight (from a later quarter hour on) with disc golf weather
+    let found = null;
+    for (let start = 1; start + SPAN <= steps.time.length; start++) {
+      if (!steps.is_day?.slice(start, start + SPAN).every((d) => d === 1))
+        continue;
+      const weather = this.getWeatherOfSteps(steps, start, SPAN);
+      if (weather && this.isDiscGolfWeather(weather)) {
+        found = { start, weather };
+        break;
+      }
+    }
+    const heading = document.createElement("h5");
+    heading.textContent = "Nächstes Disc Golf-Wetter:";
+    const text = document.createElement("p");
+    if (found)
+      text.replaceChildren(
+        this.getWeatherTimeSpan(steps, found.start, SPAN),
+        document.createElement("br"),
+        this.formatWeather(found.weather),
+      );
+    else text.textContent = `keins in den nächsten ${DAYS} Tagen`;
+    next.replaceChildren(heading, text);
+  }
+
+  // the weather of the steps start .. start + count - 1 of Open-Meteo's minutely_15, in the
+  // form of formatWeather; null if there are no temperatures
+  getWeatherOfSteps(steps, start, count) {
     const values = (name) =>
-      (steps?.[name] ?? []).filter((v) => typeof v === "number");
+      (steps?.[name] ?? [])
+        .slice(start, start + count)
+        .filter((v) => typeof v === "number");
     const temperatures = values("temperature_2m").map(Math.round);
-    if (temperatures.length === 0) throw new Error("Open-Meteo: no forecast");
+    if (temperatures.length === 0) return null;
     const codes = values("weather_code");
     const wind = values("wind_speed_10m");
     const gusts = values("wind_gusts_10m");
     // the precipitation of a step is the one of the 15 minutes before it, so the
-    // first step (the current quarter hour) is left out
+    // first step (the quarter hour the span starts in) is left out
     const rain = (steps.precipitation ?? [])
-      .slice(1)
+      .slice(start + 1, start + count)
       .filter((v) => typeof v === "number")
       .reduce((sum, v) => sum + v, 0);
-    const forecast = this.formatWeather({
+    return {
       minTemp: Math.min(...temperatures),
       maxTemp: Math.max(...temperatures),
       code: codes.length ? Math.max(...codes) : null,
       wind: wind.length ? Math.max(...wind) : null,
       gusts: gusts.length ? Math.max(...gusts) : null,
       rain,
-    });
-    // the time span in the local time of the course, e.g. "17:30 bis 19:00 Uhr"
-    // (the step times have no time zone: read and written as UTC, so only the clock is used)
+    };
+  }
+
+  // no rain (no measurable rain and no drizzle / rain / snow / thunderstorm code) and
+  // gusts of at most 30 km/h
+  isDiscGolfWeather({ code, gusts, rain }) {
+    return rain < 0.1 && (code === null || code < 51) && (gusts ?? 0) <= 30;
+  }
+
+  // the 90 minutes from step start on in the local time of the course, e.g. "17:30 bis 19:00 Uhr",
+  // with "morgen, " / "Fr., 20.11., " in front if they are not today
+  getWeatherTimeSpan(steps, start, count) {
+    // the step times have no time zone: read and written as UTC, so only the clock is used
     const clock = (date) => date.toISOString().slice(11, 16);
-    const from = new Date(`${steps.time[0]}Z`);
-    const to = new Date(from.getTime() + 90 * 60 * 1000);
-    item.replaceChildren(
-      `${clock(from)} bis ${clock(to)} Uhr`,
-      document.createElement("br"),
-      forecast,
-    );
+    const from = new Date(`${steps.time[start]}Z`);
+    // e.g. 7 steps from 17:30 on: 17:30, 17:45, …, 19:00
+    const to = new Date(`${steps.time[start + count - 1]}Z`);
+    const span = `${clock(from)} bis ${clock(to)} Uhr`;
+    const today = new Date(`${steps.time[0].slice(0, 10)}T00:00Z`);
+    const days = Math.floor((from - today) / (24 * 60 * 60 * 1000));
+    if (days === 0) return span;
+    if (days === 1) return `morgen, ${span}`;
+    const date = new Intl.DateTimeFormat("de-DE", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: "UTC",
+    }).format(from);
+    return `${date}, ${span}`;
   }
 
   // WMO weather codes as used by Open-Meteo
