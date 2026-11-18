@@ -611,8 +611,9 @@ class StatsTable {
   // temperature, sky, wind and rain while the match was played. Loaded from Open-Meteo
   // (free, no account) the first time the card is opened, using the course's coordinates
   // from course_data/course_coordinates.csv. Courses without coordinates show no line.
-  // The match times are local times of the viewer, which is fine as long as viewer and
-  // course are in the same time zone (Open-Meteo returns the course's local times).
+  // The match times are read as local times of the viewer, which is fine as long as viewer
+  // and course are in the same time zone. The weather is asked for in UTC: with
+  // timezone=auto, Open-Meteo's archive used UTC+1 also in summer (one hour off).
 
   // the list item, filled by loadMatchWeather
   getWeatherListItem(match) {
@@ -648,13 +649,9 @@ class StatsTable {
     const end = Number(item.dataset.end);
     const { latitude, longitude } = item.dataset;
     const HOUR = 60 * 60 * 1000;
-    const pad = (n) => String(n).padStart(2, "0");
-    const day = (ms) => {
-      const d = new Date(ms);
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    };
-    // Open-Meteo's hourly times look like "2026-11-13T15:00"
-    const hourKey = (ms) => `${day(ms)}T${pad(new Date(ms).getHours())}:00`;
+    // in UTC: "2026-11-13" and "2026-11-13T14:00", like Open-Meteo's times with timezone=GMT
+    const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+    const hourKey = (ms) => `${new Date(ms).toISOString().slice(0, 13)}:00`;
     const hoursBetween = (from, to) => {
       const keys = [];
       for (let t = from; t <= to; t += HOUR) keys.push(hourKey(t));
@@ -663,7 +660,8 @@ class StatsTable {
 
     // older matches don't change any more: keep their weather in the browser
     const ageInDays = (Date.now() - end) / (24 * HOUR);
-    const cacheKey = `weather:${latitude},${longitude},${start}`;
+    // "utc": entries saved before the switch to UTC may be an hour off in summer
+    const cacheKey = `weather-utc:${latitude},${longitude},${start}`;
     let hourly = null;
     try {
       hourly = JSON.parse(localStorage.getItem(cacheKey));
@@ -679,10 +677,10 @@ class StatsTable {
         latitude,
         longitude,
         start_date: day(start),
-        end_date: day(end),
+        end_date: day(end + HOUR), // the end is rounded up to the next full hour
         hourly:
           "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m",
-        timezone: "auto",
+        timezone: "GMT",
       });
       const response = await fetch(`${endpoint}?${params}`);
       if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
