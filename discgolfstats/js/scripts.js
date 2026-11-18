@@ -707,10 +707,18 @@ class StatsTable {
 
   setupActivityCalendar() {
     const container = document.getElementById("activityCalendar");
-    // show the most recent weeks (on phones the grid does not fit and scrolls sideways)
+    // show the most recent weeks (on phones the grid does not fit and scrolls sideways):
+    // the last drawn day (today in the current year, else December 31st) at the right edge,
+    // not the empty rest of the current year
     const scrollToEnd = (year) => {
       const scroll = year.querySelector(".activity-scroll");
-      scroll.scrollLeft = scroll.scrollWidth;
+      const lastDay = [...year.querySelectorAll(".activity-day")].at(-1);
+      if (!lastDay) return;
+      const right =
+        lastDay.getBoundingClientRect().right -
+        scroll.getBoundingClientRect().left +
+        scroll.scrollLeft;
+      scroll.scrollLeft = right + 4 - scroll.clientWidth; // a little room after it
     };
     const firstYear = container.querySelector(".activity-year");
     if (firstYear) scrollToEnd(firstYear);
