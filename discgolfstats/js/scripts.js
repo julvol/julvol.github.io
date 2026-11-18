@@ -752,8 +752,8 @@ class StatsTable {
   // ---------------------------------------------------------------------------
   // Weather forecast of a course: the weather of the next 90 minutes at the top of an opened
   // course, loaded from Open-Meteo when it is opened (again after 15 minutes when reopened).
-  // If that is no disc golf weather (rain or gusts over 30 km/h), the next 90 minutes in
-  // daylight without either are shown below it ("Nächstes Disc Golf-Wetter").
+  // If that is no disc golf weather (dark, rain or gusts over 30 km/h), the next 90 minutes
+  // in daylight without rain and strong gusts are shown below it ("Nächstes Disc Golf-Wetter").
 
   getCurrentWeatherString(course) {
     const coordinates = this.courseCoordinates?.get(course.course);
@@ -814,15 +814,17 @@ class StatsTable {
 
     const next = item.nextElementSibling;
     if (!next) return;
-    if (this.isDiscGolfWeather(now)) {
+    // only daylight is disc golf weather
+    const isDaylight = (start) =>
+      steps.is_day?.slice(start, start + SPAN).every((d) => d === 1) ?? false;
+    if (isDaylight(0) && this.isDiscGolfWeather(now)) {
       next.replaceChildren();
       return;
     }
     // the first 90 minutes in daylight (from a later quarter hour on) with disc golf weather
     let found = null;
     for (let start = 1; start + SPAN <= steps.time.length; start++) {
-      if (!steps.is_day?.slice(start, start + SPAN).every((d) => d === 1))
-        continue;
+      if (!isDaylight(start)) continue;
       const weather = this.getWeatherOfSteps(steps, start, SPAN);
       if (weather && this.isDiscGolfWeather(weather)) {
         found = { start, weather };
