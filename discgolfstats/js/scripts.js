@@ -568,12 +568,11 @@ class StatsTable {
   // Activity calendar (open item #14): a GitHub-style grid of the ranked matches per day at
   // the top of the matches, one grid per year (buttons to switch, the latest year first).
   // Columns are weeks (Monday to Sunday), days with at least one match are darker. The whole
-  // year is drawn; today (and on narrow screens this week) has a dark border.
+  // year is drawn; today has a red border.
   // Days with matches show the courses on hover / tap; clicking one filters the matches.
   // Only the matches shown in the match list (see the match filter) are marked; the number
   // of matches per year above the grid stays the same.
-  // Narrow screens (below 992px, where the grid does not fit) get one vertical stripe per
-  // week instead, darker if a shown match was played that week (no popovers, not clickable).
+  // On narrow screens the boxes shrink, so the whole year fits the width (see styles.css).
 
   renderActivityCalendar() {
     const container = document.getElementById("activityCalendar");
@@ -609,9 +608,6 @@ class StatsTable {
       let cells = "";
       let total = 0;
       let week = 0;
-      const weeks = []; // per week: the dates with matches
-      let currentWeek = null;
-      let stripeMonths = "";
       for (
         let d = new Date(start), i = 0;
         d.getFullYear() <= year;
@@ -620,16 +616,11 @@ class StatsTable {
         const weekday = (d.getDay() + 6) % 7; // Monday = 0
         week = Math.floor(i / 7);
         // the name of a month above the first week that starts in it
-        if (weekday === 0 && d.getFullYear() === year && d.getDate() <= 7) {
+        if (weekday === 0 && d.getFullYear() === year && d.getDate() <= 7)
           months += `<span class="activity-month" style="grid-column: ${week + 2};">${MONTHS[d.getMonth()]}</span>`;
-          stripeMonths += `<span class="activity-month" style="grid-column: ${week + 1};">${MONTHS[d.getMonth()]}</span>`;
-        }
         // days of the year before or after: no cell
         if (d.getFullYear() !== year) continue;
-        weeks[week] ??= [];
-        const isToday = dayKey(d) === dayKey(today);
-        if (isToday) currentWeek = week;
-        const todayClass = isToday ? " activity-today" : "";
+        const todayClass = dayKey(d) === dayKey(today) ? " activity-today" : "";
 
         const dayMatches = matchesByDay.get(dayKey(d)) ?? [];
         total += dayMatches.length;
@@ -640,7 +631,6 @@ class StatsTable {
           continue;
         }
         const label = `${WEEKDAYS[d.getDay()]} ${date}`;
-        weeks[week].push(date);
         this.activityDays.set(date, {
           label,
           matches: dayMatches.map((m) => ({
@@ -661,18 +651,8 @@ class StatsTable {
       return `
         <div class="activity-year${year === years[0] ? "" : " d-none"}" data-year="${year}">
           <div class="activity-summary">${partien(total)} in ${year}</div>
-          <div class="activity-scroll">
-            <div class="activity-grid" style="--weeks: ${week + 1};">
-              ${months}${weekdays}${cells}
-            </div>
-          </div>
-          <div class="activity-stripes" style="--weeks: ${week + 1};">
-            ${stripeMonths}${weeks
-              .map(
-                (dates, i) =>
-                  `<span class="activity-week${i === currentWeek ? " activity-today" : ""}" style="grid-column: ${i + 1};" data-days="${dates.join(" ")}"></span>`,
-              )
-              .join("")}
+          <div class="activity-grid" style="--weeks: ${week + 1};">
+            ${months}${weekdays}${cells}
           </div>
         </div>`;
     };
@@ -701,7 +681,6 @@ class StatsTable {
         ),
       ].map((el) => el.dataset.linkValue),
     );
-    const shownDays = new Set();
     document
       .querySelectorAll("#activityCalendar [data-day]")
       .forEach((cell) => {
@@ -709,7 +688,6 @@ class StatsTable {
         const shown = matches.filter((m) => shownMatches.has(m.link));
         const popover = bootstrap.Popover.getInstance(cell);
         cell.classList.toggle("activity-played", shown.length > 0);
-        if (shown.length > 0) shownDays.add(cell.dataset.day);
         if (shown.length === 0) {
           delete cell.dataset.filterDate; // not clickable
           cell.title = `Keine Partie am ${label}`;
@@ -726,40 +704,10 @@ class StatsTable {
           popover?.setContent({ ".popover-body": content });
         }
       });
-    // narrow screens: a week is marked if one of its days is
-    document
-      .querySelectorAll("#activityCalendar .activity-week")
-      .forEach((stripe) =>
-        stripe.classList.toggle(
-          "activity-played",
-          stripe.dataset.days.split(" ").some((day) => shownDays.has(day)),
-        ),
-      );
   }
 
   setupActivityCalendar() {
     const container = document.getElementById("activityCalendar");
-    // show the most recent weeks when the grid does not fit and scrolls sideways:
-    // today (in the current year, else December 31st) at the right edge
-    const scrollToEnd = (year) => {
-      const scroll = year.querySelector(".activity-scroll");
-      const lastDay =
-        year.querySelector(".activity-day.activity-today") ??
-        [...year.querySelectorAll(".activity-day")].at(-1);
-      if (!lastDay) return;
-      const right =
-        lastDay.getBoundingClientRect().right -
-        scroll.getBoundingClientRect().left +
-        scroll.scrollLeft;
-      scroll.scrollLeft = right + 4 - scroll.clientWidth; // a little room after it
-    };
-    const firstYear = container.querySelector(".activity-year");
-    if (firstYear) scrollToEnd(firstYear);
-    // the boxes are hidden on narrow screens (stripes instead): scroll when they appear
-    window.matchMedia("(min-width: 992px)").addEventListener("change", (e) => {
-      const year = container.querySelector(".activity-year:not(.d-none)");
-      if (e.matches && year) scrollToEnd(year);
-    });
     this.updateActivityCalendar(); // the filter may already be set (link or restored value)
 
     container.addEventListener("click", (e) => {
@@ -769,11 +717,14 @@ class StatsTable {
           b.classList.toggle("btn-secondary", b === button);
           b.classList.toggle("btn-outline-secondary", b !== button);
         });
-        container.querySelectorAll(".activity-year").forEach((year) => {
-          const shown = year.dataset.year === button.dataset.year;
-          year.classList.toggle("d-none", !shown);
-          if (shown) scrollToEnd(year);
-        });
+        container
+          .querySelectorAll(".activity-year")
+          .forEach((year) =>
+            year.classList.toggle(
+              "d-none",
+              year.dataset.year !== button.dataset.year,
+            ),
+          );
         return;
       }
       // a day with matches: show them below

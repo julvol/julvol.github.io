@@ -11447,9 +11447,6 @@ html {
   text-align: center;
   margin-bottom: 0.25rem;
 }
-.activity-scroll {
-  overflow-x: auto;
-}
 .activity-grid {
   display: grid;
   grid-template-columns: auto repeat(var(--weeks), var(--cell));
@@ -11457,7 +11454,6 @@ html {
   gap: 3px;
   width: max-content;
   margin: 0 auto;
-  padding-bottom: 2px;
 }
 .activity-month {
   grid-row: 1;
@@ -11480,42 +11476,45 @@ html {
 .activity-day[data-filter-date] {
   cursor: pointer;
 }
-/* narrow screens: one stripe per week instead of the boxes */
-.activity-stripes {
-  display: none;
-  /* minmax(0, …): all weeks equally wide, the month names reach over the next weeks */
-  grid-template-columns: repeat(var(--weeks), minmax(0, 1fr));
-  grid-template-rows: auto 2.5rem;
-  column-gap: 2px;
-  max-width: 540px;
-  margin: 0 auto;
-}
-.activity-stripes .activity-month {
-  font-size: 0.65rem;
-}
-.activity-week {
-  grid-row: 2;
-  border-radius: 1px;
-  background-color: rgba(0, 0, 0, 0.11);
-}
-@media (max-width: 991.98px) {
-  .activity-scroll {
-    display: none;
-  }
-  .activity-stripes {
-    display: grid;
-  }
-}
 /* days with at least one match: darker black than the days without (not orange, which
    would look like the bogey color of the scorecards) */
 .activity-played {
   background-color: rgba(0, 0, 0, 0.35);
 }
-/* today: a red border inside the box; this week on narrow screens: only a red bottom,
-   so the stripe still shows if a match was played */
+/* today: a red border inside the box */
 .activity-today {
   box-shadow: inset 0 0 0 1.5px #c0392b;
 }
-.activity-week.activity-today {
-  box-shadow: inset 0 -3px 0 #c0392b;
+/* narrow screens (below 992px, where 11px boxes don't fit): the grid fills the width and
+   the boxes shrink with it, so it never scrolls sideways */
+@media (max-width: 991.98px) {
+  .activity-grid {
+    /* minmax(0, …): all weeks equally wide, the month names reach over the next weeks */
+    grid-template-columns: auto repeat(var(--weeks), minmax(0, 1fr));
+    grid-template-rows: auto;
+    gap: 1px;
+    width: 100%;
+    max-width: 760px;
+  }
+  .activity-day {
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 1px;
+  }
+  .activity-month {
+    font-size: 0.65rem;
+  }
+  /* no height of its own, so the rows with a label are not taller than the others */
+  .activity-weekday {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    height: 0;
+    font-size: 0.55rem;
+    padding-right: 3px;
+  }
+  .activity-today {
+    box-shadow: inset 0 0 0 1px #c0392b;
+  }
 }
