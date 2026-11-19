@@ -69,6 +69,8 @@ class StatsTable {
     this.matches = {};
     this.players = {};
     this.courses = {};
+    // weather of the opened matches by start time in ms (see loadMatchWeather)
+    this.matchWeather = new Map();
 
     // add hole length sets for new layouts here
     this.holeLengthsSets = [];
@@ -596,7 +598,20 @@ class StatsTable {
     ].sort((a, b) => b - a);
     const today = new Date();
     const WEEKDAYS = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
-    const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    const MONTHS = [
+      "Jan",
+      "Feb",
+      "Mär",
+      "Apr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Dez",
+    ];
     const partien = (n) => `${n} ${n === 1 ? "Partie" : "Partien"}`;
     this.activityDays = new Map(); // "03.10.2026" -> { label, matches: [{ link, course }] }
 
@@ -611,7 +626,11 @@ class StatsTable {
       for (
         let d = new Date(start), i = 0;
         d.getFullYear() <= year;
-        d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + ++i)
+        d = new Date(
+          start.getFullYear(),
+          start.getMonth(),
+          start.getDate() + ++i,
+        )
       ) {
         const weekday = (d.getDay() + 6) % 7; // Monday = 0
         week = Math.floor(i / 7);
@@ -666,8 +685,7 @@ class StatsTable {
                 `<button type="button" class="btn btn-sm ${i === 0 ? "btn-secondary" : "btn-outline-secondary"}" data-year="${year}">${year}</button>`,
             )
             .join("")}</div>`;
-    container.innerHTML =
-      yearButtons + years.map(getYearString).join("");
+    container.innerHTML = yearButtons + years.map(getYearString).join("");
   }
 
   // marks the days with matches that the match list shows (not filtered out) and puts
@@ -899,14 +917,31 @@ class StatsTable {
       0,
     );
 
-    item.textContent = this.formatWeather({
+    const weather = {
       minTemp,
       maxTemp,
       code: codes.length ? Math.max(...codes) : null,
       wind: wind.length ? Math.max(...wind) : null,
       gusts: gusts.length ? Math.max(...gusts) : null,
       rain,
-    });
+    };
+    // kept for the image of the match (see getMatchImage)
+    this.matchWeather.set(start, weather);
+    item.textContent = this.formatWeather(weather);
+  }
+
+  // an emoji for a WMO weather code (see getWeatherDescription)
+  getWeatherEmoji(code) {
+    if (code === 0) return "☀️";
+    if (code === 1) return "🌤️";
+    if (code === 2) return "⛅";
+    if (code === 3) return "☁️";
+    if (code <= 48) return "🌫️";
+    if (code <= 67) return "🌧️";
+    if (code <= 77) return "🌨️";
+    if (code <= 82) return "🌦️";
+    if (code <= 86) return "🌨️";
+    return "⛈️";
   }
 
   // e.g. "7 bis 8 °C, bewölkt, Wind 9 km/h (Böen 21 km/h), 0,4 mm Niederschlag";
@@ -952,7 +987,10 @@ class StatsTable {
       .getElementById("coursesAccordion")
       .addEventListener("show.bs.collapse", (e) => {
         const item = e.target.querySelector(".course-weather");
-        if (!item || Date.now() - (Number(item.dataset.loadedAt) || 0) < MAX_AGE)
+        if (
+          !item ||
+          Date.now() - (Number(item.dataset.loadedAt) || 0) < MAX_AGE
+        )
           return;
         item.dataset.loadedAt = Date.now();
         this.loadCurrentWeather(item).catch((error) => {
@@ -1070,7 +1108,9 @@ class StatsTable {
     const days = Math.floor((from - today) / (24 * 60 * 60 * 1000));
     if (days === 0) return span;
     if (days === 1) return `morgen ${span}`;
-    const weekday = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."][from.getUTCDay()];
+    const weekday = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."][
+      from.getUTCDay()
+    ];
     const date = `${from.toISOString().slice(8, 10)}.${from.toISOString().slice(5, 7)}.`;
     return `${weekday} ${date} ${span}`;
   }
@@ -1159,6 +1199,15 @@ class StatsTable {
         url.searchParams.set(linkParam, linkValue);
         if (button.classList.contains("copy-link-button"))
           this.copyToClipboard(button, url.toString());
+        // a match is shared as an image of its result and scorecard (with the link)
+        else if (linkParam === "partie")
+          this.shareMatchImage(
+            button,
+            Object.values(this.matches).find(
+              (match) => this.getMatchLinkValue(match) === linkValue,
+            ),
+            url.toString(),
+          );
         else this.shareText(button, `${button.dataset.summary}\n${url}`);
       },
       true,
@@ -1189,13 +1238,11 @@ class StatsTable {
       .querySelector("#mainNav .navbar-brand")
       .addEventListener("click", (e) => {
         e.preventDefault();
-        document
-          .querySelectorAll(".collapse.show")
-          .forEach((el) =>
-            bootstrap.Collapse.getOrCreateInstance(el, {
-              toggle: false,
-            }).hide(),
-          );
+        document.querySelectorAll(".collapse.show").forEach((el) =>
+          bootstrap.Collapse.getOrCreateInstance(el, {
+            toggle: false,
+          }).hide(),
+        );
         document
           .querySelectorAll("details[open]")
           .forEach((details) => (details.open = false));
@@ -1278,7 +1325,343 @@ class StatsTable {
       window.prompt("Zum Kopieren:", text);
       return;
     }
-    // confirmation: a check mark instead of the icon for 2 seconds
+    this.showCopied(button);
+  }
+
+  // Share button of a match (open item #35): an image of the result and the scorecard.
+  // Phones: the system share sheet with the image and the link; otherwise the image is
+  // copied to the clipboard, or downloaded if that is not possible.
+  // The image is made synchronously, so the click still counts as the user's action when
+  // the share sheet / clipboard is asked for (Safari is strict about that).
+  async shareMatchImage(button, match, url) {
+    const blob = this.getMatchImage(match);
+    const file = new File(
+      [blob],
+      `Partie ${this.getMatchLinkValue(match)}.png`,
+      {
+        type: "image/png",
+      },
+    );
+
+    if (
+      navigator.share &&
+      window.matchMedia("(pointer: coarse)").matches &&
+      navigator.canShare?.({ files: [file] })
+    ) {
+      try {
+        await navigator.share({ files: [file], text: url });
+      } catch (error) {
+        // closing the share sheet without choosing anything is not an error
+        if (error.name !== "AbortError") console.error(error);
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      this.showCopied(button);
+    } catch (error) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = file.name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+    }
+  }
+
+  // the image of a match for shareMatchImage, as a PNG blob: title, date, result, comment
+  // and scorecard (9 holes per row), in the colors of the match card
+  getMatchImage(match) {
+    const SCALE = 2; // sharp on phone screens
+    const PAD = 24; // around everything
+    const HOLES_PER_ROW = 9;
+    const CELL = 34; // width of a hole column
+    const BLOCK_PAD = 12; // inside a scorecard block
+    const COLORS = {
+      background: "#212529", // the match card
+      block: "#3E4145", // a scorecard block
+      text: "#ffffff",
+      muted: "#adb5bd",
+      over: "#fd6c2e", // deviation from par in the result, as in the match card
+      under: "#408ce2",
+      unranked: "#ffc107",
+    };
+    // the fonts of the page (already loaded, so the canvas can use them)
+    const bodyFont = getComputedStyle(document.body).fontFamily;
+    const headingFont = getComputedStyle(
+      document.querySelector("#partien-container h4") ?? document.body,
+    ).fontFamily;
+    const font = (size, style = "", family = bodyFont) =>
+      `${style} ${size}px ${family}`.trim();
+    // the colors of the score badges, from the CSS
+    const badgeColor = (cls) => {
+      const el = document.createElement("span");
+      el.className = `bg-scorecard-${cls}`;
+      el.hidden = true;
+      document.body.appendChild(el);
+      const color = getComputedStyle(el).backgroundColor;
+      el.remove();
+      return color;
+    };
+
+    const measure = document.createElement("canvas").getContext("2d");
+    const textWidth = (text, f) => {
+      measure.font = f;
+      return measure.measureText(text).width;
+    };
+
+    const par = match.players["Par"];
+    const players = Object.entries(match.players)
+      .filter(([name]) => name !== "Par")
+      .sort((a, b) => a[1].devFromPar - b[1].devFromPar);
+    const pad = (n) => String(n).padStart(2, "0");
+    const t = match.startTime;
+
+    const title = `${match.course} (${match.layout})`;
+    // e.g. "📅 20.09.2026, 17:52   🕒 1h12min", below it the weather if the match has
+    // already loaded it (when it was opened, see loadMatchWeather): "☀️ 13°C   💨 10km/h"
+    // with the average of the lowest and highest temperature and the wind without gusts
+    const date = `📅 ${this.formatDate(t)}, ${pad(t.getHours())}:${pad(t.getMinutes())}   🕒 ${match.duration}`;
+    const weather = this.matchWeather.get(t.getTime());
+    const weatherLine = weather
+      ? [
+          weather.code !== null ? this.getWeatherEmoji(weather.code) : "🌡️",
+          `${Math.round((weather.minTemp + weather.maxTemp) / 2)}°C`,
+          weather.wind !== null ? `  💨 ${Math.round(weather.wind)}km/h` : "",
+        ].join(" ")
+      : "";
+    // the address of the site (not of the match), e.g. julvol.github.io/discgolfstats
+    const footer = `mehr Statistiken unter ${location.host}${location.pathname.replace(/\/(index\.html)?$/, "")}`;
+    const fonts = {
+      title: font(22, "bold", headingFont),
+      date: font(15),
+      section: font(17, "bold", headingFont),
+      name: font(16, "bold"),
+      text: font(16),
+      small: font(12),
+      comment: font(15, "italic"),
+      cell: font(13),
+      cellBold: font(13, "bold"),
+      badge: font(14, "bold"),
+    };
+
+    // result: name | deviation (total) | THRU n
+    const results = players.map(([name, p]) => ({
+      name,
+      dev: this.formatDevFromPar(p.devFromPar),
+      devColor:
+        p.devFromPar > 0
+          ? COLORS.over
+          : p.devFromPar < 0
+            ? COLORS.under
+            : COLORS.text,
+      total: ` (${p.total})`,
+      thru:
+        p.howManyHolesNotPlayedInThisMatch > 0
+          ? `THRU ${match.holes - p.howManyHolesNotPlayedInThisMatch}`
+          : "",
+    }));
+    const nameWidth = Math.max(
+      ...results.map((r) => textWidth(r.name, fonts.name)),
+    );
+    // the deviations are right aligned, so the "(" of all totals are one below the other
+    const devWidth = Math.max(
+      ...results.map((r) => textWidth(r.dev, fonts.name)),
+    );
+    const scoreWidth =
+      devWidth +
+      Math.max(...results.map((r) => textWidth(r.total, fonts.text)));
+    const thruWidth = Math.max(
+      0,
+      ...results.map((r) => textWidth(r.thru, fonts.small)),
+    );
+    const resultWidth =
+      nameWidth + 20 + scoreWidth + (thruWidth ? 16 + thruWidth : 0);
+
+    // scorecard: the label column fits "Bahn", "Länge", "Par" and the names
+    const labelWidth =
+      Math.max(
+        textWidth("Länge", fonts.cellBold),
+        ...players.map(([name]) => textWidth(name, fonts.cellBold)),
+      ) + 12;
+    const blockWidth = (holes) => BLOCK_PAD * 2 + labelWidth + holes * CELL;
+    const scorecardWidth = blockWidth(Math.min(HOLES_PER_ROW, match.holes));
+
+    const contentWidth = Math.ceil(
+      Math.max(
+        320,
+        textWidth(footer, fonts.small),
+        textWidth(title, fonts.title),
+        textWidth(date, fonts.date) +
+          (match.unranked ? 12 + textWidth("Unranked", fonts.small) + 12 : 0),
+        textWidth(weatherLine, fonts.date),
+        resultWidth,
+        scorecardWidth,
+      ),
+    );
+
+    // the comment, wrapped to the width (keeps its own line breaks)
+    const commentLines = [];
+    (match.comment ?? "").split("\n").forEach((paragraph) => {
+      let line = "";
+      paragraph
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach((word) => {
+          const next = line ? `${line} ${word}` : word;
+          if (line && textWidth(next, fonts.comment) > contentWidth) {
+            commentLines.push(line);
+            line = word;
+          } else line = next;
+        });
+      if (line) commentLines.push(line);
+    });
+
+    // everything as drawing steps, so the height is known before the canvas is made
+    const steps = [];
+    let y = PAD;
+    const text = (string, x, yPos, f, color, align = "left") =>
+      steps.push((ctx) => {
+        ctx.font = f;
+        ctx.fillStyle = color;
+        ctx.textAlign = align;
+        ctx.fillText(string, x, yPos);
+      });
+    const roundRect = (x, yPos, w, h, r, color) =>
+      steps.push((ctx) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, yPos, w, h, r);
+        ctx.fill();
+      });
+
+    y += 22;
+    text(title, PAD, y, fonts.title, COLORS.text);
+    y += 24;
+    text(date, PAD, y, fonts.date, COLORS.muted);
+    if (match.unranked) {
+      const x = PAD + textWidth(date, fonts.date) + 12;
+      const w = textWidth("Unranked", fonts.small) + 12;
+      roundRect(x, y - 14, w, 19, 4, COLORS.unranked);
+      text("Unranked", x + 6, y, fonts.small, COLORS.background);
+    }
+    if (weatherLine) {
+      y += 22;
+      text(weatherLine, PAD, y, fonts.date, COLORS.muted);
+    }
+
+    y += 34;
+    text("Ergebnis", PAD, y, fonts.section, COLORS.text);
+    y += 6;
+    results.forEach((r) => {
+      y += 26;
+      text(r.name, PAD, y, fonts.name, COLORS.text);
+      const x = PAD + nameWidth + 20;
+      text(r.dev, x + devWidth, y, fonts.name, r.devColor, "right");
+      text(r.total, x + devWidth, y, fonts.text, COLORS.text);
+      if (r.thru)
+        text(r.thru, x + scoreWidth + 16, y, fonts.small, COLORS.muted);
+    });
+
+    if (commentLines.length) {
+      y += 10;
+      commentLines.forEach((line) => {
+        y += 21;
+        text(line, PAD, y, fonts.comment, COLORS.text);
+      });
+    }
+
+    y += 36;
+    text("Scorecard", PAD, y, fonts.section, COLORS.text);
+    y += 12;
+
+    const badgeColors = Object.fromEntries(
+      SCORE_CATEGORIES.map((c) => [c.cls, badgeColor(c.cls)]),
+    );
+    const headerRows = [
+      ["Bahn", (i) => String(i + 1), fonts.cellBold],
+      ...(match.holeLengths
+        ? [["Länge", (i) => String(match.holeLengths[i] ?? ""), fonts.cell]]
+        : []),
+      ["Par", (i) => String(par.holes[i]), fonts.cell],
+    ];
+    for (let from = 0; from < match.holes; from += HOLES_PER_ROW) {
+      const to = Math.min(from + HOLES_PER_ROW, match.holes);
+      const top = y;
+      const height =
+        BLOCK_PAD * 2 + headerRows.length * 22 + 9 + players.length * 30;
+      roundRect(PAD, top, blockWidth(to - from), height, 8, COLORS.block);
+      const holeX = (i) =>
+        PAD + BLOCK_PAD + labelWidth + (i - from) * CELL + CELL / 2;
+
+      let rowY = top + BLOCK_PAD;
+      headerRows.forEach(([label, value, f]) => {
+        rowY += 22;
+        text(label, PAD + BLOCK_PAD, rowY - 6, fonts.cellBold, COLORS.text);
+        for (let i = from; i < to; i++)
+          text(value(i), holeX(i), rowY - 6, f, COLORS.text, "center");
+      });
+      // line below the header, like in the match card
+      rowY += 4;
+      steps.push(
+        ((lineY) => (ctx) => {
+          ctx.fillStyle = COLORS.background;
+          ctx.fillRect(
+            PAD + BLOCK_PAD,
+            lineY,
+            blockWidth(to - from) - 2 * BLOCK_PAD,
+            1,
+          );
+        })(rowY),
+      );
+      rowY += 5;
+
+      players.forEach(([name, p]) => {
+        text(name, PAD + BLOCK_PAD, rowY + 20, fonts.cellBold, COLORS.text);
+        for (let i = from; i < to; i++) {
+          const score = p.holes[i];
+          const cls =
+            score === "-" ? "par" : this.getScoreClass(score - par.holes[i]);
+          roundRect(holeX(i) - 15, rowY + 3, 30, 24, 6, badgeColors[cls]);
+          text(
+            String(score),
+            holeX(i),
+            rowY + 20,
+            fonts.badge,
+            COLORS.text,
+            "center",
+          );
+        }
+        rowY += 30;
+      });
+      y = top + height + 8;
+    }
+
+    y += 14;
+    text(footer, PAD + contentWidth, y, fonts.small, COLORS.muted, "right");
+    y += PAD - 8;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = (contentWidth + 2 * PAD) * SCALE;
+    canvas.height = Math.ceil(y) * SCALE;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(SCALE, SCALE);
+    ctx.fillStyle = COLORS.background;
+    ctx.fillRect(0, 0, contentWidth + 2 * PAD, y);
+    ctx.textBaseline = "alphabetic";
+    steps.forEach((step) => step(ctx));
+
+    // a blob right away (canvas.toBlob would wait)
+    const data = atob(canvas.toDataURL("image/png").split(",")[1]);
+    const bytes = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) bytes[i] = data.charCodeAt(i);
+    return new Blob([bytes], { type: "image/png" });
+  }
+
+  // confirmation of a copy button: a check mark instead of the icon for 2 seconds
+  showCopied(button) {
     button.originalTitle ??= button.title;
     const setCopied = (copied) => {
       button.querySelector(".button-icon").classList.toggle("d-none", copied);
@@ -1319,25 +1702,6 @@ class StatsTable {
       <div class="link-buttons-content">${content}</div>
       ${this.getShareButtonString(buttonClass, shareText)}
     </div>`;
-  }
-
-  // e.g. "Partie am 03.10.2026 auf Course (Layout)", then one line per player: "Name +3 (33)"
-  getMatchShareText(match, sortedPlayers) {
-    const pad = (n) => String(n).padStart(2, "0");
-    const t = match.startTime;
-    const lines = [
-      `Partie am ${pad(t.getDate())}.${pad(t.getMonth() + 1)}.${t.getFullYear()} auf ${match.course} (${match.layout})${match.unranked ? " - Unranked" : ""}`,
-    ];
-    sortedPlayers.forEach(([name, p]) => {
-      const thru =
-        p.howManyHolesNotPlayedInThisMatch > 0
-          ? ` - THRU ${match.holes - p.howManyHolesNotPlayedInThisMatch}`
-          : "";
-      lines.push(
-        `${name} ${this.formatDevFromPar(p.devFromPar)} (${p.total})${thru}`,
-      );
-    });
-    return lines.join("\n");
   }
 
   getPlayerLinkAttribute(name) {
@@ -2417,7 +2781,8 @@ class StatsTable {
     Object.values(this.matches).forEach((match) => {
       if (match.unranked || !(name in match.players)) return;
       Object.keys(match.players).forEach((other) => {
-        if (other === name || other === "Par" || !(other in this.players)) return;
+        if (other === name || other === "Par" || !(other in this.players))
+          return;
         counts.set(other, (counts.get(other) ?? 0) + 1);
       });
     });
@@ -2695,7 +3060,7 @@ class StatsTable {
 
     statsString += `
           </div>
-          ${this.getShareButtonString("btn-outline-light", this.getMatchShareText(match, sortedPlayers))}
+          ${this.getShareButtonString("btn-outline-light", "")}
           </div>
           </div>
         </div>
@@ -2858,7 +3223,9 @@ class StatsTable {
     // number of the week (weeks start on Monday; 1 Jan 1970 was a Thursday)
     const weekOf = (date) =>
       Math.floor(
-        (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY + 3) / 7,
+        (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY +
+          3) /
+          7,
       );
     const currentWeek = weekOf(now);
 
