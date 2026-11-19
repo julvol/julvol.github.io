@@ -11511,7 +11511,11 @@ html {
 .activity-played {
   background-color: rgba(0, 0, 0, 0.35);
 }
-/* today / this week: a border inside the box in the color of the match cards */
+/* today: a red border inside the box; this week on narrow screens: only a red bottom,
+   so the stripe still shows if a match was played */
 .activity-today {
-  box-shadow: inset 0 0 0 1.5px #212529;
+  box-shadow: inset 0 0 0 1.5px #c0392b;
+}
+.activity-week.activity-today {
+  box-shadow: inset 0 -3px 0 #c0392b;
 }
