@@ -11501,6 +11501,7 @@ html {
     height: auto;
     aspect-ratio: 1;
     border-radius: 1px;
+    pointer-events: none; /* too small to tap: no popover, no filter */
   }
   .activity-month {
     font-size: 0.65rem;
