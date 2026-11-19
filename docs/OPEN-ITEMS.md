@@ -8,7 +8,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 - [x] **#1 Score over time per player and layout:** a line chart of the completed rounds at the top of each layout in "Letzte Ergebnisse" of a player (from 3 completed rounds on), with the PB and the newest round labeled and a tooltip per round with a link to the match.
 - [x] **#14 Activity calendar:** a GitHub-style grid at the top of the matches marking the days with ranked matches, one year at a time (buttons to switch the year). Hovering or tapping a day shows the courses played, clicking it filters the matches to that day.
-- [ ] **#33 Score chart per layout in the course section:** like #1, but for all players at once: every completed round on that layout over time, one line (color) per player, with the layout record marked. Shows how the group improves on a course.
+- [ ] **#33 Score chart per layout in the course section:** like #1, but for all players at once: every completed round on that layout over time, one line (color) per player, with the layout record marked. Shows how the group improves on a course. <-- maybe, but not high priority
 
 ## Records
 
@@ -20,7 +20,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 - [x] **#7 Shareable links:** the URL always describes what is open (`?partie=2026-10-03-1430`, `?spieler=…`, `?parcours=Course (Layout)`, `?suche=…`), so a link opens that exact view. Every match, player and course also has two buttons in its bottom right corner: one copies the link, the other shares a short summary (e.g. the result of a match, a player's PBs, a course's leaderboard) followed by the link.
 - [x] **#9 Installable app:** a web app manifest and a service worker, so the site can go on a phone's home screen and still opens offline with the data of the last visit (with a note when it was loaded).
-- [ ] **#27 Highlights in the match card:** small icons in the header of a match for special moments in it, e.g. an ace, a new personal best or a bogey-free round, with a popover saying who. The match filter could find them too (e.g. "ass").
+- [ ] **#27 Highlights in the match card:** small icons in the header of a match for special moments in it, e.g. an ace, a new personal best or a bogey-free round, with a popover saying who. The match filter could find them too (e.g. "ass"). <-- maybe, but not high priority
 - [x] **#29 Playing partners:** a "Mitspieler" table in a player's section below "Gespielte Bahnen": who they played with how often (number of shared ranked matches only, no score comparison), most first, each name linking to that player.
 - [ ] **#35 Result as an image:** a button in a match that draws the result table (and maybe the scorecard) as a picture and shares it, e.g. for a group chat where links don't show a preview.
 - [ ] **#37 Search suggestions:** while typing in the match filter, a dropdown suggests player names, courses, layouts and keywords like "unranked", so you don't have to know the exact spelling. <-- eigentlich ganz gut, aber noch nicht optimal.
