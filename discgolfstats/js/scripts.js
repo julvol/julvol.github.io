@@ -567,7 +567,8 @@ class StatsTable {
   // ---------------------------------------------------------------------------
   // Activity calendar (open item #14): a GitHub-style grid of the ranked matches per day at
   // the top of the matches, one grid per year (buttons to switch, the latest year first).
-  // Columns are weeks (Monday to Sunday), days with at least one match are darker.
+  // Columns are weeks (Monday to Sunday), days with at least one match are darker. The whole
+  // year is drawn; today (and on narrow screens this week) has a dark border.
   // Days with matches show the courses on hover / tap; clicking one filters the matches.
   // Only the matches shown in the match list (see the match filter) are marked; the number
   // of matches per year above the grid stays the same.
@@ -608,7 +609,8 @@ class StatsTable {
       let cells = "";
       let total = 0;
       let week = 0;
-      const weeks = []; // per drawn week: the dates with matches
+      const weeks = []; // per week: the dates with matches
+      let currentWeek = null;
       let stripeMonths = "";
       for (
         let d = new Date(start), i = 0;
@@ -622,16 +624,19 @@ class StatsTable {
           months += `<span class="activity-month" style="grid-column: ${week + 2};">${MONTHS[d.getMonth()]}</span>`;
           stripeMonths += `<span class="activity-month" style="grid-column: ${week + 1};">${MONTHS[d.getMonth()]}</span>`;
         }
-        // days of the year before or after, and days still to come: no cell
-        if (d.getFullYear() !== year || d > today) continue;
+        // days of the year before or after: no cell
+        if (d.getFullYear() !== year) continue;
         weeks[week] ??= [];
+        const isToday = dayKey(d) === dayKey(today);
+        if (isToday) currentWeek = week;
+        const todayClass = isToday ? " activity-today" : "";
 
         const dayMatches = matchesByDay.get(dayKey(d)) ?? [];
         total += dayMatches.length;
         const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${year}`;
         const position = `grid-column: ${week + 2}; grid-row: ${weekday + 2};`;
         if (dayMatches.length === 0) {
-          cells += `<span class="activity-day" style="${position}" title="Keine Partie am ${WEEKDAYS[d.getDay()]} ${date}"></span>`;
+          cells += `<span class="activity-day${todayClass}" style="${position}" title="Keine Partie am ${WEEKDAYS[d.getDay()]} ${date}"></span>`;
           continue;
         }
         const label = `${WEEKDAYS[d.getDay()]} ${date}`;
@@ -643,7 +648,7 @@ class StatsTable {
             course: this.escapeHtml(`${m.course} (${m.layout})`),
           })),
         });
-        cells += `<span class="activity-day" style="${position}" data-day="${date}"
+        cells += `<span class="activity-day${todayClass}" style="${position}" data-day="${date}"
           ${this.getPopoverAttributes(label)}
         ></span>`;
       }
@@ -665,7 +670,7 @@ class StatsTable {
             ${stripeMonths}${weeks
               .map(
                 (dates, i) =>
-                  `<span class="activity-week" style="grid-column: ${i + 1};" data-days="${dates.join(" ")}"></span>`,
+                  `<span class="activity-week${i === currentWeek ? " activity-today" : ""}" style="grid-column: ${i + 1};" data-days="${dates.join(" ")}"></span>`,
               )
               .join("")}
           </div>
@@ -734,12 +739,13 @@ class StatsTable {
 
   setupActivityCalendar() {
     const container = document.getElementById("activityCalendar");
-    // show the most recent weeks (on phones the grid does not fit and scrolls sideways):
-    // the last drawn day (today in the current year, else December 31st) at the right edge,
-    // not the empty rest of the current year
+    // show the most recent weeks when the grid does not fit and scrolls sideways:
+    // today (in the current year, else December 31st) at the right edge
     const scrollToEnd = (year) => {
       const scroll = year.querySelector(".activity-scroll");
-      const lastDay = [...year.querySelectorAll(".activity-day")].at(-1);
+      const lastDay =
+        year.querySelector(".activity-day.activity-today") ??
+        [...year.querySelectorAll(".activity-day")].at(-1);
       if (!lastDay) return;
       const right =
         lastDay.getBoundingClientRect().right -

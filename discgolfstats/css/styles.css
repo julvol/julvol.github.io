@@ -11511,3 +11511,7 @@ html {
 .activity-played {
   background-color: rgba(0, 0, 0, 0.35);
 }
+/* today / this week: a border inside the box in the color of the match cards */
+.activity-today {
+  box-shadow: inset 0 0 0 1.5px #212529;
+}
