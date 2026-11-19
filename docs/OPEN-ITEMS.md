@@ -14,7 +14,7 @@ Each item has a fixed number that stays the same when other items are added or r
 
 - [x] **#6 Records page:** a "Rekorde" section with the top 3 for most aces, most birdies in a round, longest birdie streak and most rounds played (ties shown in full), linking to the players and matches.
 - [x] **#17 More records:** two more cards in "Rekorde": the longest bogey-free run (par or better on consecutive holes) within one round, and the number of completed bogey-free rounds (no hole over par) per player, linking to the most recent one.
-- [ ] **#36 Longest weekly streak:** a record card for the most consecutive calendar weeks with at least one ranked match per player, with the current streak marked if it is still running.
+- [x] **#36 Longest weekly streak:** a record card for the most consecutive calendar weeks with at least one ranked match per player, with the current streak marked if it is still running.
 
 ## Usability
 

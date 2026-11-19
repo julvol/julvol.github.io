@@ -2794,6 +2794,8 @@ class StatsTable {
         bogeyFree.set(round.name, entry);
       });
 
+    const weeklyStreaks = this.getWeeklyStreaks();
+
     const mostRounds = Object.values(this.players).map((player) => ({
       name: player.name,
       value: player.playedCoursesCount,
@@ -2837,7 +2839,74 @@ class StatsTable {
         entries: mostRounds,
         empty: "Noch keine Partie.",
       },
+      {
+        title: "Längste Wochen-Serie",
+        icon: "calendar-week",
+        entries: weeklyStreaks,
+        empty: "Noch niemand in zwei Wochen hintereinander gespielt.",
+      },
     ];
+  }
+
+  // Longest weekly streak (open item #36): per player the most calendar weeks (Monday to
+  // Sunday) in a row with at least one ranked match, from 2 weeks on. A streak is still
+  // running if the player played this week or last week (this week is not over yet).
+  // Of equally long streaks of one player the latest counts. time = when the streak got
+  // that long (who got there first is listed first on equal values).
+  getWeeklyStreaks(now = new Date()) {
+    const DAY = 24 * 60 * 60 * 1000;
+    // number of the week (weeks start on Monday; 1 Jan 1970 was a Thursday)
+    const weekOf = (date) =>
+      Math.floor(
+        (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY + 3) / 7,
+      );
+    const currentWeek = weekOf(now);
+
+    const matchesByPlayer = new Map();
+    this.getRankedMatches()
+      .sort((a, b) => a.startTime - b.startTime)
+      .forEach((match) =>
+        Object.keys(match.players)
+          .filter((name) => name !== "Par")
+          .forEach((name) => {
+            if (!matchesByPlayer.has(name)) matchesByPlayer.set(name, []);
+            matchesByPlayer.get(name).push(match);
+          }),
+      );
+
+    const entries = [];
+    matchesByPlayer.forEach((matches, name) => {
+      let best = null;
+      let start = null; // first match of the current run
+      let weeks = 0;
+      matches.forEach((match, i) => {
+        const week = weekOf(match.startTime);
+        const previousWeek = i > 0 ? weekOf(matches[i - 1].startTime) : null;
+        if (week === previousWeek) {
+          if (best?.end === matches[i - 1]) best.end = match; // the run goes on this week
+          return;
+        }
+        if (week === previousWeek + 1) weeks++;
+        else {
+          start = match;
+          weeks = 1;
+        }
+        if (!best || weeks >= best.value)
+          best = { value: weeks, start, end: match };
+      });
+      if (best.value < 2) return;
+
+      const running = weekOf(best.end.startTime) >= currentWeek - 1;
+      entries.push({
+        name,
+        value: best.value,
+        time: best.end.startTime,
+        detail: running
+          ? `seit ${this.formatDate(best.start.startTime)}, läuft noch`
+          : `${this.formatDate(best.start.startTime)} – ${this.formatDate(best.end.startTime)}`,
+      });
+    });
+    return entries;
   }
 
   // best first; equal values share a rank (1, 1, 3) and the one who got there first is listed
@@ -2846,7 +2915,8 @@ class StatsTable {
     const ranked = [...entries].sort(
       (a, b) =>
         b.value - a.value ||
-        (a.match?.startTime ?? 0) - (b.match?.startTime ?? 0) ||
+        (a.time ?? a.match?.startTime ?? 0) -
+          (b.time ?? b.match?.startTime ?? 0) ||
         a.name.localeCompare(b.name),
     );
     ranked.forEach((entry, i) => {

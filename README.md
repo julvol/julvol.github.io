@@ -15,7 +15,7 @@ This tool displays disc golf match csv exports from UDisc on a website hosted on
   <img width="570" height="1354" alt="image" src="https://github.com/user-attachments/assets/20de0351-9b48-49b6-8207-761da48ccf6e" />
 - For every course and layout, it shows the weather forecast for the next 90 minutes at the course (loaded from Open-Meteo when it is opened, if the course has coordinates; if it is dark, rains or the gusts exceed 30 km/h, also the next 90 minutes in daylight without rain and strong gusts within the next 7 days), the layout leaderbord and the per-hole distribution (only from rounds played on that layout).<br>
   <img width="483" height="821" alt="image" src="https://github.com/user-attachments/assets/5fc3e6d5-f39e-4508-a8be-316e9a9b6e9b" />
-- The records section shows the top 3 for most aces, most birdies in a round (every score below par), longest birdie streak and most rounds played (ties are shown in full). Names link to the player, dates to the match.<br>
+- The records section shows the top 3 for most aces, most birdies in a round (every score below par), longest birdie streak, most rounds played and the longest weekly streak (most calendar weeks in a row with at least one match; marked "läuft noch" while it is still running, i.e. the player played this week or last week) (ties are shown in full). Names link to the player, dates to the match.<br>
 
   
 - Links can be shared: the link button in every match, player and course copies a link like `?partie=2026-10-03-1430` for a match, `?spieler=Name` for a player or `?parcours=Course (Layout)` for a course. Opening such a link opens and scrolls to that section (opening or closing sections does not change the URL). The URL also keeps the match filter (`?suche=2026`) and the order of the matches (`?sortierung=alt`). The share button (bottom right) in every match, player and course copies a link to it (on phones it opens the share menu).
@@ -54,6 +54,7 @@ node --test
 - [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv), [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) and [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, identical holes have the same length, and every course has a line in the coordinates file (coordinates empty or valid).
 - [sheet-data.test.mjs](tests/sheet-data.test.mjs) loads the Google Sheet and checks that every played layout has hole lengths, with as many lengths as the layout has holes. It is skipped when there is no internet connection.
 - [records.test.mjs](tests/records.test.mjs) checks the records with made-up rounds (aces, birdies, streaks, shared ranks).
+- [weekly-streaks.test.mjs](tests/weekly-streaks.test.mjs) checks the longest weekly streak with made-up matches.
 - [playing-partners.test.mjs](tests/playing-partners.test.mjs) checks the playing partners of a player with made-up matches.
 - [comments.test.mjs](tests/comments.test.mjs) checks how comment rows and the "Unranked" mark are read, and that unranked matches don't count for the records.
 
