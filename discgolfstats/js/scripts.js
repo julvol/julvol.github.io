@@ -83,7 +83,7 @@ class StatsTable {
     this.isomorphHoles = [];
 
     // for unique ids of the "identische Bahnen" switches
-    this.isomorphSwitchCount = 0;
+    this.variantSwitchCount = 0;
   }
 
   getURL(range) {
@@ -468,16 +468,16 @@ class StatsTable {
     this.setupScoreHistoryCharts(); // before the links, so a linked player gets the chart drawn
     this.setupShareableLinks();
 
-    // "identische Bahnen" switch: show the variant with or without isomorph holes
+    // switches like "identische Bahnen einbeziehen": show the matching variant
     document.addEventListener("change", (e) => {
-      if (!e.target.classList.contains("isomorph-switch")) return;
+      if (!e.target.classList.contains("variant-switch")) return;
       e.target
-        .closest(".isomorph-toggle")
-        .querySelectorAll(":scope > [data-isomorph-variant]")
+        .closest(".variant-toggle")
+        .querySelectorAll(":scope > [data-variant]")
         .forEach((variant) =>
           variant.classList.toggle(
             "d-none",
-            (variant.dataset.isomorphVariant === "with") !== e.target.checked,
+            (variant.dataset.variant === "on") !== e.target.checked,
           ),
         );
     });
@@ -1808,15 +1808,25 @@ class StatsTable {
 
   // switch + both variants (with / without isomorph holes) of a section, only one is visible
   getIsomorphToggleString(variantWith, variantWithout, includedByDefault) {
-    const id = `isomorph-switch-${this.isomorphSwitchCount++}`;
+    return this.getVariantToggleString(
+      "identische Bahnen einbeziehen",
+      variantWith,
+      variantWithout,
+      includedByDefault,
+    );
+  }
+
+  // switch + two variants, only one is visible: variantOn while checked, else variantOff
+  getVariantToggleString(label, variantOn, variantOff, checked) {
+    const id = `variant-switch-${this.variantSwitchCount++}`;
     return `
-    <div class="isomorph-toggle">
+    <div class="variant-toggle">
       <div class="form-check form-switch mb-2" style="font-size: 0.85rem;">
-        <input class="form-check-input isomorph-switch" type="checkbox" role="switch" id="${id}" ${includedByDefault ? "checked" : ""}>
-        <label class="form-check-label" for="${id}">identische Bahnen einbeziehen</label>
+        <input class="form-check-input variant-switch" type="checkbox" role="switch" id="${id}" ${checked ? "checked" : ""}>
+        <label class="form-check-label" for="${id}">${label}</label>
       </div>
-      <div data-isomorph-variant="with" class="${includedByDefault ? "" : "d-none"}">${variantWith}</div>
-      <div data-isomorph-variant="without" class="${includedByDefault ? "d-none" : ""}">${variantWithout}</div>
+      <div data-variant="on" class="${checked ? "" : "d-none"}">${variantOn}</div>
+      <div data-variant="off" class="${checked ? "d-none" : ""}">${variantOff}</div>
     </div>`;
   }
 
@@ -3148,7 +3158,9 @@ class StatsTable {
     });
   }
 
-  // entries: { name, value, match?, detail? }; higher value is better.
+  // entries: { name, value, match?, detail? }; higher value is better. perRound: a player can
+  // be listed several times (one entry per round), the card gets a switch to show only the
+  // best entry of each player (switched on at first if bestPerPlayerByDefault).
   getRecords() {
     const rounds = this.getAllRounds();
     const isBirdie = (dev) => dev !== null && dev <= -1;
@@ -3235,18 +3247,22 @@ class StatsTable {
         title: "Meiste Birdies in einer Partie",
         icon: "dove",
         entries: birdieRounds,
+        perRound: true,
+        bestPerPlayerByDefault: true,
         empty: "Noch kein Birdie.",
       },
       {
         title: "Längste Birdie-Serie",
         icon: "fire",
         entries: streaks,
+        perRound: true,
         empty: "Noch keine zwei Birdies hintereinander.",
       },
       {
         title: "Längste Bogey-freie Serie",
         icon: "equals",
         entries: bogeyFreeStreaks,
+        perRound: true,
         empty: "Noch keine zwei Bahnen ohne Bogey hintereinander.",
       },
       {
@@ -3334,8 +3350,8 @@ class StatsTable {
   }
 
   // best first; equal values share a rank (1, 1, 3) and the one who got there first is listed
-  // first. Shows everyone on the ranks 1 to 3, so ties are shown in full.
-  rankRecordEntries(entries) {
+  // first. Shows everyone on the ranks 1 to maxRank, so ties are shown in full.
+  rankRecordEntries(entries, maxRank = 3) {
     const ranked = [...entries].sort(
       (a, b) =>
         b.value - a.value ||
@@ -3349,7 +3365,16 @@ class StatsTable {
           ? ranked[i - 1].rank
           : i + 1;
     });
-    return ranked.filter((entry) => entry.rank <= 3);
+    return ranked.filter((entry) => entry.rank <= maxRank);
+  }
+
+  // only the best entry of each player (of equally good ones the earlier, like in the ranking)
+  getBestEntryPerPlayer(entries) {
+    const best = new Map();
+    this.rankRecordEntries(entries, Infinity).forEach((entry) => {
+      if (!best.has(entry.name)) best.set(entry.name, entry);
+    });
+    return [...best.values()];
   }
 
   renderRecords() {
@@ -3358,9 +3383,46 @@ class StatsTable {
       .join("");
   }
 
-  getRecordCardString({ title, icon, entries, empty, note }) {
+  getRecordCardString({
+    title,
+    icon,
+    entries,
+    perRound,
+    bestPerPlayerByDefault,
+    empty,
+    note,
+  }) {
     const rows = this.rankRecordEntries(entries);
+    const listString = this.getRecordListString(rows, empty);
 
+    // switch only if showing one entry per player would change anything
+    let body = listString;
+    if (perRound) {
+      const bestRows = this.rankRecordEntries(
+        this.getBestEntryPerPlayer(entries),
+      );
+      const bestListString = this.getRecordListString(bestRows, empty);
+      if (bestListString !== listString)
+        body = this.getVariantToggleString(
+          "nur bester Eintrag pro Spieler",
+          bestListString,
+          listString,
+          Boolean(bestPerPlayerByDefault),
+        );
+    }
+
+    return `
+      <div class="col-md-6">
+        <div class="record-card h-100">
+          <h5 class="record-title"><span class="record-icon"><i class="fas fa-${icon}"></i></span>${title}</h5>
+          ${body}
+          ${note ? `<div class="record-note">${note}</div>` : ""}
+        </div>
+      </div>`;
+  }
+
+  getRecordListString(rows, empty) {
+    if (!rows.length) return `<p class="text-muted mb-0">${empty}</p>`;
     const rowStrings = rows.map((entry) => {
       const context = [entry.detail];
       if (entry.match) {
@@ -3378,19 +3440,7 @@ class StatsTable {
           <span class="record-value"><b>${entry.value}</b></span>
         </li>`;
     });
-
-    return `
-      <div class="col-md-6">
-        <div class="record-card h-100">
-          <h5 class="record-title"><span class="record-icon"><i class="fas fa-${icon}"></i></span>${title}</h5>
-          ${
-            rows.length
-              ? `<ol class="record-list">${rowStrings.join("")}</ol>`
-              : `<p class="text-muted mb-0">${empty}</p>`
-          }
-          ${note ? `<div class="record-note">${note}</div>` : ""}
-        </div>
-      </div>`;
+    return `<ol class="record-list">${rowStrings.join("")}</ol>`;
   }
 
   // hidden by default, shown while the scorecard of this match is expanded

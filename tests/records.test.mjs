@@ -104,3 +104,35 @@ test("ties share a rank, are shown in full, and the earlier one is listed first"
     [2, "D"], // ties are shown in full; E (rank 5) is not
   ]);
 });
+
+test("best entry per player: one entry each, the earlier of equally good ones", () => {
+  const { table } = recordsFor([]);
+  const at = (day) => ({ startTime: new Date(2026, 0, day) });
+  const best = table.getBestEntryPerPlayer([
+    { name: "A", value: 5, match: at(1) },
+    { name: "A", value: 7, match: at(2) },
+    { name: "B", value: 4, match: at(4) },
+    { name: "B", value: 4, match: at(3) },
+    { name: "A", value: 6, match: at(5) },
+    { name: "C", value: 3, match: at(6) },
+  ]);
+  assert.deepEqual(
+    plain(table.rankRecordEntries(best).map((e) => [e.rank, e.name, e.value, e.match.startTime])),
+    [
+      [1, "A", 7, plain(at(2).startTime)],
+      [2, "B", 4, plain(at(3).startTime)],
+      [3, "C", 3, plain(at(6).startTime)],
+    ],
+  );
+});
+
+test("the switch only shows on per-round cards where it changes something", () => {
+  const { table } = recordsFor(matches);
+  const cards = Object.fromEntries(
+    table.getRecords().map((r) => [r.title, table.getRecordCardString(r)]),
+  );
+  const hasSwitch = (title) => cards[title].includes("variant-switch");
+  assert.equal(hasSwitch("Meiste Birdies in einer Partie"), true); // Anna twice
+  assert.equal(hasSwitch("Längste Birdie-Serie"), false); // everyone once already
+  assert.equal(hasSwitch("Meiste Asse"), false); // one entry per player anyway
+});
