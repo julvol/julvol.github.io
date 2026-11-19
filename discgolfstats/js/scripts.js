@@ -930,18 +930,18 @@ class StatsTable {
     item.textContent = this.formatWeather(weather);
   }
 
-  // an emoji for a WMO weather code (see getWeatherDescription)
-  getWeatherEmoji(code) {
-    if (code === 0) return "☀️";
-    if (code === 1) return "🌤️";
-    if (code === 2) return "⛅";
-    if (code === 3) return "☁️";
-    if (code <= 48) return "🌫️";
-    if (code <= 67) return "🌧️";
-    if (code <= 77) return "🌨️";
-    if (code <= 82) return "🌦️";
-    if (code <= 86) return "🌨️";
-    return "⛈️";
+  // a Font Awesome icon (solid) for a WMO weather code (see getWeatherDescription)
+  getWeatherIcon(code) {
+    if (code <= 1) return "sun";
+    if (code === 2) return "cloud-sun";
+    if (code === 3) return "cloud";
+    if (code <= 48) return "smog";
+    if (code <= 63) return "cloud-rain";
+    if (code <= 67) return "cloud-showers-heavy";
+    if (code <= 77) return "snowflake";
+    if (code <= 82) return "cloud-sun-rain";
+    if (code <= 86) return "snowflake";
+    return "cloud-bolt";
   }
 
   // e.g. "7 bis 8 °C, bewölkt, Wind 9 km/h (Böen 21 km/h), 0,4 mm Niederschlag";
@@ -1412,6 +1412,24 @@ class StatsTable {
       return measure.measureText(text).width;
     };
 
+    // Font Awesome icons as paths ([width, height, …, path] of the solid icon), or null
+    const ICON_SIZE = 14; // height
+    const ICON_GAP = 6; // between icon and text
+    const PART_GAP = 18; // between the parts of a line
+    const iconOf = (name) =>
+      window.FontAwesome?.findIconDefinition({ prefix: "fas", iconName: name })
+        ?.icon ?? null;
+    const iconWidth = (name) => {
+      const icon = iconOf(name);
+      return icon ? (icon[0] / icon[1]) * ICON_SIZE + ICON_GAP : 0;
+    };
+    const lineWidth = (parts, f) =>
+      parts.reduce(
+        (sum, [icon, string], i) =>
+          sum + (i ? PART_GAP : 0) + iconWidth(icon) + textWidth(string, f),
+        0,
+      );
+
     const par = match.players["Par"];
     const players = Object.entries(match.players)
       .filter(([name]) => name !== "Par")
@@ -1420,18 +1438,29 @@ class StatsTable {
     const t = match.startTime;
 
     const title = `${match.course} (${match.layout})`;
-    // e.g. "📅 20.09.2026, 17:52   🕒 1h12min", below it the weather if the match has
-    // already loaded it (when it was opened, see loadMatchWeather): "☀️ 13°C   💨 10km/h"
-    // with the average of the lowest and highest temperature and the wind without gusts
-    const date = `📅 ${this.formatDate(t)}, ${pad(t.getHours())}:${pad(t.getMinutes())}   🕒 ${match.duration}`;
+    // lines of [icon, text] parts (Font Awesome icons, like in the records), e.g.
+    // [calendar] 20.09.2026, 17:52   [clock] 1h12min
+    // and below it the weather if the match has already loaded it (when it was opened, see
+    // loadMatchWeather), with the average of the lowest and highest temperature and the
+    // wind without gusts: [sun] 13°C   [wind] 10km/h
+    const dateLine = [
+      ["calendar", `${this.formatDate(t)}, ${pad(t.getHours())}:${pad(t.getMinutes())}`],
+      ["clock", match.duration],
+    ];
     const weather = this.matchWeather.get(t.getTime());
     const weatherLine = weather
       ? [
-          weather.code !== null ? this.getWeatherEmoji(weather.code) : "🌡️",
-          `${Math.round((weather.minTemp + weather.maxTemp) / 2)}°C`,
-          weather.wind !== null ? `  💨 ${Math.round(weather.wind)}km/h` : "",
-        ].join(" ")
-      : "";
+          [
+            weather.code !== null
+              ? this.getWeatherIcon(weather.code)
+              : "temperature-half",
+            `${Math.round((weather.minTemp + weather.maxTemp) / 2)}°C`,
+          ],
+          ...(weather.wind !== null
+            ? [["wind", `${Math.round(weather.wind)}km/h`]]
+            : []),
+        ]
+      : [];
     // the address of the site (not of the match), e.g. julvol.github.io/discgolfstats
     const footer = `mehr Statistiken unter ${location.host}${location.pathname.replace(/\/(index\.html)?$/, "")}`;
     const fonts = {
@@ -1494,9 +1523,9 @@ class StatsTable {
         320,
         textWidth(footer, fonts.small),
         textWidth(title, fonts.title),
-        textWidth(date, fonts.date) +
+        lineWidth(dateLine, fonts.date) +
           (match.unranked ? 12 + textWidth("Unranked", fonts.small) + 12 : 0),
-        textWidth(weatherLine, fonts.date),
+        lineWidth(weatherLine, fonts.date),
         resultWidth,
         scorecardWidth,
       ),
@@ -1537,19 +1566,43 @@ class StatsTable {
         ctx.fill();
       });
 
+    // a line of [icon, text] parts; the icons sit on the text's baseline like a capital letter
+    const iconLine = (parts, yPos, f, color) => {
+      let x = PAD;
+      parts.forEach(([name, string], i) => {
+        if (i) x += PART_GAP;
+        const icon = iconOf(name);
+        if (icon) {
+          const [w, h, , , path] = icon;
+          const iconX = x;
+          steps.push((ctx) => {
+            ctx.save();
+            ctx.translate(iconX, yPos - ICON_SIZE + 2);
+            ctx.scale(ICON_SIZE / h, ICON_SIZE / h);
+            ctx.fillStyle = color;
+            ctx.fill(new Path2D(Array.isArray(path) ? path.join(" ") : path));
+            ctx.restore();
+          });
+          x += (w / h) * ICON_SIZE + ICON_GAP;
+        }
+        text(string, x, yPos, f, color);
+        x += textWidth(string, f);
+      });
+    };
+
     y += 22;
     text(title, PAD, y, fonts.title, COLORS.text);
     y += 24;
-    text(date, PAD, y, fonts.date, COLORS.muted);
+    iconLine(dateLine, y, fonts.date, COLORS.muted);
     if (match.unranked) {
-      const x = PAD + textWidth(date, fonts.date) + 12;
+      const x = PAD + lineWidth(dateLine, fonts.date) + 12;
       const w = textWidth("Unranked", fonts.small) + 12;
       roundRect(x, y - 14, w, 19, 4, COLORS.unranked);
       text("Unranked", x + 6, y, fonts.small, COLORS.background);
     }
-    if (weatherLine) {
+    if (weatherLine.length) {
       y += 22;
-      text(weatherLine, PAD, y, fonts.date, COLORS.muted);
+      iconLine(weatherLine, y, fonts.date, COLORS.muted);
     }
 
     y += 34;
