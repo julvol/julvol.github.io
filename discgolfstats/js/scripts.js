@@ -1470,6 +1470,7 @@ class StatsTable {
       name: font(16, "bold"),
       text: font(16),
       small: font(12),
+      footer: font(12, "italic"),
       comment: font(15, "italic"),
       cell: font(13),
       cellBold: font(13, "bold"),
@@ -1521,7 +1522,7 @@ class StatsTable {
     const contentWidth = Math.ceil(
       Math.max(
         320,
-        textWidth(footer, fonts.small),
+        textWidth(footer, fonts.footer),
         textWidth(title, fonts.title),
         lineWidth(dateLine, fonts.date) +
           (match.unranked ? 12 + textWidth("Unranked", fonts.small) + 12 : 0),
@@ -1693,7 +1694,7 @@ class StatsTable {
     }
 
     y += 14;
-    text(footer, PAD + contentWidth, y, fonts.small, COLORS.muted, "right");
+    text(footer, PAD + contentWidth, y, fonts.footer, COLORS.muted, "right");
     y += PAD - 8;
 
     const canvas = document.createElement("canvas");
