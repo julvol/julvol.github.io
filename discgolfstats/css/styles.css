@@ -8210,6 +8210,35 @@ textarea.form-control-lg {
   overflow-wrap: anywhere;
 }
 
+/* the dark box of a match */
+.match-box {
+  width: 100%;
+  max-width: 600px;
+  min-width: 0;
+}
+
+/* scorecard in blocks of 18 holes (matches with more than 9 holes): only on big screens,
+   instead of the blocks of 9 */
+.scorecard-wide-only {
+  display: none;
+}
+
+/* big screens: an opened match with more than 9 holes gets wider (the same width for all of
+   them), so its scorecard shows 18 holes per row with the link buttons next to it */
+@media (min-width: 992px) {
+  .scorecard-narrow-only {
+    display: none;
+  }
+
+  .scorecard-wide-only {
+    display: block;
+  }
+
+  .match-box-wide:has(> .collapse.show, > .collapsing) {
+    max-width: 920px;
+  }
+}
+
 /* only the scorecard scrolls horizontally on narrow screens, not the page */
 .scorecard-scroll {
   max-width: 100%;

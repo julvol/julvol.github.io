@@ -2538,6 +2538,9 @@ class StatsTable {
 
   getMatchesString(match) {
     const HOLES_PER_ROW = 9;
+    // on big screens an opened match gets wider and shows 18 holes per row (see styles.css)
+    const HOLES_PER_WIDE_ROW = 18;
+    const wideScorecard = match.holes > HOLES_PER_ROW;
     const par = match.players["Par"];
     const collapseId = `scorecard-collapsing-${match.startTime.valueOf()}`;
 
@@ -2632,8 +2635,8 @@ class StatsTable {
           data-winning-dev="${winningDev}"
         >
           <div
-            class="bg-dark text-white p-3 rounded d-inline-block"
-            style="cursor: pointer; width: 100%; max-width: 600px; min-width: 0;"
+            class="bg-dark text-white p-3 rounded d-inline-block match-box${wideScorecard ? " match-box-wide" : ""}"
+            style="cursor: pointer;"
             data-bs-toggle="collapse"
             data-bs-target="#${collapseId}"
           >
@@ -2667,14 +2670,28 @@ class StatsTable {
             <h5 class="mb-3">Scorecard</h5>`;
 
     // One table per block of 9 holes, all in one shared scroll container
-    // so the blocks scroll horizontally together; the link buttons go next to it if they fit
+    // so the blocks scroll horizontally together; the link buttons go next to it if they fit.
+    // With more than 9 holes also a variant with blocks of 18 holes, which replaces it on
+    // big screens (see styles.css)
+    const buildScorecardBlocks = (holesPerRow, variantClass) => {
+      let html = `<div class="${variantClass}">`;
+      for (let from = 0; from < match.holes; from += holesPerRow)
+        html += buildScorecardTable(
+          from,
+          Math.min(from + holesPerRow, match.holes),
+        );
+      return html + `</div>`;
+    };
     statsString += `<div class="with-link-buttons scorecard-row"><div class="scorecard-scroll">`;
-    for (let from = 0; from < match.holes; from += HOLES_PER_ROW) {
-      statsString += buildScorecardTable(
-        from,
-        Math.min(from + HOLES_PER_ROW, match.holes),
+    statsString += buildScorecardBlocks(
+      HOLES_PER_ROW,
+      wideScorecard ? "scorecard-narrow-only" : "",
+    );
+    if (wideScorecard)
+      statsString += buildScorecardBlocks(
+        HOLES_PER_WIDE_ROW,
+        "scorecard-wide-only",
       );
-    }
 
     statsString += `
           </div>

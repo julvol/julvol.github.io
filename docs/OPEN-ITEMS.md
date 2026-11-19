@@ -23,8 +23,8 @@ Each item has a fixed number that stays the same when other items are added or r
 - [ ] **#27 Highlights in the match card:** small icons in the header of a match for special moments in it, e.g. an ace, a new personal best or a bogey-free round, with a popover saying who. The match filter could find them too (e.g. "ass").
 - [x] **#29 Playing partners:** a "Mitspieler" table in a player's section below "Gespielte Bahnen": who they played with how often (number of shared ranked matches only, no score comparison), most first, each name linking to that player.
 - [ ] **#35 Result as an image:** a button in a match that draws the result table (and maybe the scorecard) as a picture and shares it, e.g. for a group chat where links don't show a preview.
-- [ ] **#37 Search suggestions:** while typing in the match filter, a dropdown suggests player names, courses, layouts and keywords like "unranked", so you don't have to know the exact spelling.
-- [ ] **#38 Matches on big screens:** use the width better in the match section, e.g. two columns of match cards on wide screens (the player and course sections stay as they are).
+- [ ] **#37 Search suggestions:** while typing in the match filter, a dropdown suggests player names, courses, layouts and keywords like "unranked", so you don't have to know the exact spelling. <-- eigentlich ganz gut, aber noch nicht optimal.
+- [x] **#38 Wider scorecard on big screens:** an expanded match with more than 9 holes gets wider on big screens (the same width for all of them), so its scorecard shows up to 18 holes per row instead of 9.
 
 ## Match details
 
