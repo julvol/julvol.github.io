@@ -8234,8 +8234,34 @@ textarea.form-control-lg {
     display: block;
   }
 
-  .match-box-wide:has(> .collapse.show, > .collapsing) {
+  /* the width is animated too, one after the other with the height animation of Bootstrap
+     (which sets aria-expanded on the box right when it starts):
+     opening: first wider, then down; closing: first up, then narrower.
+     Bootstrap counts the delay in when it waits for the end of its animation. */
+  .match-box-wide {
+    transition: max-width 0.35s ease 0.35s; /* closing: after the height */
+  }
+
+  .match-box-wide[aria-expanded="true"] {
     max-width: 920px;
+    transition-delay: 0s; /* opening: right away */
+  }
+
+  .match-box-wide[aria-expanded="true"] > .collapsing {
+    transition-delay: 0.35s; /* opening: the height after the width */
+  }
+
+  /* the link buttons stay next to the scorecard also while the box is still narrower
+     (otherwise they would wrap below it and the height would jump at the end) */
+  .match-box-wide .scorecard-row {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 992px) and (prefers-reduced-motion: reduce) {
+  .match-box-wide,
+  .match-box-wide[aria-expanded="true"] > .collapsing {
+    transition: none;
   }
 }
 
