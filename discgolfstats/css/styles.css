@@ -11480,6 +11480,31 @@ html {
 .activity-day[data-filter-date] {
   cursor: pointer;
 }
+/* narrow screens: one stripe per week instead of the boxes */
+.activity-stripes {
+  display: none;
+  grid-template-columns: repeat(var(--weeks), 1fr);
+  grid-template-rows: auto 2.5rem;
+  column-gap: 2px;
+  max-width: 540px;
+  margin: 0 auto;
+}
+.activity-stripes .activity-month {
+  font-size: 0.65rem;
+}
+.activity-week {
+  grid-row: 2;
+  border-radius: 1px;
+  background-color: rgba(0, 0, 0, 0.11);
+}
+@media (max-width: 991.98px) {
+  .activity-scroll {
+    display: none;
+  }
+  .activity-stripes {
+    display: grid;
+  }
+}
 /* days with at least one match: darker black than the days without (not orange, which
    would look like the bogey color of the scorecards) */
 .activity-played {

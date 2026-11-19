@@ -571,6 +571,8 @@ class StatsTable {
   // Days with matches show the courses on hover / tap; clicking one filters the matches.
   // Only the matches shown in the match list (see the match filter) are marked; the number
   // of matches per year above the grid stays the same.
+  // Narrow screens (below 992px, where the grid does not fit) get one vertical stripe per
+  // week instead, darker if a shown match was played that week (no popovers, not clickable).
 
   renderActivityCalendar() {
     const container = document.getElementById("activityCalendar");
@@ -606,6 +608,8 @@ class StatsTable {
       let cells = "";
       let total = 0;
       let week = 0;
+      const weeks = []; // per drawn week: the dates with matches
+      let stripeMonths = "";
       for (
         let d = new Date(start), i = 0;
         d.getFullYear() <= year;
@@ -614,10 +618,13 @@ class StatsTable {
         const weekday = (d.getDay() + 6) % 7; // Monday = 0
         week = Math.floor(i / 7);
         // the name of a month above the first week that starts in it
-        if (weekday === 0 && d.getFullYear() === year && d.getDate() <= 7)
+        if (weekday === 0 && d.getFullYear() === year && d.getDate() <= 7) {
           months += `<span class="activity-month" style="grid-column: ${week + 2};">${MONTHS[d.getMonth()]}</span>`;
+          stripeMonths += `<span class="activity-month" style="grid-column: ${week + 1};">${MONTHS[d.getMonth()]}</span>`;
+        }
         // days of the year before or after, and days still to come: no cell
         if (d.getFullYear() !== year || d > today) continue;
+        weeks[week] ??= [];
 
         const dayMatches = matchesByDay.get(dayKey(d)) ?? [];
         total += dayMatches.length;
@@ -628,6 +635,7 @@ class StatsTable {
           continue;
         }
         const label = `${WEEKDAYS[d.getDay()]} ${date}`;
+        weeks[week].push(date);
         this.activityDays.set(date, {
           label,
           matches: dayMatches.map((m) => ({
@@ -652,6 +660,14 @@ class StatsTable {
             <div class="activity-grid" style="--weeks: ${week + 1};">
               ${months}${weekdays}${cells}
             </div>
+          </div>
+          <div class="activity-stripes" style="--weeks: ${week + 1};">
+            ${stripeMonths}${weeks
+              .map(
+                (dates, i) =>
+                  `<span class="activity-week" style="grid-column: ${i + 1};" data-days="${dates.join(" ")}"></span>`,
+              )
+              .join("")}
           </div>
         </div>`;
     };
@@ -680,6 +696,7 @@ class StatsTable {
         ),
       ].map((el) => el.dataset.linkValue),
     );
+    const shownDays = new Set();
     document
       .querySelectorAll("#activityCalendar [data-day]")
       .forEach((cell) => {
@@ -687,6 +704,7 @@ class StatsTable {
         const shown = matches.filter((m) => shownMatches.has(m.link));
         const popover = bootstrap.Popover.getInstance(cell);
         cell.classList.toggle("activity-played", shown.length > 0);
+        if (shown.length > 0) shownDays.add(cell.dataset.day);
         if (shown.length === 0) {
           delete cell.dataset.filterDate; // not clickable
           cell.title = `Keine Partie am ${label}`;
@@ -703,6 +721,15 @@ class StatsTable {
           popover?.setContent({ ".popover-body": content });
         }
       });
+    // narrow screens: a week is marked if one of its days is
+    document
+      .querySelectorAll("#activityCalendar .activity-week")
+      .forEach((stripe) =>
+        stripe.classList.toggle(
+          "activity-played",
+          stripe.dataset.days.split(" ").some((day) => shownDays.has(day)),
+        ),
+      );
   }
 
   setupActivityCalendar() {
@@ -722,6 +749,11 @@ class StatsTable {
     };
     const firstYear = container.querySelector(".activity-year");
     if (firstYear) scrollToEnd(firstYear);
+    // the boxes are hidden on narrow screens (stripes instead): scroll when they appear
+    window.matchMedia("(min-width: 992px)").addEventListener("change", (e) => {
+      const year = container.querySelector(".activity-year:not(.d-none)");
+      if (e.matches && year) scrollToEnd(year);
+    });
     this.updateActivityCalendar(); // the filter may already be set (link or restored value)
 
     container.addEventListener("click", (e) => {
