@@ -11483,7 +11483,8 @@ html {
 /* narrow screens: one stripe per week instead of the boxes */
 .activity-stripes {
   display: none;
-  grid-template-columns: repeat(var(--weeks), 1fr);
+  /* minmax(0, …): all weeks equally wide, the month names reach over the next weeks */
+  grid-template-columns: repeat(var(--weeks), minmax(0, 1fr));
   grid-template-rows: auto 2.5rem;
   column-gap: 2px;
   max-width: 540px;
