@@ -11505,14 +11505,9 @@ html {
   .activity-month {
     font-size: 0.65rem;
   }
-  /* no height of its own, so the rows with a label are not taller than the others */
+  /* no room for Mo, Mi, …: the boxes get the whole width */
   .activity-weekday {
-    display: flex;
-    align-items: center;
-    align-self: center;
-    height: 0;
-    font-size: 0.55rem;
-    padding-right: 3px;
+    display: none;
   }
   .activity-today {
     box-shadow: inset 0 0 0 1px #c0392b;
