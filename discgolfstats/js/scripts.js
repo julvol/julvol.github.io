@@ -1444,7 +1444,10 @@ class StatsTable {
     // loadMatchWeather), with the average of the lowest and highest temperature and the
     // wind without gusts: [sun] 13°C   [wind] 10km/h
     const dateLine = [
-      ["calendar", `${this.formatDate(t)}, ${pad(t.getHours())}:${pad(t.getMinutes())}`],
+      [
+        "calendar",
+        `${this.formatDate(t)}, ${pad(t.getHours())}:${pad(t.getMinutes())}`,
+      ],
       ["clock", match.duration],
     ];
     const weather = this.matchWeather.get(t.getTime());
@@ -3229,7 +3232,7 @@ class StatsTable {
         empty: "Noch kein Ass.",
       },
       {
-        title: "Meiste Sub-Par in einer Partie",
+        title: "Meiste Birdies in einer Partie",
         icon: "dove",
         entries: birdieRounds,
         empty: "Noch kein Birdie.",

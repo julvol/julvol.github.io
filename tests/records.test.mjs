@@ -71,7 +71,7 @@ test("aces: counted per player, with the most recent one", () => {
 test("birdies in a round: every score below par, also in incomplete rounds", () => {
   const { top } = recordsFor(matches);
   assert.deepEqual(
-    top("Meiste Sub-Par in einer Partie").map((r) => r.slice(0, 3)),
+    top("Meiste Birdies in einer Partie").map((r) => r.slice(0, 3)),
     [
       [1, "Ben", 5],
       [2, "Anna", 3],
