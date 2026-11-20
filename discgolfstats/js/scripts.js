@@ -2936,33 +2936,47 @@ class StatsTable {
       course.course + course.layout
     ).replace(/[^a-zA-Z0-9]/g, ""); // specialChars problematic in ids
 
-    // all players with at least one completed round on this course/layout, best (lowest) first
-    const pbRows = Object.values(this.players)
+    // all players who played this course/layout with their number of matches on it:
+    // the ones with a completed round best (lowest) first, then the others, most matches first
+    const playerRows = Object.values(this.players)
       .map((player) => ({
         name: player.name,
+        count:
+          player.playedCourses.find(
+            (c) => c.course === course.course && c.layout === course.layout,
+          )?.count ?? 0,
         pb: this.getPersonalBestTotal(player, course),
       }))
-      .filter(({ pb }) => pb !== null)
+      .filter(({ count, pb }) => count > 0 || pb !== null)
       .sort(
         (a, b) =>
-          a.pb.dev - b.pb.dev ||
-          a.pb.time - b.pb.time || // tie: who was first
+          (a.pb === null) - (b.pb === null) ||
+          (a.pb && b.pb
+            ? a.pb.dev - b.pb.dev || a.pb.time - b.pb.time // tie: who was first
+            : b.count - a.count) ||
           a.name.localeCompare(b.name),
       );
+    const pbRows = playerRows.filter(({ pb }) => pb !== null);
 
     let pbRowsString = "";
-    if (pbRows.length === 0) {
-      pbRowsString = `<tr><td colspan="2" class="text-muted">Noch keine abgeschlossene Runde.</td></tr>`;
+    if (playerRows.length === 0) {
+      pbRowsString = `<tr><td colspan="3" class="text-muted">Noch keine abgeschlossene Runde.</td></tr>`;
     } else {
-      pbRows.forEach(({ name, pb }) => {
-        const pbColor =
-          pb.dev > 0 ? "#e26028" : pb.dev < 0 ? "#408ce2" : "#212529";
+      playerRows.forEach(({ name, count, pb }) => {
+        // if no completed round: no PB
+        let pbCell = `<td style="border-left: 3px double #adb5bd;">-</td>`;
+        if (pb !== null) {
+          const pbColor =
+            pb.dev > 0 ? "#e26028" : pb.dev < 0 ? "#408ce2" : "#212529";
+          pbCell = `
+            <td style="border-left: 3px double #adb5bd; cursor: pointer;" ${this.getPopoverAttributes(this.getPbDateLabel(pb.time, pb.count > 1))}>
+              <b style="color: ${pbColor};">${this.formatDevFromPar(pb.dev)}</b> (${pb.total})
+            </td>`;
+        }
         pbRowsString += `
           <tr>
             <th class="text-start-table-header-info">${name}</th>
-            <td style="cursor: pointer;" ${this.getPopoverAttributes(this.getPbDateLabel(pb.time, pb.count > 1))}>
-              <b style="color: ${pbColor};">${this.formatDevFromPar(pb.dev)}</b> (${pb.total})
-            </td>
+            <td>${count}</td>${pbCell}
           </tr>`;
       });
     }
@@ -2994,7 +3008,8 @@ class StatsTable {
                   <thead>
                     <tr>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Spieler</th>
-                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">PB</th>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;"># gesp.</th>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
                     </tr>
                   </thead>
                   <tbody>${pbRowsString}</tbody>
