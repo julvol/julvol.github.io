@@ -427,7 +427,14 @@ class StatsTable {
             this.isStandardLayout(a.course, a.layout) ||
           (a.course + a.layout).localeCompare(b.course + b.layout),
       )
-      .forEach((course) => this.getCourseString(course));
+      // one entry per course, its layouts inside (adjacent after sorting)
+      .reduce((groups, course) => {
+        const last = groups[groups.length - 1];
+        if (last?.[0].course === course.course) last.push(course);
+        else groups.push([course]);
+        return groups;
+      }, [])
+      .forEach((layouts) => this.renderCourseGroup(layouts));
 
     this.renderRecords();
     this.renderActivityCalendar();
@@ -1304,6 +1311,15 @@ class StatsTable {
         behavior: "smooth",
       });
     };
+
+    // a layout of a course: open the course around it too
+    for (
+      let outer = collapse.parentElement.closest(".collapse");
+      outer;
+      outer = outer.parentElement.closest(".collapse")
+    )
+      if (!outer.classList.contains("show"))
+        bootstrap.Collapse.getOrCreateInstance(outer, { toggle: false }).show();
 
     if (collapse.classList.contains("show")) {
       if (scroll) scrollToSection();
@@ -2951,7 +2967,7 @@ class StatsTable {
       });
     }
 
-    let courseLayoutString = `<div class="accordion-item col-lg-6 mx-auto">
+    return `<div class="accordion-item">
             <h2 class="accordion-header" id="heading-${courseNameWithoutSpecialChars}">
               <button
                 class="accordion-button collapsed"
@@ -2961,18 +2977,16 @@ class StatsTable {
                 aria-expanded="true"
                 aria-controls="collapse-${courseNameWithoutSpecialChars}"
               >
-                <h4>${course.course} (${course.layout})</h4>
+                <h4>${course.layout}</h4>
               </button>
             </h2>
             <div
               id="collapse-${courseNameWithoutSpecialChars}"
               class="accordion-collapse collapse"
               aria-labelledby="heading-${courseNameWithoutSpecialChars}"
-              data-bs-parent="#myAccordion"
               ${this.getLinkAttributes("parcours", `${course.course} (${course.layout})`)}
             >
               <div class="accordion-body" style="background-color: #fff9f3;">
-                ${this.getCurrentWeatherString(course)}
                 <h5>Bestenliste:</h5>
                 <table
                   class="table table-bordered text-center align-middle w-auto"
@@ -2999,8 +3013,40 @@ class StatsTable {
               </div>
             </div>
           </div>`;
+  }
 
-    document.getElementById("coursesAccordion").innerHTML += courseLayoutString;
+  // "Gespielte Parcours": one entry per course with the weather forecast (the same for all
+  // layouts) and an accordion of its layouts (see getCourseString)
+  renderCourseGroup(layouts) {
+    const { course } = layouts[0];
+    const id = `course-${course.replace(/[^a-zA-Z0-9]/g, "")}`; // specialChars problematic in ids
+    document.getElementById("coursesAccordion").innerHTML += `
+          <div class="accordion-item col-lg-6 mx-auto">
+            <h2 class="accordion-header" id="heading-${id}">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-${id}"
+                aria-expanded="true"
+                aria-controls="collapse-${id}"
+              >
+                <h4>${course}</h4>
+              </button>
+            </h2>
+            <div
+              id="collapse-${id}"
+              class="accordion-collapse collapse"
+              aria-labelledby="heading-${id}"
+            >
+              <div class="accordion-body" style="background-color: #fff9f3;">
+                ${this.getCurrentWeatherString(layouts[0])}
+                <div class="accordion course-layouts">
+                  ${layouts.map((layout) => this.getCourseString(layout)).join("")}
+                </div>
+              </div>
+            </div>
+          </div>`;
   }
 
   getMatchesString(match) {

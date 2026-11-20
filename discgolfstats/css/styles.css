@@ -11569,3 +11569,31 @@ html {
     box-shadow: inset 0 0 0 1px #c0392b;
   }
 }
+
+/* "Gespielte Parcours": the layouts of a course are an accordion inside the opened course.
+   It spans the whole width of the course (no narrower layouts on phones): the body padding
+   is taken back and the outer borders are left to the course. */
+.course-layouts {
+  margin: 0 calc(-1 * var(--bs-accordion-body-padding-x))
+    calc(-1 * var(--bs-accordion-body-padding-y));
+}
+/* no weather above it: right below the course button, which draws the line itself */
+.course-layouts:first-child {
+  margin-top: calc(-1 * var(--bs-accordion-body-padding-y));
+}
+.course-layouts:first-child > .accordion-item:first-of-type {
+  border-top: 0;
+}
+.course-layouts > .accordion-item {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+}
+.course-layouts > .accordion-item:first-of-type .accordion-button {
+  border-radius: 0;
+}
+.course-layouts > .accordion-item:last-of-type {
+  border-bottom: 0;
+  border-bottom-left-radius: var(--bs-accordion-inner-border-radius);
+  border-bottom-right-radius: var(--bs-accordion-inner-border-radius);
+}
