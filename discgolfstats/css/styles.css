@@ -11618,8 +11618,13 @@ html {
 #coursesAccordion .accordion-button:not(.collapsed) {
   box-shadow: none;
 }
-#playersAccordion .accordion-button:not(.collapsed):focus,
-#coursesAccordion .accordion-button:not(.collapsed):focus {
+/* the orange focus ring only when using the keyboard, not after a click or tap */
+#playersAccordion .accordion-button:focus:not(:focus-visible),
+#coursesAccordion .accordion-button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+#playersAccordion .accordion-button:not(.collapsed):focus-visible,
+#coursesAccordion .accordion-button:not(.collapsed):focus-visible {
   box-shadow: var(--bs-accordion-btn-focus-box-shadow);
 }
 /* instead, the same thin indented line as between the layouts of a course */
