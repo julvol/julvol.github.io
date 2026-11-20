@@ -1017,13 +1017,24 @@ class StatsTable {
         )
           return;
         item.dataset.loadedAt = Date.now();
-        this.loadCurrentWeather(item).catch((error) => {
-          console.error("Error while loading the weather forecast: ", error);
-          item.textContent = "Wetter nicht verfügbar";
-          item.nextElementSibling?.replaceChildren();
-          delete item.dataset.loadedAt; // try again the next time it is opened
-        });
+        this.loadCurrentWeather(item)
+          .catch((error) => {
+            console.error("Error while loading the weather forecast: ", error);
+            item.textContent = "Wetter nicht verfügbar";
+            item.nextElementSibling?.replaceChildren();
+            delete item.dataset.loadedAt; // try again the next time it is opened
+          })
+          .finally(() => this.fitOpeningCollapse(e.target));
       });
+  }
+
+  // Bootstrap animates an opening section to the height it had when the animation started.
+  // If content (e.g. the weather) grows during the animation, the content below it would be
+  // cut off until the end and then pop up: let the animation run to the new height instead.
+  fitOpeningCollapse(collapse) {
+    // while closing, Bootstrap has cleared the height (it animates to 0): leave that alone
+    if (collapse.classList.contains("collapsing") && collapse.style.height)
+      collapse.style.height = `${collapse.scrollHeight}px`;
   }
 
   async loadCurrentWeather(item) {

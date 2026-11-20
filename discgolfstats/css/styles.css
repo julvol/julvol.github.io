@@ -11590,15 +11590,15 @@ html {
   border: 0;
   border-radius: 0;
 }
-/* above every layout (weather -> layout, layout -> layout) a thin line indented like the
-   text, so it is weaker than the line between two courses */
+/* above every layout (weather -> layout, layout -> layout) a thin dashed line indented like
+   the text, so it is weaker than the line between two courses */
 .course-layouts > .accordion-item::before {
   content: "";
   position: absolute;
   top: 0;
   left: var(--bs-accordion-btn-padding-x);
   right: var(--bs-accordion-btn-padding-x);
-  border-top: 1px solid var(--bs-accordion-border-color);
+  border-top: 1px dashed #adb5bd; /* a bit darker than the solid lines (#dee2e6) */
   z-index: 4; /* above the button (focus: z-index 3) */
 }
 .course-layouts > .accordion-item:first-of-type .accordion-button {
