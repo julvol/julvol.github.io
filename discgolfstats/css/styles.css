@@ -11581,19 +11581,59 @@ html {
 .course-layouts:first-child {
   margin-top: calc(-1 * var(--bs-accordion-body-padding-y));
 }
-.course-layouts:first-child > .accordion-item:first-of-type {
-  border-top: 0;
+.course-layouts:first-child > .accordion-item:first-of-type::before {
+  content: none;
 }
 .course-layouts > .accordion-item {
-  border-left: 0;
-  border-right: 0;
+  position: relative;
+  border: 0;
   border-radius: 0;
+}
+/* above every layout (weather -> layout, layout -> layout) a thin line indented like the
+   text, so it is weaker than the line between two courses */
+.course-layouts > .accordion-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--bs-accordion-btn-padding-x);
+  right: var(--bs-accordion-btn-padding-x);
+  border-top: 1px solid var(--bs-accordion-border-color);
+  z-index: 4; /* above the button (focus: z-index 3) */
 }
 .course-layouts > .accordion-item:first-of-type .accordion-button {
   border-radius: 0;
 }
 .course-layouts > .accordion-item:last-of-type {
-  border-bottom: 0;
   border-bottom-left-radius: var(--bs-accordion-inner-border-radius);
   border-bottom-right-radius: var(--bs-accordion-inner-border-radius);
+}
+/* layout headers are lower than course headers */
+.course-layouts > .accordion-item > .accordion-header > .accordion-button {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+/* an opened layout: no line between its header and its content */
+.course-layouts > .accordion-item > .accordion-header > .accordion-button:not(.collapsed) {
+  box-shadow: none;
+}
+.course-layouts > .accordion-item > .accordion-header > .accordion-button:not(.collapsed):focus {
+  box-shadow: var(--bs-accordion-btn-focus-box-shadow);
+}
+/* the layout name a bit smaller than the course name (h5 size instead of h4), followed by
+   a small gray "Layout": tells it apart from the next course header */
+.layout-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 0.5rem;
+}
+.layout-title > h4 {
+  font-size: 1.25rem;
+  margin-bottom: 0;
+}
+.layout-caption {
+  font-size: 0.7rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }

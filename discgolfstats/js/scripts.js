@@ -2991,7 +2991,10 @@ class StatsTable {
                 aria-expanded="true"
                 aria-controls="collapse-${courseNameWithoutSpecialChars}"
               >
-                <h4>${course.layout}</h4>
+                <div class="layout-title">
+                  <h4>${course.layout}</h4>
+                  <span class="layout-caption">Layout</span>
+                </div>
               </button>
             </h2>
             <div
