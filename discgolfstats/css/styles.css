@@ -8203,6 +8203,18 @@ textarea.form-control-lg {
   background-color: #ffc107;
 }
 
+/* "Regen" / "Wind" on a course name: the next 90 minutes are no disc golf weather */
+.weather-badge {
+  font-size: 0.7rem;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  color: #ffffff;
+  background-color: #dc3545;
+}
+.weather-badge + .weather-badge {
+  margin-left: 0.25rem;
+}
+
 /* comment of a match from the sheet (row below the players), keeps its line breaks */
 .match-comment {
   font-style: italic;

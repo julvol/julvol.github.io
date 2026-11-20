@@ -1005,27 +1005,49 @@ class StatsTable {
                 <div class="course-weather-next"></div>`;
   }
 
+  // loaded for all courses right away (for the "Regen" / "Wind" tags on the course names)
+  // and again when a course is opened more than 15 minutes later
   setupCurrentWeather() {
     const MAX_AGE = 15 * 60 * 1000;
-    document
-      .getElementById("coursesAccordion")
-      .addEventListener("show.bs.collapse", (e) => {
-        const item = e.target.querySelector(".course-weather");
-        if (
-          !item ||
-          Date.now() - (Number(item.dataset.loadedAt) || 0) < MAX_AGE
-        )
-          return;
-        item.dataset.loadedAt = Date.now();
-        this.loadCurrentWeather(item)
-          .catch((error) => {
-            console.error("Error while loading the weather forecast: ", error);
-            item.textContent = "Wetter nicht verfügbar";
-            item.nextElementSibling?.replaceChildren();
-            delete item.dataset.loadedAt; // try again the next time it is opened
-          })
-          .finally(() => this.fitOpeningCollapse(e.target));
+    const load = (item) => {
+      if (Date.now() - (Number(item.dataset.loadedAt) || 0) < MAX_AGE)
+        return Promise.resolve();
+      item.dataset.loadedAt = Date.now();
+      return this.loadCurrentWeather(item).catch((error) => {
+        console.error("Error while loading the weather forecast: ", error);
+        item.textContent = "Wetter nicht verfügbar";
+        item.nextElementSibling?.replaceChildren();
+        this.setCourseWeatherTags(item, null);
+        delete item.dataset.loadedAt; // try again the next time it is opened
       });
+    };
+    const accordion = document.getElementById("coursesAccordion");
+    accordion.querySelectorAll(".course-weather").forEach(load);
+    accordion.addEventListener("show.bs.collapse", (e) => {
+      const item = e.target.querySelector(".course-weather");
+      if (item) load(item).finally(() => this.fitOpeningCollapse(e.target));
+    });
+  }
+
+  // red tags on the course name when the next 90 minutes are no disc golf weather because of
+  // rain or wind (see isDiscGolfWeather); weather null: no tags
+  setCourseWeatherTags(item, weather) {
+    const tags = item
+      .closest(".accordion-item")
+      ?.querySelector(".course-weather-tags");
+    if (!tags) return;
+    const labels = [];
+    if (weather && (weather.rain >= 0.1 || (weather.code ?? 0) >= 51))
+      labels.push("Regen");
+    if (weather && (weather.gusts ?? 0) > 30) labels.push("Wind");
+    tags.replaceChildren(
+      ...labels.map((label) => {
+        const tag = document.createElement("span");
+        tag.className = "badge weather-badge";
+        tag.textContent = label;
+        return tag;
+      }),
+    );
   }
 
   // Bootstrap animates an opening section to the height it had when the animation started.
@@ -1058,6 +1080,7 @@ class StatsTable {
     const { minutely_15: steps } = await response.json();
     const now = this.getWeatherOfSteps(steps, 0, SPAN);
     if (!now) throw new Error("Open-Meteo: no forecast");
+    this.setCourseWeatherTags(item, now);
     item.replaceChildren(
       this.getWeatherTimeSpan(steps, 0, SPAN),
       document.createElement("br"),
@@ -3130,7 +3153,7 @@ class StatsTable {
                 aria-expanded="true"
                 aria-controls="collapse-${id}"
               >
-                <h4>${course}</h4>
+                <h4>${course}<span class="course-weather-tags"></span></h4>
               </button>
             </h2>
             <div
