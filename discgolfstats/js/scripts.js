@@ -2515,8 +2515,18 @@ class StatsTable {
       return `${course.course} (${course.layout})`;
     };
 
+    // by course, its standard layout first, the other layouts alphabetically
     const recentScoresEntries = Object.entries(player.recentScores).sort(
-      ([keyA], [keyB]) => keyA.localeCompare(keyB, "de", { numeric: true }),
+      ([keyA], [keyB]) => {
+        const a = this.courses[keyA];
+        const b = this.courses[keyB];
+        return (
+          a.course.localeCompare(b.course, "de", { numeric: true }) ||
+          this.isStandardLayout(b.course, b.layout) -
+            this.isStandardLayout(a.course, a.layout) ||
+          keyA.localeCompare(keyB, "de", { numeric: true })
+        );
+      },
     );
     if (recentScoresEntries.length === 0) return "";
 
