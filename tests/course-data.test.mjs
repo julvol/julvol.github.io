@@ -119,3 +119,22 @@ test("course_coordinates.csv: every course is listed once, coordinates are empty
   });
   assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
 });
+
+test("standard_layouts.csv: every course is listed once, the layout is empty or a layout of the course", () => {
+  const problems = [];
+  const seen = new Set();
+  const layouts = new Set(readCsv("hole_lengths.csv").map((row) => layoutKey(row.course, row.layout)));
+  readCsv("standard_layouts.csv").forEach((row, i) => {
+    const where = `line ${i + 2} (${row.course})`;
+    if (seen.has(row.course)) problems.push(`${where}: course is listed twice (only one standard layout per course)`);
+    seen.add(row.course);
+    // empty: no standard layout for this course yet
+    if (row.layout !== "" && !layouts.has(layoutKey(row.course, row.layout)))
+      problems.push(`${where}: layout "${row.layout}" is not in hole_lengths.csv for this course`);
+  });
+  const courses = new Set(readCsv("hole_lengths.csv").map((row) => row.course));
+  courses.forEach((course) => {
+    if (!seen.has(course)) problems.push(`${course}: missing in standard_layouts.csv (add "${course}," at least)`);
+  });
+  assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
+});

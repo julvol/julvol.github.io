@@ -42,6 +42,7 @@ Personal bests require a round to be completed, i.e. not missing any holes.
    ```
 9. If you want to show hole lengths and isomorphic holes on the website, you need to add them manually as they are not included in the csv information. Add the data to [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv) and [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) in the same format as the example data that is already in the files.
 10. For the weather of a match, add the coordinates of each course to [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv): one line per course (all layouts share it), latitude and longitude with a dot as decimal separator, e.g. `My Course,50.7753,6.0839`. Courses with empty coordinates just show no weather.
+11. To list the standard layout of a course first (in the course list and in the player's "Gespielte Partien"), add it to [standard_layouts.csv](discgolfstats/course_data/standard_layouts.csv): one line per course with exactly one layout, e.g. `My Course,Main`. An empty layout means no standard layout; the other layouts keep their usual order.
 
 ## Checking the course data
 
@@ -51,7 +52,7 @@ The tests in [tests/](tests/) check the hand-maintained course data. They need [
 node --test
 ```
 
-- [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv), [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) and [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, identical holes have the same length, and every course has a line in the coordinates file (coordinates empty or valid).
+- [course-data.test.mjs](tests/course-data.test.mjs) checks [hole_lengths.csv](discgolfstats/course_data/hole_lengths.csv), [isomorph_holes.csv](discgolfstats/course_data/isomorph_holes.csv) and [course_coordinates.csv](discgolfstats/course_data/course_coordinates.csv) on their own: valid numbers, no layout or hole listed twice, every hole exists in its layout, identical holes have the same length, every course has a line in the coordinates file (coordinates empty or valid) and in the standard layouts file (layout empty or one of the course's layouts).
 - [sheet-data.test.mjs](tests/sheet-data.test.mjs) loads the Google Sheet and checks that every played layout has hole lengths, with as many lengths as the layout has holes. It is skipped when there is no internet connection.
 - [records.test.mjs](tests/records.test.mjs) checks the records with made-up rounds (aces, birdies, streaks, shared ranks).
 - [weekly-streaks.test.mjs](tests/weekly-streaks.test.mjs) checks the longest weekly streak with made-up matches.

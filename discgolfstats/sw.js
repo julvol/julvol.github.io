@@ -20,6 +20,7 @@ const SITE_FILES = [
   "course_data/hole_lengths.csv",
   "course_data/isomorph_holes.csv",
   "course_data/course_coordinates.csv",
+  "course_data/standard_layouts.csv",
   "manifest.webmanifest",
   "assets/favicon.ico",
   "assets/icons/icon-192.png",

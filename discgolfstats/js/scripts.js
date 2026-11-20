@@ -361,9 +361,19 @@ class StatsTable {
           return acc;
         }, {}),
       );
-      // most played first; ties alphabetically by course, then layout
+      // grouped by course: most played course first, within a course the
+      // standard layout first, then the most played layout; ties
+      // alphabetically by course, then layout
+      const courseCounts = {};
+      playedCoursesCounts.forEach(({ course, count }) => {
+        courseCounts[course] = (courseCounts[course] ?? 0) + count;
+      });
       playedCoursesCounts.sort(
         (a, b) =>
+          courseCounts[b.course] - courseCounts[a.course] ||
+          a.course.localeCompare(b.course, "de") ||
+          this.isStandardLayout(b.course, b.layout) -
+            this.isStandardLayout(a.course, a.layout) ||
           b.count - a.count ||
           a.course.localeCompare(b.course, "de") ||
           a.layout.localeCompare(b.layout, "de"),
@@ -409,7 +419,14 @@ class StatsTable {
 
     console.log(this.courses);
     Object.values(this.courses)
-      .sort((a, b) => (a.course + a.layout).localeCompare(b.course + b.layout))
+      // by course, its standard layout first, the other layouts alphabetically
+      .sort(
+        (a, b) =>
+          a.course.localeCompare(b.course) ||
+          this.isStandardLayout(b.course, b.layout) -
+            this.isStandardLayout(a.course, a.layout) ||
+          (a.course + a.layout).localeCompare(b.course + b.layout),
+      )
       .forEach((course) => this.getCourseString(course));
 
     this.renderRecords();
@@ -2783,7 +2800,15 @@ class StatsTable {
                   </thead>
                   <tbody>`;
 
-    player.playedCourses.forEach((course) => {
+    player.playedCourses.forEach((course, i, courses) => {
+      // one cell per course spanning all of its layouts (they are adjacent)
+      let courseCell = "";
+      if (i === 0 || courses[i - 1].course !== course.course) {
+        const layoutCount = courses.filter(
+          (c) => c.course === course.course,
+        ).length;
+        courseCell = `<th class="text-start-table-header-info"${layoutCount > 1 ? ` rowspan="${layoutCount}"` : ""}>${course.course}</th>`;
+      }
       const pbTotal = this.getPersonalBestTotal(player, course);
       let pbCell = `<td style="border-left: 3px double #adb5bd;">-</td>`; // if no completed round: pbCell not overwritten
       if (pbTotal !== null) {
@@ -2797,7 +2822,7 @@ class StatsTable {
 
       playerString += `
       <tr>
-        <th class="text-start-table-header-info">${course.course}</th>
+        ${courseCell}
         <th class="text-start">${course.layout}</th>
         <td>${course.count}</td>${pbCell}
       </tr>`;
@@ -3519,15 +3544,32 @@ class StatsTable {
       });
   }
 
+  // 1 for the standard layout of a course (course_data/standard_layouts.csv), else 0
+  isStandardLayout(course, layout) {
+    return this.standardLayouts?.get(course) === layout ? 1 : 0;
+  }
+
   async loadReferenceData() {
-    const [lengthsText, isomorphText, coordinatesText] = await Promise.all([
-      fetch("course_data/hole_lengths.csv").then((res) => res.text()),
-      fetch("course_data/isomorph_holes.csv").then((res) => res.text()),
-      // optional: without it there is just no weather
-      fetch("course_data/course_coordinates.csv")
-        .then((res) => (res.ok ? res.text() : ""))
-        .catch(() => ""),
-    ]);
+    const [lengthsText, isomorphText, coordinatesText, standardText] =
+      await Promise.all([
+        fetch("course_data/hole_lengths.csv").then((res) => res.text()),
+        fetch("course_data/isomorph_holes.csv").then((res) => res.text()),
+        // optional: without it there is just no weather
+        fetch("course_data/course_coordinates.csv")
+          .then((res) => (res.ok ? res.text() : ""))
+          .catch(() => ""),
+        // optional: without it no layout is sorted first
+        fetch("course_data/standard_layouts.csv")
+          .then((res) => (res.ok ? res.text() : ""))
+          .catch(() => ""),
+      ]);
+
+    // course -> its standard layout; courses without one are left out
+    this.standardLayouts = new Map();
+    if (standardText)
+      this.parseCsv(standardText).forEach((row) => {
+        if (row.layout) this.standardLayouts.set(row.course, row.layout);
+      });
 
     // course -> { latitude, longitude }; courses without coordinates are left out
     this.courseCoordinates = new Map();
