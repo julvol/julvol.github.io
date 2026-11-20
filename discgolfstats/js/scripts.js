@@ -2976,17 +2976,15 @@ class StatsTable {
           : i + 1;
     });
     pbRows.forEach((row) => {
-      row.rankLabel = this.formatRank(
-        row.rank,
-        pbRows.filter((other) => other.rank === row.rank).length > 1,
-      );
+      row.tied = pbRows.filter((other) => other.rank === row.rank).length > 1;
+      row.rankLabel = this.formatRank(row.rank, row.tied);
     });
 
     let pbRowsString = "";
     if (playerRows.length === 0) {
       pbRowsString = `<tr><td colspan="4" class="text-muted">Noch keine abgeschlossene Runde.</td></tr>`;
     } else {
-      playerRows.forEach(({ name, count, pb, rankLabel }) => {
+      playerRows.forEach(({ name, count, pb, rank, tied }) => {
         // if no completed round: no PB
         let pbCell = `<td style="border-left: 3px double #adb5bd;">-</td>`;
         if (pb !== null) {
@@ -2999,8 +2997,8 @@ class StatsTable {
         }
         pbRowsString += `
           <tr>
-            <td>${rankLabel ?? ""}</td>
-            <th class="text-start-table-header-info">${name}</th>
+            <td style="border-right-width: 0; padding-right: 0;">${rank ? this.getRankBadge(rank, tied) : ""}</td>
+            <th class="text-start" style="border-left-width: 0;">${name}</th>
             <td>${count}</td>${pbCell}
           </tr>`;
       });
@@ -3035,8 +3033,7 @@ class StatsTable {
                 >
                   <thead>
                     <tr>
-                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;"></th>
-                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Spieler</th>
+                      <th colspan="2" style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Spieler</th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;"># gesp.</th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
                     </tr>
@@ -3551,6 +3548,11 @@ class StatsTable {
     return tied ? `T${rank}` : String(rank);
   }
 
+  // the place in a circle: gold, silver, bronze for 1 to 3, gray below (see .record-rank)
+  getRankBadge(rank, tied) {
+    return `<span class="record-rank${rank <= 3 ? ` record-rank-${rank}` : ""}">${this.formatRank(rank, tied)}</span>`;
+  }
+
   getRecordListString(rows, empty) {
     if (!rows.length) return `<p class="text-muted mb-0">${empty}</p>`;
     const rowStrings = rows.map((entry) => {
@@ -3562,7 +3564,7 @@ class StatsTable {
       }
       return `
         <li class="record-row">
-          <span class="record-rank${entry.rank === 1 ? " record-rank-first" : ""}">${this.formatRank(entry.rank, rows.filter((other) => other.rank === entry.rank).length > 1)}</span>
+          ${this.getRankBadge(entry.rank, rows.filter((other) => other.rank === entry.rank).length > 1)}
           <div class="record-who">
             <a class="player-link fw-bold" href="?spieler=${encodeURIComponent(entry.name)}" ${this.getPlayerLinkAttribute(entry.name)}>${entry.name}</a>
             <div class="record-context">${context.filter(Boolean).join(" · ")}</div>

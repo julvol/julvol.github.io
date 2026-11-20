@@ -11450,10 +11450,23 @@ html {
   justify-content: center;
   font-size: 0.8rem;
   font-weight: 700;
-  background-color: #ebe3d9;
+  background-color: #ebe3d9; /* place 4 and below: warm gray */
 }
-.record-rank-first {
+/* in a table (course "Bestenliste"): the circle is taller than a line of text, so it takes
+   no height of its own and the rows keep the height of the other tables */
+td > .record-rank {
+  display: flex; /* a block: centered by the cell (align-middle), not on the text line */
+  margin: -0.3rem auto;
+}
+/* places 1 to 3 (also shared ones): gold, silver, bronze */
+.record-rank-1 {
   background-color: #f3d429;
+}
+.record-rank-2 {
+  background-color: #c8ced6;
+}
+.record-rank-3 {
+  background-color: #e0a56b;
 }
 .record-who {
   flex: 1;
