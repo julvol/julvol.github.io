@@ -997,7 +997,7 @@ class StatsTable {
     const coordinates = this.courseCoordinates?.get(course.course);
     if (!coordinates) return "";
     return `
-                <h5>Wetter in den nächsten 90 Minuten:</h5>
+                <h5>Wetter in den nächsten 90 Minuten</h5>
                 <p class="course-weather"
                   data-latitude="${coordinates.latitude}"
                   data-longitude="${coordinates.longitude}"
@@ -1073,7 +1073,7 @@ class StatsTable {
       }
     }
     const heading = document.createElement("h5");
-    heading.textContent = "Nächstes Disc Golf-Wetter:";
+    heading.textContent = "Nächstes Disc Golf-Wetter";
     const text = document.createElement("p");
     if (found)
       text.replaceChildren(

@@ -11576,6 +11576,7 @@ html {
 .course-layouts {
   margin: 0 calc(-1 * var(--bs-accordion-body-padding-x))
     calc(-1 * var(--bs-accordion-body-padding-y));
+  --bs-accordion-btn-icon-width: 1rem; /* smaller arrows than the courses (1.25rem) */
 }
 /* no weather above it: right below the course button, which draws the line itself */
 .course-layouts:first-child {
