@@ -8214,6 +8214,11 @@ textarea.form-control-lg {
 .weather-badge + .weather-badge {
   margin-left: 0.25rem;
 }
+/* "Dämmerung": it gets dark during the next 90 minutes (yellow like "Unranked") */
+.weather-badge-dusk {
+  color: #212529;
+  background-color: #ffc107;
+}
 
 /* comment of a match from the sheet (row below the players), keeps its line breaks */
 .match-comment {

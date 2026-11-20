@@ -1047,8 +1047,10 @@ class StatsTable {
   }
 
   // red tags on the course name when the next 90 minutes are no disc golf weather because of
-  // rain or wind (see isDiscGolfWeather); weather null: no tags
-  setCourseWeatherTags(item, weather) {
+  // rain or wind (see isDiscGolfWeather), a yellow one when it gets dark during them
+  // ("Dämmerung": day at the start, night at the end; no tag if it is night already);
+  // weather null: no tags
+  setCourseWeatherTags(item, weather, dusk = false) {
     const tags = item
       .closest(".accordion-item")
       ?.querySelector(".course-weather-tags");
@@ -1057,14 +1059,19 @@ class StatsTable {
     if (weather && (weather.rain >= 0.1 || (weather.code ?? 0) >= 51))
       labels.push("Regen");
     if (weather && (weather.gusts ?? 0) > 30) labels.push("Wind");
-    tags.replaceChildren(
-      ...labels.map((label) => {
-        const tag = document.createElement("span");
-        tag.className = "badge weather-badge";
-        tag.textContent = label;
-        return tag;
-      }),
-    );
+    const tagElements = labels.map((label) => {
+      const tag = document.createElement("span");
+      tag.className = "badge weather-badge";
+      tag.textContent = label;
+      return tag;
+    });
+    if (weather && dusk) {
+      const tag = document.createElement("span");
+      tag.className = "badge weather-badge weather-badge-dusk";
+      tag.textContent = "Dämmerung";
+      tagElements.push(tag);
+    }
+    tags.replaceChildren(...tagElements);
   }
 
   // Bootstrap animates an opening section to the height it had when the animation started.
@@ -1102,7 +1109,10 @@ class StatsTable {
     const SPAN = 7; // 7 steps cover 90 minutes
     const now = steps && this.getWeatherOfSteps(steps, 0, SPAN);
     if (!now) throw new Error("Open-Meteo: no forecast");
-    this.setCourseWeatherTags(item, now);
+    // day at the start of the 90 minutes, night at their end
+    const dusk =
+      steps.is_day?.[0] === 1 && steps.is_day?.[SPAN - 1] === 0;
+    this.setCourseWeatherTags(item, now, dusk);
     item.replaceChildren(
       this.getWeatherTimeSpan(steps, 0, SPAN),
       document.createElement("br"),
