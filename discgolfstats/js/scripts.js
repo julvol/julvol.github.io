@@ -989,7 +989,8 @@ class StatsTable {
 
   // ---------------------------------------------------------------------------
   // Weather forecast of a course: the weather of the next 90 minutes at the top of an opened
-  // course, loaded from Open-Meteo when it is opened (again after 15 minutes when reopened).
+  // course, loaded from Open-Meteo for all courses in one request with the page (again for a
+  // course when it is opened more than 15 minutes later).
   // If that is no disc golf weather (dark, rain or gusts over 30 km/h), the next 90 minutes
   // in daylight without rain and strong gusts are shown below it ("Nächstes Disc Golf-Wetter").
 
@@ -1005,27 +1006,43 @@ class StatsTable {
                 <div class="course-weather-next"></div>`;
   }
 
-  // loaded for all courses right away (for the "Regen" / "Wind" tags on the course names)
-  // and again when a course is opened more than 15 minutes later
+  // loaded for all courses right away in one request (for the "Regen" / "Wind" tags on the
+  // course names) and again for a course when it is opened more than 15 minutes later
   setupCurrentWeather() {
     const MAX_AGE = 15 * 60 * 1000;
-    const load = (item) => {
-      if (Date.now() - (Number(item.dataset.loadedAt) || 0) < MAX_AGE)
-        return Promise.resolve();
-      item.dataset.loadedAt = Date.now();
-      return this.loadCurrentWeather(item).catch((error) => {
-        console.error("Error while loading the weather forecast: ", error);
-        item.textContent = "Wetter nicht verfügbar";
-        item.nextElementSibling?.replaceChildren();
-        this.setCourseWeatherTags(item, null);
-        delete item.dataset.loadedAt; // try again the next time it is opened
+    const fail = (item, error) => {
+      console.error("Error while loading the weather forecast: ", error);
+      item.textContent = "Wetter nicht verfügbar";
+      item.nextElementSibling?.replaceChildren();
+      this.setCourseWeatherTags(item, null);
+      delete item.dataset.loadedAt; // try again the next time it is opened
+    };
+    const load = async (items) => {
+      const stale = items.filter(
+        (item) => Date.now() - (Number(item.dataset.loadedAt) || 0) >= MAX_AGE,
+      );
+      if (!stale.length) return;
+      stale.forEach((item) => (item.dataset.loadedAt = Date.now()));
+      let forecasts;
+      try {
+        forecasts = await this.loadCourseForecasts(stale);
+      } catch (error) {
+        stale.forEach((item) => fail(item, error));
+        return;
+      }
+      stale.forEach((item, i) => {
+        try {
+          this.showCurrentWeather(item, forecasts[i]);
+        } catch (error) {
+          fail(item, error);
+        }
       });
     };
     const accordion = document.getElementById("coursesAccordion");
-    accordion.querySelectorAll(".course-weather").forEach(load);
+    load([...accordion.querySelectorAll(".course-weather")]);
     accordion.addEventListener("show.bs.collapse", (e) => {
       const item = e.target.querySelector(".course-weather");
-      if (item) load(item).finally(() => this.fitOpeningCollapse(e.target));
+      if (item) load([item]).finally(() => this.fitOpeningCollapse(e.target));
     });
   }
 
@@ -1059,15 +1076,14 @@ class StatsTable {
       collapse.style.height = `${collapse.scrollHeight}px`;
   }
 
-  async loadCurrentWeather(item) {
-    const { latitude, longitude } = item.dataset;
-    // 15-minute steps from the current quarter hour on, for the next 7 days
-    // (7 steps cover 90 minutes)
-    const SPAN = 7;
+  // the forecasts of these courses (.course-weather elements) in one request: 15-minute steps
+  // from the current quarter hour on, for the next 7 days, in the order of the items
+  async loadCourseForecasts(items) {
     const DAYS = 7;
     const params = new URLSearchParams({
-      latitude,
-      longitude,
+      // several places: comma separated, the answer is then a list in the same order
+      latitude: items.map((item) => item.dataset.latitude).join(","),
+      longitude: items.map((item) => item.dataset.longitude).join(","),
       minutely_15:
         "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
       forecast_minutely_15: String(DAYS * 96),
@@ -1077,8 +1093,14 @@ class StatsTable {
       `https://api.open-meteo.com/v1/forecast?${params}`,
     );
     if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
-    const { minutely_15: steps } = await response.json();
-    const now = this.getWeatherOfSteps(steps, 0, SPAN);
+    const data = await response.json();
+    // one place: a single object instead of a list
+    return (Array.isArray(data) ? data : [data]).map((place) => place.minutely_15);
+  }
+
+  showCurrentWeather(item, steps) {
+    const SPAN = 7; // 7 steps cover 90 minutes
+    const now = steps && this.getWeatherOfSteps(steps, 0, SPAN);
     if (!now) throw new Error("Open-Meteo: no forecast");
     this.setCourseWeatherTags(item, now);
     item.replaceChildren(
@@ -1115,7 +1137,8 @@ class StatsTable {
         document.createElement("br"),
         this.formatWeather(found.weather),
       );
-    else text.textContent = `keins in den nächsten ${DAYS} Tagen`;
+    else
+      text.textContent = `keins in den nächsten ${Math.round(steps.time.length / 96)} Tagen`; // 96 steps a day
     next.replaceChildren(heading, text);
   }
 
