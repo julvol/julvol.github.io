@@ -1232,7 +1232,7 @@ class StatsTable {
       true,
     );
 
-    // "Disc Golf - Statistiken" in the navbar: back to the start, i.e. everything closed,
+    // ".discgolfstats." in the navbar: back to the start, i.e. everything closed,
     // the search cleared and a plain URL (no ?partie=… etc. and no #page-top)
     document
       .querySelector("#mainNav .navbar-brand")
