@@ -11578,7 +11578,7 @@ html {
     calc(-1 * var(--bs-accordion-body-padding-y));
   --bs-accordion-btn-icon-width: 1rem; /* smaller arrows than the courses (1.25rem) */
 }
-/* no weather above it: right below the course button, which draws the line itself */
+/* no weather above it: right below the course button, whose content draws the line itself */
 .course-layouts:first-child {
   margin-top: calc(-1 * var(--bs-accordion-body-padding-y));
 }
@@ -11613,12 +11613,29 @@ html {
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
 }
-/* an opened layout: no line between its header and its content */
-.course-layouts > .accordion-item > .accordion-header > .accordion-button:not(.collapsed) {
+/* an opened player, course or layout: no line between its header and its content */
+#playersAccordion .accordion-button:not(.collapsed),
+#coursesAccordion .accordion-button:not(.collapsed) {
   box-shadow: none;
 }
-.course-layouts > .accordion-item > .accordion-header > .accordion-button:not(.collapsed):focus {
+#playersAccordion .accordion-button:not(.collapsed):focus,
+#coursesAccordion .accordion-button:not(.collapsed):focus {
   box-shadow: var(--bs-accordion-btn-focus-box-shadow);
+}
+/* instead, the same thin indented line as between the layouts of a course */
+#playersAccordion > .accordion-item > .accordion-collapse,
+#coursesAccordion > .accordion-item > .accordion-collapse {
+  position: relative;
+}
+#playersAccordion > .accordion-item > .accordion-collapse::before,
+#coursesAccordion > .accordion-item > .accordion-collapse::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--bs-accordion-btn-padding-x);
+  right: var(--bs-accordion-btn-padding-x);
+  border-top: 1px solid var(--bs-accordion-border-color);
+  z-index: 4;
 }
 /* the layout name a bit smaller than the course name (h5 size instead of h4), followed by
    a small gray "Layout": tells it apart from the next course header */
