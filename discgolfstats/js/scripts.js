@@ -2968,12 +2968,25 @@ class StatsTable {
           a.name.localeCompare(b.name),
       );
     const pbRows = playerRows.filter(({ pb }) => pb !== null);
+    // the same PB shares a place (1, T2, T2, 4)
+    pbRows.forEach((row, i) => {
+      row.rank =
+        i > 0 && row.pb.dev === pbRows[i - 1].pb.dev
+          ? pbRows[i - 1].rank
+          : i + 1;
+    });
+    pbRows.forEach((row) => {
+      row.rankLabel = this.formatRank(
+        row.rank,
+        pbRows.filter((other) => other.rank === row.rank).length > 1,
+      );
+    });
 
     let pbRowsString = "";
     if (playerRows.length === 0) {
-      pbRowsString = `<tr><td colspan="3" class="text-muted">Noch keine abgeschlossene Runde.</td></tr>`;
+      pbRowsString = `<tr><td colspan="4" class="text-muted">Noch keine abgeschlossene Runde.</td></tr>`;
     } else {
-      playerRows.forEach(({ name, count, pb }) => {
+      playerRows.forEach(({ name, count, pb, rankLabel }) => {
         // if no completed round: no PB
         let pbCell = `<td style="border-left: 3px double #adb5bd;">-</td>`;
         if (pb !== null) {
@@ -2986,6 +2999,7 @@ class StatsTable {
         }
         pbRowsString += `
           <tr>
+            <td>${rankLabel ?? ""}</td>
             <th class="text-start-table-header-info">${name}</th>
             <td>${count}</td>${pbCell}
           </tr>`;
@@ -3021,6 +3035,7 @@ class StatsTable {
                 >
                   <thead>
                     <tr>
+                      <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;"></th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;">Spieler</th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;"># gesp.</th>
                       <th style="font-size: 0.75rem; padding: 2px 6px; vertical-align: middle; border-left: 3px double #adb5bd;">PB</th>
@@ -3034,8 +3049,8 @@ class StatsTable {
                   [
                     `Bestenliste ${course.course} (${course.layout})`,
                     ...pbRows.map(
-                      ({ name, pb }, i) =>
-                        `${i + 1}. ${name} ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
+                      ({ name, pb, rankLabel }) =>
+                        `${rankLabel}. ${name} ${this.formatDevFromPar(pb.dev)} (${pb.total})`,
                     ),
                   ].join("\n"),
                 )}
@@ -3531,6 +3546,11 @@ class StatsTable {
       </div>`;
   }
 
+  // a place shared with others gets a T ("tied"): 1, T2, T2, 4
+  formatRank(rank, tied) {
+    return tied ? `T${rank}` : String(rank);
+  }
+
   getRecordListString(rows, empty) {
     if (!rows.length) return `<p class="text-muted mb-0">${empty}</p>`;
     const rowStrings = rows.map((entry) => {
@@ -3542,7 +3562,7 @@ class StatsTable {
       }
       return `
         <li class="record-row">
-          <span class="record-rank${entry.rank === 1 ? " record-rank-first" : ""}">${entry.rank}</span>
+          <span class="record-rank${entry.rank === 1 ? " record-rank-first" : ""}">${this.formatRank(entry.rank, rows.filter((other) => other.rank === entry.rank).length > 1)}</span>
           <div class="record-who">
             <a class="player-link fw-bold" href="?spieler=${encodeURIComponent(entry.name)}" ${this.getPlayerLinkAttribute(entry.name)}>${entry.name}</a>
             <div class="record-context">${context.filter(Boolean).join(" · ")}</div>

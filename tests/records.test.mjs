@@ -136,3 +136,18 @@ test("the switch only shows on per-round cards where it changes something", () =
   assert.equal(hasSwitch("Längste Birdie-Serie"), false); // everyone once already
   assert.equal(hasSwitch("Meiste Asse"), false); // one entry per player anyway
 });
+
+test("a shared place is shown with a T (1, T2, T2, 4)", () => {
+  const { table } = recordsFor([]);
+  const rows = table.rankRecordEntries(
+    [
+      { name: "A", value: 7, detail: "" },
+      { name: "B", value: 5, detail: "", time: 1 },
+      { name: "C", value: 5, detail: "", time: 2 },
+      { name: "D", value: 3, detail: "" },
+    ],
+    Infinity,
+  );
+  const ranks = [...table.getRecordListString(rows, "").matchAll(/class="record-rank[^"]*">([^<]*)</g)].map((m) => m[1]);
+  assert.deepEqual(ranks, ["1", "T2", "T2", "4"]);
+});
