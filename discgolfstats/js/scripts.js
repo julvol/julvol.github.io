@@ -1439,10 +1439,10 @@ class StatsTable {
     ).fontFamily;
     const font = (size, style = "", family = bodyFont) =>
       `${style} ${size}px ${family}`.trim();
-    // the colors of the score badges, from the CSS
-    const badgeColor = (cls) => {
+    // the colors of the score badges and place circles, from the CSS
+    const backgroundOf = (className) => {
       const el = document.createElement("span");
-      el.className = `bg-scorecard-${cls}`;
+      el.className = className;
       el.hidden = true;
       document.body.appendChild(el);
       const color = getComputedStyle(el).backgroundColor;
@@ -1522,10 +1522,32 @@ class StatsTable {
       cell: font(13),
       cellBold: font(13, "bold"),
       badge: font(14, "bold"),
+      rank: font(12, "bold"),
     };
 
-    // result: name | deviation (total) | THRU n
+    // places like in the records (1, T2, T2, 4), in the order of the list (also unfinished
+    // rounds); only from three players on
+    const ranked = players.length >= 3 ? players : [];
+    const rankOf = new Map();
+    ranked.forEach(([name, p], i) => {
+      const previous = ranked[i - 1];
+      rankOf.set(
+        name,
+        previous && previous[1].devFromPar === p.devFromPar
+          ? rankOf.get(previous[0])
+          : i + 1,
+      );
+    });
+    const rankLabel = (name) => {
+      const rank = rankOf.get(name);
+      if (rank === undefined) return null;
+      const tied = [...rankOf.values()].filter((r) => r === rank).length > 1;
+      return { rank, label: this.formatRank(rank, tied) };
+    };
+
+    // result: place | name | deviation (total) | THRU n
     const results = players.map(([name, p]) => ({
+      place: rankLabel(name),
       name,
       dev: this.formatDevFromPar(p.devFromPar),
       devColor:
@@ -1554,8 +1576,16 @@ class StatsTable {
       0,
       ...results.map((r) => textWidth(r.thru, fonts.small)),
     );
+    // the place circle in front of the names
+    const RANK_SIZE = 24;
+    const RANK_GAP = 10;
+    const rankWidth = results.some((r) => r.place) ? RANK_SIZE + RANK_GAP : 0;
     const resultWidth =
-      nameWidth + 20 + scoreWidth + (thruWidth ? 16 + thruWidth : 0);
+      rankWidth +
+      nameWidth +
+      20 +
+      scoreWidth +
+      (thruWidth ? 16 + thruWidth : 0);
 
     // scorecard: the label column fits "Bahn", "Länge", "Par" and the names
     const labelWidth =
@@ -1656,10 +1686,38 @@ class StatsTable {
     y += 34;
     text("Ergebnis", PAD, y, fonts.section, COLORS.text);
     y += 6;
+    // the circles are centered on the capital letters of the names (not on their baseline),
+    // and so is the place inside them
+    const ascent = (string, f) => {
+      measure.font = f;
+      return measure.measureText(string).actualBoundingBoxAscent;
+    };
+    const nameMiddle = ascent("H", fonts.name) / 2;
+    // gold, silver, bronze, gray (place 4 and below)
+    const rankColors = [1, 2, 3, 4].map((rank) =>
+      backgroundOf(`record-rank${rank <= 3 ? ` record-rank-${rank}` : ""}`),
+    );
     results.forEach((r) => {
-      y += 26;
-      text(r.name, PAD, y, fonts.name, COLORS.text);
-      const x = PAD + nameWidth + 20;
+      y += rankWidth ? 30 : 26; // a bit more room for the circles
+      if (r.place) {
+        const middle = y - nameMiddle;
+        steps.push((ctx) => {
+          ctx.fillStyle = rankColors[Math.min(r.place.rank, 4) - 1];
+          ctx.beginPath();
+          ctx.arc(PAD + RANK_SIZE / 2, middle, RANK_SIZE / 2, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+        text(
+          r.place.label,
+          PAD + RANK_SIZE / 2,
+          middle + ascent(r.place.label, fonts.rank) / 2,
+          fonts.rank,
+          COLORS.background,
+          "center",
+        );
+      }
+      text(r.name, PAD + rankWidth, y, fonts.name, COLORS.text);
+      const x = PAD + rankWidth + nameWidth + 20;
       text(r.dev, x + devWidth, y, fonts.name, r.devColor, "right");
       text(r.total, x + devWidth, y, fonts.text, COLORS.text);
       if (r.thru)
@@ -1679,7 +1737,7 @@ class StatsTable {
     y += 12;
 
     const badgeColors = Object.fromEntries(
-      SCORE_CATEGORIES.map((c) => [c.cls, badgeColor(c.cls)]),
+      SCORE_CATEGORIES.map((c) => [c.cls, backgroundOf(`bg-scorecard-${c.cls}`)]),
     );
     const headerRows = [
       ["Bahn", (i) => String(i + 1), fonts.cellBold],
@@ -3355,7 +3413,7 @@ class StatsTable {
     const mostRounds = Object.values(this.players).map((player) => ({
       name: player.name,
       value: player.playedCoursesCount,
-      detail: `auf ${player.playedCourses.length} Parcours`,
+      detail: `auf ${player.playedCourses.length} Layouts`,
     }));
 
     return [
