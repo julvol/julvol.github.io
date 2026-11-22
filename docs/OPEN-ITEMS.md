@@ -2,13 +2,12 @@
 
 Feature ideas for [discgolfstats](../discgolfstats/). Tick an item off once it's done, and remove items that are no longer wanted.
 
-Each item has a fixed number that stays the same when other items are added or removed. New items get the next free number (currently #50); numbers of removed items are not reused.
+Each item has a fixed number that stays the same when other items are added or removed. New items get the next free number (currently #52); numbers of removed items are not reused.
 
 ## Charts and trends
 
 - [x] **#1 Score over time per player and layout:** a line chart of the completed rounds at the top of each layout in "Letzte Ergebnisse" of a player (from 3 completed rounds on), with the PB and the newest round labeled and a tooltip per round with a link to the match.
 - [x] **#14 Activity calendar:** a GitHub-style grid at the top of the matches marking the days with ranked matches, one year at a time (buttons to switch the year). Hovering or tapping a day shows the courses played, clicking it filters the matches to that day.
-- [ ] **#40 Match progress chart:** a line chart in an expanded match showing each player's running score to par hole by hole, so comebacks and the decisive holes are visible at a glance.
 
 ## Records
 
@@ -31,6 +30,8 @@ Each item has a fixed number that stays the same when other items are added or r
 
 - [x] **#23 Weather per match:** a "Wetter" line below start, duration and end of an expanded match with the temperature, sky, wind with gusts and rain while it was played, loaded from Open-Meteo when the match is opened, using the course's coordinates from `course_data/course_coordinates.csv`.
 - [x] **#49 Disc golf weather for the week:** a compact 4-day strip "Wetter in den nächsten 4 Tagen" in an opened course, between the next 90 minutes and the next suitable 90 minutes, marking the daylight hours with disc golf weather (no rain, gusts up to 30 km/h, for at least 90 minutes), rain, wind or both, with a legend.
+- [ ] **#50 Current time in the 4-day weather:** a marker in "Wetter in den nächsten 4 Tagen" showing the current time on today's bar.
+- [ ] **#51 Next disc golf weather in the 4-day weather:** the 90 minutes of "Nächstes Disc Golf-Wetter" marked with a box in "Wetter in den nächsten 4 Tagen".
 
 ## Data upkeep
 
