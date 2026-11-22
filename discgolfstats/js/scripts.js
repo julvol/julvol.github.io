@@ -1036,8 +1036,8 @@ class StatsTable {
                   data-latitude="${coordinates.latitude}"
                   data-longitude="${coordinates.longitude}"
                 >Wetter wird geladen …</p>
-                <div class="course-weather-next"></div>
-                <div class="course-weather-week"></div>`;
+                <div class="course-weather-week"></div>
+                <div class="course-weather-next"></div>`;
   }
 
   // loaded for all courses right away in one request (for the "Regen" / "Wind" tags on the
@@ -1091,9 +1091,8 @@ class StatsTable {
       ?.querySelector(".course-weather-tags");
     if (!tags) return;
     const labels = [];
-    if (weather && (weather.rain >= 0.1 || (weather.code ?? 0) >= 51))
-      labels.push("Regen");
-    if (weather && (weather.gusts ?? 0) > 30) labels.push("Wind");
+    if (weather && this.isRainy(weather)) labels.push("Regen");
+    if (weather && this.isWindy(weather)) labels.push("Wind");
     const tagElements = labels.map((label) => {
       const tag = document.createElement("span");
       tag.className = "badge weather-badge";
@@ -1154,10 +1153,10 @@ class StatsTable {
       this.formatWeather(now),
     );
 
-    const next = item.nextElementSibling;
+    const week = item.nextElementSibling;
+    const next = week?.nextElementSibling;
     if (!next) return;
-    if (next.nextElementSibling)
-      next.nextElementSibling.innerHTML = this.getWeekWeatherString(steps);
+    week.innerHTML = this.getWeekWeatherString(steps);
     // only daylight is disc golf weather
     const isDaylight = (start) =>
       steps.is_day?.slice(start, start + SPAN).every((d) => d === 1) ?? false;
@@ -1219,8 +1218,16 @@ class StatsTable {
 
   // no rain (no measurable rain and no drizzle / rain / snow / thunderstorm code) and
   // gusts of at most 30 km/h
-  isDiscGolfWeather({ code, gusts, rain }) {
-    return rain < 0.1 && (code === null || code < 51) && (gusts ?? 0) <= 30;
+  isDiscGolfWeather(weather) {
+    return !this.isRainy(weather) && !this.isWindy(weather);
+  }
+
+  isRainy({ code, rain }) {
+    return rain >= 0.1 || (code ?? 0) >= 51;
+  }
+
+  isWindy({ gusts }) {
+    return (gusts ?? 0) > 30;
   }
 
   // the 90 minutes from step start on in the local time of the course, e.g. "17:30 bis 19:00 Uhr",
@@ -1283,14 +1290,28 @@ class StatsTable {
           label: this.getWeatherDayLabel(times[i], times[0]),
           daylight: [],
           good: [],
+          rain: [],
+          wind: [],
+          both: [],
         });
       }
       const day = days[days.length - 1];
       const minute =
         Number(times[i].slice(11, 13)) * 60 + Number(times[i].slice(14, 16));
-      if (steps.is_day?.[i] === 1 && steps.is_day?.[i + 1] === 1)
-        addRun(day.daylight, minute);
-      if (good[i]) addRun(day.good, minute);
+      if (steps.is_day?.[i] !== 1 || steps.is_day?.[i + 1] !== 1) continue;
+      addRun(day.daylight, minute);
+      if (good[i]) {
+        addRun(day.good, minute);
+        continue;
+      }
+      // this quarter hour alone: from its start to its end
+      const weather = this.getWeatherOfSteps(steps, i, 2);
+      if (!weather) continue;
+      const rainy = this.isRainy(weather);
+      const windy = this.isWindy(weather);
+      if (rainy && windy) addRun(day.both, minute);
+      else if (rainy) addRun(day.rain, minute);
+      else if (windy) addRun(day.wind, minute);
     }
 
     const daylight = days.flatMap((day) => day.daylight);
@@ -1302,7 +1323,8 @@ class StatsTable {
     };
   }
 
-  // one bar per day: gray = daylight, green = disc golf weather, empty = dark or already over
+  // one bar per day: green = disc golf weather, blue = rain, amber = wind, split = both,
+  // gray = other daylight (a gap under 90 minutes), empty = dark or already over
   getWeekWeatherString(steps) {
     const week = this.getDiscGolfWeek(steps);
     if (!week) return "";
@@ -1332,7 +1354,11 @@ class StatsTable {
                     <span class="week-weather-label">${day.label}</span>
                     <div class="week-weather-bar" role="img" title="${windows}" aria-label="${day.label}: ${windows}">
                       ${day.daylight.map((r) => run("week-weather-daylight", r)).join("")}
-                      ${day.good.map((r) => run("week-weather-good", r)).join("")}
+                      ${["good", "rain", "wind", "both"]
+                        .flatMap((kind) =>
+                          day[kind].map((r) => run(`week-weather-${kind}`, r)),
+                        )
+                        .join("")}
                       ${ticks.map((hour) => `<span class="week-weather-tick" style="left: ${percent(hour * 60)}%"></span>`).join("")}
                     </div>
                   </div>`;
@@ -1346,6 +1372,21 @@ class StatsTable {
                       ${ticks.map((hour) => `<span style="left: ${percent(hour * 60)}%">${hour}</span>`).join("")}
                     </div>
                   </div>${rows.join("")}
+                  <div class="week-weather-legend">
+                    ${[
+                      ["good", "Disc Golf-Wetter"],
+                      ["rain", "Regen"],
+                      ["wind", "Wind"],
+                      ["both", "Regen + Wind"],
+                      ["daylight", "Lücke unter 90 Min."],
+                      ["dark", "dunkel / vorbei"],
+                    ]
+                      .map(
+                        ([kind, text]) =>
+                          `<span class="week-weather-legend-entry"><span class="week-weather-swatch week-weather-${kind}"></span>${text}</span>`,
+                      )
+                      .join("")}
+                  </div>
                 </div>`;
   }
 

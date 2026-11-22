@@ -45,6 +45,25 @@ test("week weather: rain interrupts the disc golf weather", () => {
     { from: 720, to: 1020 },
   ]);
   assert.deepEqual(week.days[1].daylight, [{ from: 480, to: 1020 }]);
+  assert.deepEqual(week.days[1].rain, [{ from: 705, to: 720 }]);
+  assert.deepEqual(week.days[1].wind, []);
+  assert.deepEqual(week.days[1].both, []);
+});
+
+test("week weather: wind, and rain with wind, get their own runs", () => {
+  const steps = makeSteps();
+  const step = steps.time.indexOf("2026-11-26T12:00");
+  steps.wind_gusts_10m[step] = 50;
+  steps.precipitation[step] = 0.5; // the 15 minutes before 12:00
+  const table = loadStatsTable();
+  const day = plain(table.getDiscGolfWeek(steps)).days[3];
+  assert.deepEqual(day.both, [{ from: 705, to: 720 }]);
+  assert.deepEqual(day.wind, [{ from: 720, to: 735 }]);
+  assert.deepEqual(day.rain, []);
+  const html = table.getWeekWeatherString(steps);
+  ["Disc Golf-Wetter", "Regen", "Wind", "Regen + Wind", "dunkel"].forEach((text) =>
+    assert.ok(html.includes(text)),
+  );
 });
 
 test("week weather: fine weather shorter than 90 minutes is not disc golf weather", () => {

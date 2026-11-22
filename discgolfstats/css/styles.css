@@ -8274,6 +8274,48 @@ textarea.form-control-lg {
   background-color: rgba(255, 255, 255, 0.65);
 }
 
+.week-weather-rain,
+.week-weather-wind,
+.week-weather-both {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.week-weather-rain {
+  background-color: #1971c2;
+}
+.week-weather-wind {
+  background-color: #f59f00;
+}
+/* rain and wind: the bar split horizontally into both colors */
+.week-weather-both {
+  background: linear-gradient(to bottom, #1971c2 50%, #f59f00 50%);
+}
+.week-weather-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+.week-weather-legend-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.week-weather-swatch {
+  position: static;
+  display: inline-block;
+  flex: none;
+  width: 0.9rem;
+  height: 0.65rem;
+  border-radius: 2px;
+}
+.week-weather-dark {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
 /* comment of a match from the sheet (row below the players), keeps its line breaks */
 .match-comment {
   font-style: italic;
