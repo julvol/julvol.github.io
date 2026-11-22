@@ -2,18 +2,23 @@
 
 Feature ideas for [discgolfstats](../discgolfstats/). Tick an item off once it's done, and remove items that are no longer wanted.
 
-Each item has a fixed number that stays the same when other items are added or removed. New items get the next free number (currently #40); numbers of removed items are not reused.
+Each item has a fixed number that stays the same when other items are added or removed. New items get the next free number (currently #50); numbers of removed items are not reused.
 
 ## Charts and trends
 
 - [x] **#1 Score over time per player and layout:** a line chart of the completed rounds at the top of each layout in "Letzte Ergebnisse" of a player (from 3 completed rounds on), with the PB and the newest round labeled and a tooltip per round with a link to the match.
 - [x] **#14 Activity calendar:** a GitHub-style grid at the top of the matches marking the days with ranked matches, one year at a time (buttons to switch the year). Hovering or tapping a day shows the courses played, clicking it filters the matches to that day.
+- [ ] **#40 Match progress chart:** a line chart in an expanded match showing each player's running score to par hole by hole, so comebacks and the decisive holes are visible at a glance.
+- [ ] **#41 Favorite and nemesis hole:** in a player's section, the hole they play best and the one they play worst compared to par (from e.g. 5 rounds on that hole, identical holes counted together), each with the player's average.
 
 ## Records
 
 - [x] **#6 Records page:** a "Rekorde" section with the top 3 for most aces, most birdies in a round, longest birdie streak and most rounds played (ties shown in full), linking to the players and matches.
 - [x] **#17 More records:** two more cards in "Rekorde": the longest bogey-free run (par or better on consecutive holes) within one round, and the number of completed bogey-free rounds (no hole over par) per player, linking to the most recent one.
 - [x] **#36 Longest weekly streak:** a record card for the most consecutive calendar weeks with at least one ranked match per player, with the current streak marked if it is still running.
+- [ ] **#42 Bounce-backs:** a record card for the most birdies (or better) played directly after a bogey (or worse), counted per player.
+- [ ] **#43 Eagles:** a record card for the most eagles (two or more under par, not counting aces, which have their own card), linking to the most recent one.
+- [ ] **#44 List of all aces:** the aces card can be expanded to show every ace with player, date, course and hole, each linking to its match.
 
 ## Usability
 
@@ -22,12 +27,16 @@ Each item has a fixed number that stays the same when other items are added or r
 - [ ] **#27 Highlights in the match card:** small icons in the header of a match for special moments in it, e.g. an ace, a new personal best or a bogey-free round, with a popover saying who. The match filter could find them too (e.g. "ass"). <-- maybe, but not high priority
 - [x] **#29 Playing partners:** a "Mitspieler" table in a player's section below "Gespielte Bahnen": who they played with how often (number of shared ranked matches only, no score comparison), most first, each name linking to that player.
 - [x] **#35 Result as an image:** the share button of a match shares an image of its result and scorecard (with the link) instead of the summary text: the share menu on phones, copied to the clipboard (or downloaded) on computers.
-- [ ] **#37 Search suggestions:** while typing in the match filter, a dropdown suggests player names, courses, layouts and keywords like "unranked", so you don't have to know the exact spelling. <-- eigentlich ganz gut, aber noch nicht optimal.
 - [x] **#38 Wider scorecard on big screens:** an expanded match with more than 9 holes gets wider on big screens (the same width for all of them), so its scorecard shows up to 18 holes per row instead of 9.
+- [ ] **#45 Sorting players and courses:** a dropdown like the one for matches: players by name, number of matches or last played; courses by name, number of matches or last played, with a small "zuletzt vor 23 Tagen" on each entry.
+- [ ] **#46 Layouts still to play:** in a player's section, how many of the known layouts they have played (e.g. "12 von 20") and a list of the missing ones, each linking to the layout.
+- [ ] **#47 Courses near me:** a button in the course section that asks for the location once and sorts the courses by distance, using the coordinates in `course_coordinates.csv`. The location stays on the device.
+- [ ] **#48 Course map:** a small map above the course list with a pin per course (played and unplayed in different colors); tapping a pin opens that course.
 
 ## Match details
 
 - [x] **#23 Weather per match:** a "Wetter" line below start, duration and end of an expanded match with the temperature, sky, wind with gusts and rain while it was played, loaded from Open-Meteo when the match is opened, using the course's coordinates from `course_data/course_coordinates.csv`.
+- [ ] **#49 Disc golf weather for the week:** a compact 7-day strip in an opened course marking the daylight hours with disc golf weather (no rain, gusts up to 30 km/h), instead of only the next suitable 90 minutes.
 
 ## Data upkeep
 
