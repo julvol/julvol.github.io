@@ -1,4 +1,4 @@
-// Checks the 7-day disc golf weather of a course (open item #49) with a made-up forecast.
+// Checks the 4-day disc golf weather of a course (open item #49) with a made-up forecast.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadStatsTable } from "./helpers.mjs";
@@ -23,11 +23,11 @@ function makeSteps() {
   };
 }
 
-test("week weather: 7 calendar days, today only from now on", () => {
+test("week weather: 4 calendar days, today only from now on", () => {
   const week = plain(loadStatsTable().getDiscGolfWeek(makeSteps()));
   assert.deepEqual(
     week.days.map((day) => day.label),
-    ["heute", "morgen", "Mi. 25.11.", "Do. 26.11.", "Fr. 27.11.", "Sa. 28.11.", "So. 29.11."],
+    ["heute", "morgen", "Mi. 25.11.", "Do. 26.11."],
   );
   assert.equal(week.from, 480);
   assert.equal(week.to, 1020);

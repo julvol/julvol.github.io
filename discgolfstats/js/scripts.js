@@ -1249,13 +1249,13 @@ class StatsTable {
     return `${weekday} ${time.slice(8, 10)}.${time.slice(5, 7)}.`;
   }
 
-  // The next 7 calendar days from the steps that are loaded anyway: per day the daylight and
+  // The next 4 calendar days from the steps that are loaded anyway: per day the daylight and
   // the disc golf weather as runs of minutes after midnight. A quarter hour counts as disc
   // golf weather if it lies in 90 minutes that are (same rule as "Nächstes Disc Golf-Wetter").
   // from / to: the common time axis in full hours; null if there is no daylight at all.
   getDiscGolfWeek(steps) {
     const SPAN = 7; // 7 steps cover 90 minutes
-    const DAYS = 7;
+    const DAYS = 4;
     const times = steps.time;
     const good = new Array(times.length).fill(false);
     for (let start = 0; start + SPAN <= times.length; start++) {
@@ -1338,7 +1338,7 @@ class StatsTable {
                   </div>`;
     });
     return `
-                <h5>Wetter in den nächsten 7 Tagen</h5>
+                <h5>Wetter in den nächsten 4 Tagen</h5>
                 <div class="week-weather">
                   <div class="week-weather-row">
                     <span class="week-weather-label"></span>

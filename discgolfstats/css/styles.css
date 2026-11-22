@@ -8220,7 +8220,7 @@ textarea.form-control-lg {
   background-color: #ffc107;
 }
 
-/* 7-day disc golf weather of a course (see getWeekWeatherString in scripts.js) */
+/* 4-day disc golf weather of a course (see getWeekWeatherString in scripts.js) */
 .week-weather {
   max-width: 30rem;
   margin-bottom: 1rem;
