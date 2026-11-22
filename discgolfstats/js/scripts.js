@@ -486,6 +486,7 @@ class StatsTable {
 
     this.setupMatchFilter();
     this.setupMatchSort();
+    this.setupHoleSort();
     this.setupActivityCalendar();
     this.setupMatchWeather(); // before the links, so a linked match loads its weather
     this.setupCurrentWeather(); // the same for a linked course
@@ -806,25 +807,71 @@ class StatsTable {
     select.addEventListener("change", applySort);
     applySort();
 
-    // a <select> is as wide as its longest option: fit it to the chosen one instead
-    const fitWidth = () => {
-      const style = getComputedStyle(select);
-      const text = select.options[select.selectedIndex]?.text ?? "";
-      const canvas = (fitWidth.canvas ??= document.createElement("canvas"));
-      const ctx = canvas.getContext("2d");
-      ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      const extra = [
-        "paddingLeft",
-        "paddingRight",
-        "borderLeftWidth",
-        "borderRightWidth",
-      ].reduce((sum, prop) => sum + parseFloat(style[prop]), 0);
-      select.style.width = `${Math.ceil(ctx.measureText(text).width + extra) + 2}px`;
-    };
+    const fitWidth = () => this.fitSelectWidth(select);
     select.addEventListener("change", fitWidth);
     fitWidth();
     // the web font may arrive after the first measurement
     document.fonts?.ready.then(fitWidth);
+  }
+
+  // a <select> is as wide as its longest option: fit it to the chosen one instead
+  fitSelectWidth(select) {
+    const style = getComputedStyle(select);
+    const text = select.options[select.selectedIndex]?.text ?? "";
+    this.selectWidthCanvas ??= document.createElement("canvas");
+    const ctx = this.selectWidthCanvas.getContext("2d");
+    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const extra = [
+      "paddingLeft",
+      "paddingRight",
+      "borderLeftWidth",
+      "borderRightWidth",
+    ].reduce((sum, prop) => sum + parseFloat(style[prop]), 0);
+    select.style.width = `${Math.ceil(ctx.measureText(text).width + extra) + 2}px`;
+  }
+
+  // order of two holes in the "Bahnen" table of a layout: shortest, lowest par or easiest
+  // first; holes without that value last; ties (and "bahn") by hole number
+  compareHoles(sort, a, b) {
+    const key = { laenge: "length", par: "par", schwierigkeit: "difficulty" }[
+      sort
+    ];
+    if (key) {
+      const [valueA, valueB] = [a[key], b[key]];
+      if ((valueA === null) !== (valueB === null))
+        return valueA === null ? 1 : -1;
+      if (valueA !== valueB) return valueA - valueB;
+    }
+    return a.hole - b.hole;
+  }
+
+  // dropdown above the "Bahnen" table; sorts both variants of the isomorph switch
+  setupHoleSort() {
+    const selects = [...document.querySelectorAll(".hole-sort")];
+    const fitAll = () => selects.forEach((s) => this.fitSelectWidth(s));
+    fitAll();
+    document.fonts?.ready.then(fitAll);
+
+    const number = (value) => (value === "" ? null : Number(value));
+    const getHole = (row) => ({
+      row,
+      hole: Number(row.dataset.hole),
+      length: number(row.dataset.length),
+      par: number(row.dataset.par),
+      difficulty: number(row.dataset.difficulty),
+    });
+    document.addEventListener("change", (e) => {
+      if (!e.target.classList.contains("hole-sort")) return;
+      this.fitSelectWidth(e.target);
+      e.target
+        .closest(".hole-stats")
+        .querySelectorAll("tbody")
+        .forEach((tbody) => {
+          const holes = [...tbody.rows].map(getHole);
+          holes.sort((a, b) => this.compareHoles(e.target.value, a, b));
+          tbody.append(...holes.map((h) => h.row));
+        });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -2029,7 +2076,19 @@ class StatsTable {
   }
 
   getHoleStatsString(course) {
-    const heading = `<h5 class="mt-3">Bahnen:</h5>`;
+    const hasLengths = this.holeLengthsSets.some(
+      (s) => s.course === course.course && s.layout === course.layout,
+    );
+    const heading = `
+    <div class="d-flex flex-wrap align-items-center gap-2 mt-3 mb-2">
+      <h5 class="mb-0">Bahnen:</h5>
+      <select class="form-select form-select-sm hole-sort" aria-label="Bahnen sortieren" title="Bahnen sortieren">
+        <option value="bahn" selected>nach Bahn</option>
+        ${hasLengths ? `<option value="laenge">nach Länge</option>` : ""}
+        <option value="par">nach Par</option>
+        <option value="schwierigkeit">nach Schwierigkeit</option>
+      </select>
+    </div>`;
 
     // switch only if including isomorph holes would change anything
     let hasSameParIsomorphs = false;
@@ -2037,17 +2096,14 @@ class StatsTable {
       if (this.getSameParIsomorphEntries(course, hole).length > 0)
         hasSameParIsomorphs = true;
     }
-    if (!hasSameParIsomorphs) {
-      return heading + this.getHoleStatsTableString(course, false);
-    }
-    return (
-      heading +
-      this.getIsomorphToggleString(
-        this.getHoleStatsTableString(course, true),
-        this.getHoleStatsTableString(course, false),
-        false, // course overview: by default only rounds on this layout
-      )
-    );
+    const tables = hasSameParIsomorphs
+      ? this.getIsomorphToggleString(
+          this.getHoleStatsTableString(course, true),
+          this.getHoleStatsTableString(course, false),
+          false, // course overview: by default only rounds on this layout
+        )
+      : this.getHoleStatsTableString(course, false);
+    return `<div class="hole-stats">${heading}${tables}</div>`;
   }
 
   getHoleStatsTableString(course, includeIsomorphs) {
@@ -2107,6 +2163,14 @@ class StatsTable {
         </td>`;
       }
 
+      // what the dropdown sorts by (see setupHoleSort). The difficulty as shown (2 decimals),
+      // so holes that show the same average count as a tie
+      const length = lengths?.[hole - 1];
+      const rowAttributes = `data-hole="${hole}"
+        data-length="${length > 0 ? length : ""}"
+        data-par="${par}"
+        data-difficulty="${avg === null ? "" : avg.toFixed(2)}"`;
+
       const isomorphs = this.getIsomorphHoles(
         course.course,
         course.layout,
@@ -2116,7 +2180,7 @@ class StatsTable {
         const popoverContentIsomorphHoles =
           "<b>identisch zu</b><br>" +
           isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
-        rowsString += `<tr><th
+        rowsString += `<tr ${rowAttributes}><th
           class="text-start-table-header-info"
           tabindex="0"
           style="cursor: pointer;"
@@ -2128,7 +2192,7 @@ class StatsTable {
           data-bs-content="${popoverContentIsomorphHoles}"
         >Bahn ${hole}</th>`;
       } else {
-        rowsString += `<tr><th class="text-start-table-header-info">Bahn ${hole}</th>`;
+        rowsString += `<tr ${rowAttributes}><th class="text-start-table-header-info">Bahn ${hole}</th>`;
       }
 
       rowsString += `
