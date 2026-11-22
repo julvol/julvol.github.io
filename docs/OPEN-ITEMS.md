@@ -8,7 +8,6 @@ Each item has a fixed number that stays the same when other items are added or r
 
 - [x] **#1 Score over time per player and layout:** a line chart of the completed rounds at the top of each layout in "Letzte Ergebnisse" of a player (from 3 completed rounds on), with the PB and the newest round labeled and a tooltip per round with a link to the match.
 - [x] **#14 Activity calendar:** a GitHub-style grid at the top of the matches marking the days with ranked matches, one year at a time (buttons to switch the year). Hovering or tapping a day shows the courses played, clicking it filters the matches to that day.
-- [ ] **#33 Score chart per layout in the course section:** like #1, but for all players at once: every completed round on that layout over time, one line (color) per player, with the layout record marked. Shows how the group improves on a course. <-- maybe, but not high priority
 
 ## Records
 
