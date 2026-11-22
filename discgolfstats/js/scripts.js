@@ -3121,8 +3121,28 @@ class StatsTable {
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "de"));
   }
 
+  // ranked matches the player played alone
+  getSoloMatchCount(name) {
+    return Object.values(this.matches).filter((match) => {
+      if (match.unranked || !(name in match.players)) return false;
+      return Object.keys(match.players).every(
+        (other) => other === name || other === "Par",
+      );
+    }).length;
+  }
+
+  // the partners plus a "Solo" entry (if any), sorted like a real partner
+  getPlayingPartnerRows(name) {
+    const rows = this.getPlayingPartners(name);
+    const soloCount = this.getSoloMatchCount(name);
+    if (soloCount > 0) rows.push({ name: "Solo", count: soloCount, solo: true });
+    return rows.sort(
+      (a, b) => b.count - a.count || a.name.localeCompare(b.name, "de"),
+    );
+  }
+
   getPlayingPartnersString(player) {
-    const partners = this.getPlayingPartners(player.name);
+    const partners = this.getPlayingPartnerRows(player.name);
     if (partners.length === 0) return "";
     return `
                 <h5>Mitspieler:</h5>
@@ -3132,9 +3152,13 @@ class StatsTable {
                   <tbody>
                     ${partners
                       .map(
-                        ({ name, count }) => `
+                        ({ name, count, solo }) => `
                         <tr>
-                          <th class="text-start"><a class="player-link" href="?spieler=${encodeURIComponent(name)}" ${this.getPlayerLinkAttribute(name)}>${this.escapeHtml(name)}</a></th>
+                          ${
+                            solo
+                              ? `<th class="text-start fst-italic">Solo</th>`
+                              : `<th class="text-start"><a class="player-link" href="?spieler=${encodeURIComponent(name)}" ${this.getPlayerLinkAttribute(name)}>${this.escapeHtml(name)}</a></th>`
+                          }
                           <td>${count}</td>
                         </tr>`,
                       )
