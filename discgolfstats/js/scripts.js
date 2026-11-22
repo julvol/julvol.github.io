@@ -1336,19 +1336,15 @@ class StatsTable {
     const clock = (minute) =>
       `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
-    // the legend only lists what the bars show
+    // the legend only lists what the bars show (empty parts need no explanation)
     const minutes = (runs) => runs.reduce((sum, r) => sum + r.to - r.from, 0);
     const isShown = (kind) =>
-      week.days.some((day) => {
-        const daylight = minutes(day.daylight);
-        if (kind === "dark") return daylight < to - from;
-        if (kind === "daylight")
-          return (
-            daylight >
+      week.days.some((day) =>
+        kind === "daylight"
+          ? minutes(day.daylight) >
             minutes([...day.good, ...day.rain, ...day.wind, ...day.both])
-          );
-        return day[kind].length > 0;
-      });
+          : day[kind].length > 0,
+      );
 
     const everyHours = to - from > 12 * 60 ? 3 : 2;
     const ticks = [];
@@ -1393,7 +1389,6 @@ class StatsTable {
                       ["wind", "Wind"],
                       ["both", "Regen + Wind"],
                       ["daylight", "Lücke unter 90 Min."],
-                      ["dark", "dunkel / vorbei"],
                     ]
                       .filter(([kind]) => isShown(kind))
                       .map(

@@ -72,7 +72,7 @@ test("week weather: the legend only lists what the bars show", () => {
         .matchAll(/<\/span>([^<]+)<\/span>/g),
     ].map((entry) => entry[1]);
 
-  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter", "dunkel / vorbei"]);
+  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter"]);
 
   const windAndRain = makeSteps();
   const step = windAndRain.time.indexOf("2026-11-26T12:00");
@@ -82,7 +82,6 @@ test("week weather: the legend only lists what the bars show", () => {
     "Disc Golf-Wetter",
     "Wind",
     "Regen + Wind",
-    "dunkel / vorbei",
   ]);
 
   // two short bad spells 45 minutes apart: the fine time between them is a gray gap

@@ -8312,9 +8312,6 @@ textarea.form-control-lg {
   height: 0.65rem;
   border-radius: 2px;
 }
-.week-weather-dark {
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-}
 
 /* comment of a match from the sheet (row below the players), keeps its line breaks */
 .match-comment {
