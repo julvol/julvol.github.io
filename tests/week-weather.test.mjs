@@ -60,10 +60,36 @@ test("week weather: wind, and rain with wind, get their own runs", () => {
   assert.deepEqual(day.both, [{ from: 705, to: 720 }]);
   assert.deepEqual(day.wind, [{ from: 720, to: 735 }]);
   assert.deepEqual(day.rain, []);
-  const html = table.getWeekWeatherString(steps);
-  ["Disc Golf-Wetter", "Regen", "Wind", "Regen + Wind", "dunkel"].forEach((text) =>
-    assert.ok(html.includes(text)),
-  );
+});
+
+test("week weather: the legend only lists what the bars show", () => {
+  const table = loadStatsTable();
+  const legend = (steps) =>
+    [
+      ...table
+        .getWeekWeatherString(steps)
+        .split('class="week-weather-legend"')[1]
+        .matchAll(/<\/span>([^<]+)<\/span>/g),
+    ].map((entry) => entry[1]);
+
+  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter", "dunkel / vorbei"]);
+
+  const windAndRain = makeSteps();
+  const step = windAndRain.time.indexOf("2026-11-26T12:00");
+  windAndRain.wind_gusts_10m[step] = 50;
+  windAndRain.precipitation[step] = 0.5;
+  assert.deepEqual(legend(windAndRain), [
+    "Disc Golf-Wetter",
+    "Wind",
+    "Regen + Wind",
+    "dunkel / vorbei",
+  ]);
+
+  // two short bad spells 45 minutes apart: the fine time between them is a gray gap
+  const gap = makeSteps();
+  gap.wind_gusts_10m[gap.time.indexOf("2026-11-25T12:00")] = 50;
+  gap.wind_gusts_10m[gap.time.indexOf("2026-11-25T12:45")] = 50;
+  assert.ok(legend(gap).includes("Lücke unter 90 Min."));
 });
 
 test("week weather: fine weather shorter than 90 minutes is not disc golf weather", () => {
