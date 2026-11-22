@@ -1036,7 +1036,8 @@ class StatsTable {
                   data-latitude="${coordinates.latitude}"
                   data-longitude="${coordinates.longitude}"
                 >Wetter wird geladen …</p>
-                <div class="course-weather-next"></div>`;
+                <div class="course-weather-next"></div>
+                <div class="course-weather-week"></div>`;
   }
 
   // loaded for all courses right away in one request (for the "Regen" / "Wind" tags on the
@@ -1047,6 +1048,7 @@ class StatsTable {
       console.error("Error while loading the weather forecast: ", error);
       item.textContent = "Wetter nicht verfügbar";
       item.nextElementSibling?.replaceChildren();
+      item.nextElementSibling?.nextElementSibling?.replaceChildren();
       this.setCourseWeatherTags(item, null);
       delete item.dataset.loadedAt; // try again the next time it is opened
     };
@@ -1154,6 +1156,8 @@ class StatsTable {
 
     const next = item.nextElementSibling;
     if (!next) return;
+    if (next.nextElementSibling)
+      next.nextElementSibling.innerHTML = this.getWeekWeatherString(steps);
     // only daylight is disc golf weather
     const isDaylight = (start) =>
       steps.is_day?.slice(start, start + SPAN).every((d) => d === 1) ?? false;
@@ -1228,15 +1232,121 @@ class StatsTable {
     // e.g. 7 steps from 17:30 on: 17:30, 17:45, …, 19:00
     const to = new Date(`${steps.time[start + count - 1]}Z`);
     const span = `${clock(from)} bis ${clock(to)} Uhr`;
-    const today = new Date(`${steps.time[0].slice(0, 10)}T00:00Z`);
-    const days = Math.floor((from - today) / (24 * 60 * 60 * 1000));
-    if (days === 0) return span;
-    if (days === 1) return `morgen ${span}`;
+    const day = this.getWeatherDayLabel(steps.time[start], steps.time[0]);
+    return day === "heute" ? span : `${day} ${span}`;
+  }
+
+  // "heute", "morgen" or e.g. "Fr. 20.11." for a step time, seen from the first step's day
+  getWeatherDayLabel(time, firstTime) {
+    const date = new Date(`${time.slice(0, 10)}T00:00Z`);
+    const today = new Date(`${firstTime.slice(0, 10)}T00:00Z`);
+    const days = Math.round((date - today) / (24 * 60 * 60 * 1000));
+    if (days === 0) return "heute";
+    if (days === 1) return "morgen";
     const weekday = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."][
-      from.getUTCDay()
+      date.getUTCDay()
     ];
-    const date = `${from.toISOString().slice(8, 10)}.${from.toISOString().slice(5, 7)}.`;
-    return `${weekday} ${date} ${span}`;
+    return `${weekday} ${time.slice(8, 10)}.${time.slice(5, 7)}.`;
+  }
+
+  // The next 7 calendar days from the steps that are loaded anyway: per day the daylight and
+  // the disc golf weather as runs of minutes after midnight. A quarter hour counts as disc
+  // golf weather if it lies in 90 minutes that are (same rule as "Nächstes Disc Golf-Wetter").
+  // from / to: the common time axis in full hours; null if there is no daylight at all.
+  getDiscGolfWeek(steps) {
+    const SPAN = 7; // 7 steps cover 90 minutes
+    const DAYS = 7;
+    const times = steps.time;
+    const good = new Array(times.length).fill(false);
+    for (let start = 0; start + SPAN <= times.length; start++) {
+      const daylight = steps.is_day
+        ?.slice(start, start + SPAN)
+        .every((d) => d === 1);
+      if (!daylight) continue;
+      const weather = this.getWeatherOfSteps(steps, start, SPAN);
+      if (weather && this.isDiscGolfWeather(weather))
+        good.fill(true, start, start + SPAN - 1);
+    }
+
+    const addRun = (runs, from) => {
+      const last = runs[runs.length - 1];
+      if (last?.to === from) last.to = from + 15;
+      else runs.push({ from, to: from + 15 });
+    };
+    const days = [];
+    for (let i = 0; i + 1 < times.length; i++) {
+      const date = times[i].slice(0, 10);
+      if (days[days.length - 1]?.date !== date) {
+        if (days.length === DAYS) break;
+        days.push({
+          date,
+          label: this.getWeatherDayLabel(times[i], times[0]),
+          daylight: [],
+          good: [],
+        });
+      }
+      const day = days[days.length - 1];
+      const minute =
+        Number(times[i].slice(11, 13)) * 60 + Number(times[i].slice(14, 16));
+      if (steps.is_day?.[i] === 1 && steps.is_day?.[i + 1] === 1)
+        addRun(day.daylight, minute);
+      if (good[i]) addRun(day.good, minute);
+    }
+
+    const daylight = days.flatMap((day) => day.daylight);
+    if (daylight.length === 0) return null;
+    return {
+      from: Math.floor(Math.min(...daylight.map((r) => r.from)) / 60) * 60,
+      to: Math.ceil(Math.max(...daylight.map((r) => r.to)) / 60) * 60,
+      days,
+    };
+  }
+
+  // one bar per day: gray = daylight, green = disc golf weather, empty = dark or already over
+  getWeekWeatherString(steps) {
+    const week = this.getDiscGolfWeek(steps);
+    if (!week) return "";
+    const { from, to } = week;
+    const percent = (minute) =>
+      (((minute - from) / (to - from)) * 100).toFixed(2);
+    const run = (className, r) =>
+      `<span class="${className}" style="left: ${percent(r.from)}%; width: ${(((r.to - r.from) / (to - from)) * 100).toFixed(2)}%"></span>`;
+    const clock = (minute) =>
+      `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
+
+    const everyHours = to - from > 12 * 60 ? 3 : 2;
+    const ticks = [];
+    for (
+      let hour = Math.ceil(from / 60 / everyHours) * everyHours;
+      hour * 60 < to;
+      hour += everyHours
+    )
+      if (hour * 60 > from) ticks.push(hour);
+
+    const rows = week.days.map((day) => {
+      const windows = day.good.length
+        ? day.good.map((r) => `${clock(r.from)} bis ${clock(r.to)} Uhr`).join(", ")
+        : "kein Disc Golf-Wetter";
+      return `
+                  <div class="week-weather-row">
+                    <span class="week-weather-label">${day.label}</span>
+                    <div class="week-weather-bar" role="img" title="${windows}" aria-label="${day.label}: ${windows}">
+                      ${day.daylight.map((r) => run("week-weather-daylight", r)).join("")}
+                      ${day.good.map((r) => run("week-weather-good", r)).join("")}
+                      ${ticks.map((hour) => `<span class="week-weather-tick" style="left: ${percent(hour * 60)}%"></span>`).join("")}
+                    </div>
+                  </div>`;
+    });
+    return `
+                <h5>Wetter in den nächsten 7 Tagen</h5>
+                <div class="week-weather">
+                  <div class="week-weather-row">
+                    <span class="week-weather-label"></span>
+                    <div class="week-weather-axis">
+                      ${ticks.map((hour) => `<span style="left: ${percent(hour * 60)}%">${hour}</span>`).join("")}
+                    </div>
+                  </div>${rows.join("")}
+                </div>`;
   }
 
   // WMO weather codes as used by Open-Meteo

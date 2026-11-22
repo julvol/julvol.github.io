@@ -8220,6 +8220,60 @@ textarea.form-control-lg {
   background-color: #ffc107;
 }
 
+/* 7-day disc golf weather of a course (see getWeekWeatherString in scripts.js) */
+.week-weather {
+  max-width: 30rem;
+  margin-bottom: 1rem;
+}
+.week-weather-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2px;
+}
+.week-weather-label {
+  flex: none;
+  width: 4.75rem;
+  font-size: 0.8rem;
+}
+.week-weather-bar,
+.week-weather-axis {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.week-weather-bar {
+  height: 0.9rem;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.week-weather-axis {
+  height: 1rem;
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+.week-weather-axis span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.week-weather-daylight,
+.week-weather-good,
+.week-weather-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.week-weather-daylight {
+  background-color: rgba(0, 0, 0, 0.11);
+}
+.week-weather-good {
+  background-color: #2f9e44;
+}
+.week-weather-tick {
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.65);
+}
+
 /* comment of a match from the sheet (row below the players), keeps its line breaks */
 .match-comment {
   font-style: italic;
