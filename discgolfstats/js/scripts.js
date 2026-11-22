@@ -2736,6 +2736,42 @@ class StatsTable {
     });
   }
 
+  // the player's latest ranked match
+  getLastMatch(name) {
+    return Object.values(this.matches)
+      .filter((match) => !match.unranked && name in match.players)
+      .reduce(
+        (latest, match) =>
+          !latest || match.startTime > latest.startTime ? match : latest,
+        null,
+      );
+  }
+
+  // "heute", "gestern", "vor 3 Tagen", "vor 2 Wochen", "vor einem Monat", "vor 2 Jahren"
+  // (by calendar days, so a match late yesterday is "gestern" also after midnight)
+  formatTimeAgo(time, now = new Date()) {
+    const calendarDay = (t) =>
+      Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / 86400000;
+    const days = Math.max(0, calendarDay(now) - calendarDay(time));
+    if (days === 0) return "heute";
+    if (days === 1) return "gestern";
+    const ago = (count, one, many) =>
+      `vor ${count === 1 ? `einem ${one}` : `${count} ${many}`}`;
+    if (days < 14) return ago(days, "Tag", "Tagen");
+    if (days < 60) return ago(Math.floor(days / 7), "Woche", "Wochen");
+    if (days < 365) return ago(Math.floor(days / 30), "Monat", "Monaten");
+    return ago(Math.floor(days / 365), "Jahr", "Jahren");
+  }
+
+  getLastActivityString(player) {
+    const match = this.getLastMatch(player.name);
+    if (!match) return "";
+    const linkValue = this.getMatchLinkValue(match);
+    return `
+                <h5>Letzte Aktivität</h5>
+                <p><a class="match-link text-decoration-none" href="?partie=${linkValue}" data-match="${linkValue}">${this.formatTimeAgo(match.startTime)} auf ${this.escapeHtml(match.course)} (${this.escapeHtml(match.layout)})</a></p>`;
+  }
+
   getRecentScoresString(player) {
     const MAX_RECENT = 4;
     const label = (courseKey) => {
@@ -3096,7 +3132,7 @@ class StatsTable {
         );
     });
     playerString += `
-                ${this.getWithLinkButtons(this.getRecentScoresString(player), "btn-outline-secondary", shareLines.join("\n"))}
+                ${this.getWithLinkButtons(this.getLastActivityString(player) + this.getRecentScoresString(player), "btn-outline-secondary", shareLines.join("\n"))}
               </div>
             </div>
           </div>`;
