@@ -11675,6 +11675,12 @@ td > .record-rank {
   border-top: 1px solid var(--bs-accordion-border-color);
   z-index: 4;
 }
+/* courses and layouts that have not been played yet are grayed out */
+.course-unplayed > .accordion-header h4,
+.layout-unplayed h4,
+.layout-unplayed .layout-caption {
+  color: #868e96;
+}
 /* the layout name a bit smaller than the course name (h5 size instead of h4), followed by
    a small gray "Layout": tells it apart from the next course header */
 .layout-title {

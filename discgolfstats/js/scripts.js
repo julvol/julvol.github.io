@@ -418,23 +418,9 @@ class StatsTable {
       .forEach((player) => this.getPlayerString(player));
 
     console.log(this.courses);
-    Object.values(this.courses)
-      // by course, its standard layout first, the other layouts alphabetically
-      .sort(
-        (a, b) =>
-          a.course.localeCompare(b.course) ||
-          this.isStandardLayout(b.course, b.layout) -
-            this.isStandardLayout(a.course, a.layout) ||
-          (a.course + a.layout).localeCompare(b.course + b.layout),
-      )
-      // one entry per course, its layouts inside (adjacent after sorting)
-      .reduce((groups, course) => {
-        const last = groups[groups.length - 1];
-        if (last?.[0].course === course.course) last.push(course);
-        else groups.push([course]);
-        return groups;
-      }, [])
-      .forEach((layouts) => this.renderCourseGroup(layouts));
+    this.getCourseGroups().forEach((layouts) =>
+      this.renderCourseGroup(layouts),
+    );
 
     this.renderRecords();
     this.renderActivityCalendar();
@@ -2079,16 +2065,7 @@ class StatsTable {
     const hasLengths = this.holeLengthsSets.some(
       (s) => s.course === course.course && s.layout === course.layout,
     );
-    const heading = `
-    <div class="d-flex flex-wrap align-items-center gap-2 mt-3 mb-2">
-      <h5 class="mb-0">Bahnen:</h5>
-      <select class="form-select form-select-sm hole-sort" aria-label="Bahnen sortieren" title="Bahnen sortieren">
-        <option value="bahn" selected>nach Bahn</option>
-        ${hasLengths ? `<option value="laenge">nach Länge</option>` : ""}
-        <option value="par">nach Par</option>
-        <option value="schwierigkeit">nach Schwierigkeit</option>
-      </select>
-    </div>`;
+    const heading = this.getHoleSortHeading(hasLengths, true);
 
     // switch only if including isomorph holes would change anything
     let hasSameParIsomorphs = false;
@@ -2104,6 +2081,74 @@ class StatsTable {
         )
       : this.getHoleStatsTableString(course, false);
     return `<div class="hole-stats">${heading}${tables}</div>`;
+  }
+
+  // "Bahnen:" with the sort dropdown. Played layouts also sort by par and difficulty and have
+  // the Bestenliste above it (hence the margin)
+  getHoleSortHeading(hasLengths, played) {
+    return `
+    <div class="d-flex flex-wrap align-items-center gap-2 ${played ? "mt-3 " : ""}mb-2">
+      <h5 class="mb-0">Bahnen:</h5>
+      <select class="form-select form-select-sm hole-sort" aria-label="Bahnen sortieren" title="Bahnen sortieren">
+        <option value="bahn" selected>nach Bahn</option>
+        ${hasLengths ? `<option value="laenge">nach Länge</option>` : ""}
+        ${played ? `<option value="par">nach Par</option>` : ""}
+        ${played ? `<option value="schwierigkeit">nach Schwierigkeit</option>` : ""}
+      </select>
+    </div>`;
+  }
+
+  // "Bahn N" cell of a "Bahnen" table, with a popover if the hole is identical to other holes
+  getHoleHeaderCell(course, layout, hole) {
+    const isomorphs = this.getIsomorphHoles(course, layout, hole);
+    if (isomorphs.length === 0) {
+      return `<th class="text-start-table-header-info">Bahn ${hole}</th>`;
+    }
+    const popoverContentIsomorphHoles =
+      "<b>identisch zu</b><br>" +
+      isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
+    return `<th
+          class="text-start-table-header-info"
+          tabindex="0"
+          style="cursor: pointer;"
+          data-bs-toggle="popover"
+          data-bs-trigger="hover focus"
+          data-bs-container="body"
+          data-bs-html="true"
+          data-bs-placement="right"
+          data-bs-content="${popoverContentIsomorphHoles}"
+        >Bahn ${hole}</th>`;
+  }
+
+  // "Bahnen" of a layout without rounds: only the length
+  getUnplayedHolesString({ course, layout }) {
+    const lengths =
+      this.holeLengthsSets.find(
+        (s) => s.course === course && s.layout === layout,
+      )?.lengths ?? [];
+    const headStyle =
+      "font-size: 0.75rem; padding: 2px 6px; vertical-align: middle;";
+    const rows = lengths
+      .map((length, i) => {
+        const hole = i + 1;
+        return `<tr data-hole="${hole}" data-length="${length > 0 ? length : ""}" data-par="" data-difficulty="">
+          ${this.getHoleHeaderCell(course, layout, hole)}
+          <td>${length > 0 ? length : "-"}</td>
+        </tr>`;
+      })
+      .join("");
+    return `<div class="hole-stats">
+      ${this.getHoleSortHeading(true, false)}
+      <table class="table table-bordered text-center align-middle w-auto mb-0">
+        <thead>
+          <tr>
+            <th style="${headStyle}"></th>
+            <th style="${headStyle}">Länge</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
   }
 
   getHoleStatsTableString(course, includeIsomorphs) {
@@ -2171,29 +2216,7 @@ class StatsTable {
         data-par="${par}"
         data-difficulty="${avg === null ? "" : avg.toFixed(2)}"`;
 
-      const isomorphs = this.getIsomorphHoles(
-        course.course,
-        course.layout,
-        hole,
-      );
-      if (isomorphs.length > 0) {
-        const popoverContentIsomorphHoles =
-          "<b>identisch zu</b><br>" +
-          isomorphs.map((h) => `${h.layout} - Bahn ${h.hole}`).join("<br>");
-        rowsString += `<tr ${rowAttributes}><th
-          class="text-start-table-header-info"
-          tabindex="0"
-          style="cursor: pointer;"
-          data-bs-toggle="popover"
-          data-bs-trigger="hover focus"
-          data-bs-container="body"
-          data-bs-html="true"
-          data-bs-placement="right"
-          data-bs-content="${popoverContentIsomorphHoles}"
-        >Bahn ${hole}</th>`;
-      } else {
-        rowsString += `<tr ${rowAttributes}><th class="text-start-table-header-info">Bahn ${hole}</th>`;
-      }
+      rowsString += `<tr ${rowAttributes}>${this.getHoleHeaderCell(course.course, course.layout, hole)}`;
 
       rowsString += `
         ${lengths ? `<td>${lengths[hole - 1] ?? "-"}</td>` : ""}
@@ -3234,13 +3257,77 @@ class StatsTable {
           </div>`;
   }
 
+  // the layouts per course for the course list: the played ones plus the ones only known from
+  // course_data/hole_lengths.csv ({ course, layout, unplayed: true }, kept out of this.courses
+  // so they count in no statistic). Played courses first, then alphabetically; within a course
+  // the played layouts first, of those the standard layout, then alphabetically
+  getCourseGroups() {
+    const played = Object.values(this.courses);
+    const playedCourses = new Set(played.map((c) => c.course));
+    const unplayed = this.holeLengthsSets
+      .filter((s) => !this.courses[s.course + s.layout])
+      .map(({ course, layout }) => ({ course, layout, unplayed: true }));
+
+    const groups = new Map();
+    [...played, ...unplayed]
+      .sort(
+        (a, b) =>
+          playedCourses.has(b.course) - playedCourses.has(a.course) ||
+          a.course.localeCompare(b.course) ||
+          Boolean(a.unplayed) - Boolean(b.unplayed) ||
+          this.isStandardLayout(b.course, b.layout) -
+            this.isStandardLayout(a.course, a.layout) ||
+          (a.course + a.layout).localeCompare(b.course + b.layout),
+      )
+      .forEach((entry) => {
+        if (!groups.has(entry.course)) groups.set(entry.course, []);
+        groups.get(entry.course).push(entry);
+      });
+    return [...groups.values()];
+  }
+
+  // a layout without any round: grayed out, opens to its holes with their length
+  getUnplayedLayoutString(entry) {
+    const id = (entry.course + entry.layout).replace(/[^a-zA-Z0-9]/g, ""); // like getCourseString
+    return `<div class="accordion-item layout-unplayed">
+            <h2 class="accordion-header" id="heading-${id}">
+              <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-${id}"
+                aria-expanded="false"
+                aria-controls="collapse-${id}"
+                title="Noch nicht gespielt"
+              >
+                <div class="layout-title">
+                  <h4>${entry.layout}</h4>
+                  <span class="layout-caption">Layout</span>
+                  <span class="visually-hidden">(noch nicht gespielt)</span>
+                </div>
+              </button>
+            </h2>
+            <div
+              id="collapse-${id}"
+              class="accordion-collapse collapse"
+              aria-labelledby="heading-${id}"
+              ${this.getLinkAttributes("parcours", `${entry.course} (${entry.layout})`)}
+            >
+              <div class="accordion-body" style="background-color: #fff9f3;">
+                ${this.getUnplayedHolesString(entry)}
+              </div>
+            </div>
+          </div>`;
+  }
+
   // "Gespielte Parcours": one entry per course with the weather forecast (the same for all
   // layouts) and an accordion of its layouts (see getCourseString)
   renderCourseGroup(layouts) {
     const { course } = layouts[0];
     const id = `course-${course.replace(/[^a-zA-Z0-9]/g, "")}`; // specialChars problematic in ids
+    const neverPlayed = layouts.every((layout) => layout.unplayed);
     document.getElementById("coursesAccordion").innerHTML += `
-          <div class="accordion-item col-lg-6 mx-auto">
+          <div class="accordion-item col-lg-6 mx-auto${neverPlayed ? " course-unplayed" : ""}">
             <h2 class="accordion-header" id="heading-${id}">
               <button
                 class="accordion-button collapsed"
@@ -3261,7 +3348,13 @@ class StatsTable {
               <div class="accordion-body" style="background-color: #fff9f3;">
                 ${this.getCurrentWeatherString(layouts[0])}
                 <div class="accordion course-layouts">
-                  ${layouts.map((layout) => this.getCourseString(layout)).join("")}
+                  ${layouts
+                    .map((layout) =>
+                      layout.unplayed
+                        ? this.getUnplayedLayoutString(layout)
+                        : this.getCourseString(layout),
+                    )
+                    .join("")}
                 </div>
               </div>
             </div>
