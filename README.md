@@ -64,3 +64,9 @@ node --test
 The tests also run automatically on GitHub ([.github/workflows/tests.yml](.github/workflows/tests.yml)): on every push, and once a day because new rounds go into the Google Sheet without a commit. GitHub sends an email when they fail. They can also be started by hand with "Run workflow" on the Actions tab.
 
 A failing test says which line or layout to fix, e.g. `Discgolfpark Herzogenrath (Main): played, but missing in hole_lengths.csv (add a line with 8 lengths)`.
+
+## License
+
+The code in this repository is licensed under the [MIT License](LICENSE). It is based on the [Start Bootstrap Freelancer](https://startbootstrap.com/theme/freelancer) template and [Bootstrap](https://getbootstrap.com/), both also under the MIT License; their copyright notices are kept in the files that contain their code.
+
+**Not covered by this license:** the contents of [discgolfstats/course_data/](discgolfstats/course_data/) (hole lengths, isomorphic holes, course coordinates and standard layouts). This data comes from [UDisc](https://udisc.com/), so no rights to it are granted here. If you fork this project, replace it with your own data. The match data in the Google Sheet is not part of this repository or the license either.
