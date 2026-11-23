@@ -1358,8 +1358,8 @@ class StatsTable {
     };
   }
 
-  // one bar per day: green = disc golf weather, blue = rain, amber = wind, split = both,
-  // light green = other daylight (a gap under 90 minutes), empty = dark;
+  // one bar per day: dark gray = disc golf weather, blue = rain, amber = wind, split = both,
+  // light gray = other daylight (a gap under 90 minutes), empty = dark;
   // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days;
   // a red line marks the current quarter hour on today's bar, if within the shown hours
   getWeekWeatherString(steps, nextStart = null) {
