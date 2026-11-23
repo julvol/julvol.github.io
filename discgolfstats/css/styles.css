@@ -8313,6 +8313,14 @@ textarea.form-control-lg {
   border-radius: 2px;
   box-shadow: inset 0 0 0 2px #212529;
 }
+/* the current time, only while it is no disc golf weather */
+.week-weather-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e03131;
+}
 .week-weather-legend {
   display: flex;
   flex-wrap: wrap;
@@ -8333,6 +8341,10 @@ textarea.form-control-lg {
   width: 0.9rem;
   height: 0.65rem;
   border-radius: 2px;
+}
+
+.week-weather-swatch.week-weather-now {
+  width: 2px;
 }
 
 /* comment of a match from the sheet (row below the players), keeps its line breaks */

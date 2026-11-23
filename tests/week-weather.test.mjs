@@ -119,6 +119,25 @@ test("week weather: the next disc golf weather gets a box, if within the 4 days"
   });
 });
 
+test("week weather: red line for now only if asked for and within the shown hours", () => {
+  const table = loadStatsTable();
+  const steps = makeSteps();
+  const marked = table.getWeekWeatherString(steps, null, true);
+  assert.equal(marked.match(/week-weather-now" style="left: 22\.22%"/g).length, 1);
+  assert.ok(marked.includes(">Jetzt<"));
+
+  const unmarked = table.getWeekWeatherString(steps);
+  assert.ok(!unmarked.includes("week-weather-now"));
+  assert.ok(!unmarked.includes(">Jetzt<"));
+
+  const beforeSunrise = makeSteps();
+  beforeSunrise.time[0] = "2026-11-23T07:00";
+  beforeSunrise.is_day[0] = 0;
+  const outside = table.getWeekWeatherString(beforeSunrise, null, true);
+  assert.ok(!outside.includes("week-weather-now"));
+  assert.ok(!outside.includes(">Jetzt<"));
+});
+
 test("week weather: nothing to show without daylight", () => {
   const steps = makeSteps();
   steps.is_day = steps.is_day.map(() => 0);
