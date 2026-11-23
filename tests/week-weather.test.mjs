@@ -102,6 +102,23 @@ test("week weather: fine weather shorter than 90 minutes is not disc golf weathe
   assert.match(loadStatsTable().getWeekWeatherString(steps), /kein Disc Golf-Wetter/);
 });
 
+test("week weather: the next disc golf weather gets a box, if within the 4 days", () => {
+  const table = loadStatsTable();
+  const steps = makeSteps();
+  const boxed = table.getWeekWeatherString(
+    steps,
+    steps.time.indexOf("2026-11-24T10:00"),
+  );
+  assert.match(boxed, /week-weather-next-box" style="left: 22\.22%; width: 16\.67%"/);
+  assert.ok(boxed.includes("Nächstes Disc Golf-Wetter"));
+
+  [undefined, steps.time.indexOf("2026-11-28T10:00")].forEach((start) => {
+    const html = table.getWeekWeatherString(steps, start);
+    assert.ok(!html.includes("week-weather-next-box"));
+    assert.ok(!html.includes("Nächstes Disc Golf-Wetter"));
+  });
+});
+
 test("week weather: nothing to show without daylight", () => {
   const steps = makeSteps();
   steps.is_day = steps.is_day.map(() => 0);

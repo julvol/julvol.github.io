@@ -1156,11 +1156,11 @@ class StatsTable {
     const week = item.nextElementSibling;
     const next = week?.nextElementSibling;
     if (!next) return;
-    week.innerHTML = this.getWeekWeatherString(steps);
     // only daylight is disc golf weather
     const isDaylight = (start) =>
       steps.is_day?.slice(start, start + SPAN).every((d) => d === 1) ?? false;
     if (isDaylight(0) && this.isDiscGolfWeather(now)) {
+      week.innerHTML = this.getWeekWeatherString(steps);
       next.replaceChildren();
       return;
     }
@@ -1174,6 +1174,7 @@ class StatsTable {
         break;
       }
     }
+    week.innerHTML = this.getWeekWeatherString(steps, found?.start);
     const heading = document.createElement("h5");
     heading.textContent = "Nächstes Disc Golf-Wetter";
     const text = document.createElement("p");
@@ -1324,11 +1325,19 @@ class StatsTable {
   }
 
   // one bar per day: green = disc golf weather, blue = rain, amber = wind, split = both,
-  // gray = other daylight (a gap under 90 minutes), empty = dark or already over
-  getWeekWeatherString(steps) {
+  // gray = other daylight (a gap under 90 minutes), empty = dark or already over;
+  // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days
+  getWeekWeatherString(steps, nextStart = null) {
     const week = this.getDiscGolfWeek(steps);
     if (!week) return "";
     const { from, to } = week;
+    const nextTime = nextStart === null ? undefined : steps.time[nextStart];
+    const nextDate = nextTime?.slice(0, 10);
+    const nextMinute =
+      Number(nextTime?.slice(11, 13)) * 60 + Number(nextTime?.slice(14, 16));
+    const nextBox = week.days.some((day) => day.date === nextDate)
+      ? { date: nextDate, from: nextMinute, to: nextMinute + 90 }
+      : null;
     const percent = (minute) =>
       (((minute - from) / (to - from)) * 100).toFixed(2);
     const run = (className, r) =>
@@ -1339,12 +1348,14 @@ class StatsTable {
     // the legend only lists what the bars show (empty parts need no explanation)
     const minutes = (runs) => runs.reduce((sum, r) => sum + r.to - r.from, 0);
     const isShown = (kind) =>
-      week.days.some((day) =>
-        kind === "daylight"
-          ? minutes(day.daylight) >
-            minutes([...day.good, ...day.rain, ...day.wind, ...day.both])
-          : day[kind].length > 0,
-      );
+      kind === "next-box"
+        ? nextBox !== null
+        : week.days.some((day) =>
+            kind === "daylight"
+              ? minutes(day.daylight) >
+                minutes([...day.good, ...day.rain, ...day.wind, ...day.both])
+              : day[kind].length > 0,
+          );
 
     const everyHours = to - from > 12 * 60 ? 3 : 2;
     const ticks = [];
@@ -1370,6 +1381,7 @@ class StatsTable {
                         )
                         .join("")}
                       ${ticks.map((hour) => `<span class="week-weather-tick" style="left: ${percent(hour * 60)}%"></span>`).join("")}
+                      ${nextBox?.date === day.date ? run("week-weather-next-box", nextBox) : ""}
                     </div>
                   </div>`;
     });
@@ -1389,6 +1401,7 @@ class StatsTable {
                       ["wind", "Wind"],
                       ["both", "Regen + Wind"],
                       ["daylight", "Lücke unter 90 Min."],
+                      ["next-box", "Nächstes Disc Golf-Wetter"],
                     ]
                       .filter(([kind]) => isShown(kind))
                       .map(
