@@ -1359,7 +1359,7 @@ class StatsTable {
     };
   }
 
-  // one bar per day: light gray = disc golf weather, blue = rain, amber = wind, split = both,
+  // one bar per day: light gray with a hint of green = disc golf weather, blue = rain, amber = wind, split = both,
   // dark gray = other daylight (a gap under 90 minutes), empty = dark;
   // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days;
   // a red line marks the current quarter hour on today's bar, if within the shown hours
