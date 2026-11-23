@@ -91,7 +91,7 @@ class StatsTable {
   }
 
   fetchAndRenderData(url, cacheKey, renderFunction) {
-    fetch(url)
+    return fetch(url)
       .then((res) => res.text())
       .then((rep) => JSON.parse(rep.substr(47).slice(0, -2)))
       .then(
@@ -105,11 +105,11 @@ class StatsTable {
           localStorage.setItem(cacheKey, JSON.stringify(cacheData));
 
           // Rendere die Tabelle mit den Daten
-          renderFunction(jsonData);
+          return renderFunction(jsonData);
         },
         (error) => {
           console.error("Fehler beim Abrufen der Daten: ", error);
-          this.renderLastData(cacheKey, renderFunction);
+          return this.renderLastData(cacheKey, renderFunction);
         },
       );
   }
@@ -4195,7 +4195,7 @@ class StatsTable {
       this.renderStats(cachedData);
     } else {
       // Lade die Daten aus dem Google Sheet
-      this.fetchAndRenderData(
+      return this.fetchAndRenderData(
         this.getURL(this.range),
         this.cacheKeyTable,
         this.renderStats.bind(this),
@@ -4270,12 +4270,48 @@ class StatsTable {
     this.isomorphHoles = [...groups.values()];
   }
 
+  // resolves after the browser has drawn the current state of the page; the timeout is
+  // for background tabs, which draw nothing
+  waitForPaint() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => setTimeout(resolve));
+      setTimeout(resolve, 100);
+    });
+  }
+
+  // Font Awesome turns the icons of the new content into SVGs after it was built, which
+  // also blocks the page for a moment; at most 3 seconds, and nothing to wait for without it
+  waitForIcons() {
+    return Promise.race([
+      window.FontAwesome?.dom?.i2svg?.(),
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]);
+  }
+
+  // fades out the loading screen of index.html
+  hideLoadingScreen() {
+    const screen = document.getElementById("statsLoading");
+    if (!screen) return;
+    screen.classList.add("stats-loading-done");
+    setTimeout(() => screen.remove(), 300);
+  }
+
   async initialize() {
+    // the loading screen has to be on screen before the page gets busy
+    await this.waitForPaint();
     try {
       await this.loadReferenceData();
     } catch (error) {
       console.error("Error while loading csv files: ", error);
     }
-    this.loadTableData();
+    try {
+      await this.loadTableData();
+      await this.waitForIcons();
+      await this.waitForPaint();
+    } catch (error) {
+      console.error("Error while building the page: ", error);
+    } finally {
+      this.hideLoadingScreen();
+    }
   }
 }

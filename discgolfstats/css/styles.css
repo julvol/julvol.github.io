@@ -11488,6 +11488,55 @@ html {
 .copyright a:hover {
   color: #e28e19;
 }
+/* loading screen while the page is built; the spinner only animates transform, so it
+   keeps turning while the page is busy. If the script never removes the screen (e.g. it
+   could not be loaded), it disappears by itself after 20 seconds. */
+.stats-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background-color: #fde1c7;
+  color: #50432c;
+  transition: opacity 0.25s ease;
+  animation: stats-loading-timeout 0s linear 20s forwards;
+}
+.stats-loading-done {
+  opacity: 0;
+  pointer-events: none;
+}
+.stats-loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 0.3rem solid rgba(80, 67, 44, 0.2);
+  border-top-color: #e28e19;
+  border-radius: 50%;
+  will-change: transform;
+  animation: stats-loading-spin 0.8s linear infinite;
+}
+@keyframes stats-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes stats-loading-timeout {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stats-loading {
+    transition: none;
+  }
+  .stats-loading-spinner {
+    animation-duration: 2s;
+  }
+}
 /* score history: line chart of a player's completed rounds on one layout (see renderScoreHistory) */
 .score-history-chart {
   position: relative;

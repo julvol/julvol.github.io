@@ -193,6 +193,32 @@ test("week weather: today's bar also shows the time since sunrise", () => {
   );
 });
 
+test("loading screen: goes away after loading, also if building the page fails", async () => {
+  const run = async (loadTableData) => {
+    const table = loadStatsTable();
+    let hidden = 0;
+    table.waitForPaint = async () => {};
+    table.waitForIcons = async () => {};
+    table.loadReferenceData = async () => {
+      throw new Error("no csv");
+    };
+    table.loadTableData = loadTableData;
+    table.hideLoadingScreen = () => hidden++;
+    const consoleError = console.error;
+    console.error = () => {};
+    await table.initialize();
+    console.error = consoleError;
+    return hidden;
+  };
+  assert.equal(await run(async () => {}), 1);
+  assert.equal(
+    await run(() => {
+      throw new Error("render failed");
+    }),
+    1,
+  );
+});
+
 test("week weather: nothing to show without daylight", () => {
   const steps = makeSteps();
   steps.is_day = steps.is_day.map(() => 0);
