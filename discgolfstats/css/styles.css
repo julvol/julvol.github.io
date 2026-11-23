@@ -8274,10 +8274,10 @@ textarea.form-control-lg {
   bottom: 0;
 }
 .week-weather-daylight {
-  background-color: #ced4da;
+  background-color: #6c757d;
 }
 .week-weather-good {
-  background-color: #6c757d;
+  background-color: #ced4da;
 }
 .week-weather-tick {
   width: 1px;
