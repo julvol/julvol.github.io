@@ -8274,7 +8274,12 @@ textarea.form-control-lg {
   bottom: 0;
 }
 .week-weather-daylight {
-  background-color: #6c757d;
+  /* diagonal stripes: fine weather, but too short */
+  background: repeating-linear-gradient(
+    45deg,
+    #6c757d 0 2px,
+    #ccd9d0 2px 5px
+  );
 }
 .week-weather-good {
   background-color: #ccd9d0;
