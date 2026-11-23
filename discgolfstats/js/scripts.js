@@ -1209,7 +1209,7 @@ class StatsTable {
     }
     week.innerHTML = this.getWeekWeatherString(steps, found?.start);
     const heading = document.createElement("h5");
-    heading.textContent = "Nächstes Disc Golf-Wetter";
+    heading.textContent = "Nächstes Disc Golf-Wetter™";
     const text = document.createElement("p");
     if (found)
       text.replaceChildren(
@@ -1413,7 +1413,7 @@ class StatsTable {
     const rows = week.days.map((day) => {
       const windows = day.good.length
         ? day.good.map((r) => `${clock(r.from)} bis ${clock(r.to)} Uhr`).join(", ")
-        : "kein Disc Golf-Wetter";
+        : "kein Disc Golf-Wetter™";
       const parts = [
         ["daylight", day.gap],
         ["good", day.good],
@@ -1453,12 +1453,12 @@ class StatsTable {
                   </div>${rows.join("")}
                   <div class="week-weather-legend">
                     ${[
-                      ["good", "Disc Golf-Wetter"],
+                      ["good", "Disc Golf-Wetter™"],
                       ["rain", "Regen"],
                       ["wind", "Wind"],
                       ["both", "Regen + Wind"],
                       ["daylight", "Lücke unter 90 Min."],
-                      ["next-box", "Nächstes Disc Golf-Wetter"],
+                      ["next-box", "Nächstes Disc Golf-Wetter™"],
                       ["now", "Jetzt"],
                     ]
                       .filter(([kind]) => isShown(kind))

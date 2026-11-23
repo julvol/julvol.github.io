@@ -72,14 +72,14 @@ test("week weather: the legend only lists what the bars show", () => {
         .matchAll(/<\/span>([^<]+)<\/span>/g),
     ].map((entry) => entry[1]);
 
-  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter", "Jetzt"]);
+  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter™", "Jetzt"]);
 
   const windAndRain = makeSteps();
   const step = windAndRain.time.indexOf("2026-11-26T12:00");
   windAndRain.wind_gusts_10m[step] = 50;
   windAndRain.precipitation[step] = 0.5;
   assert.deepEqual(legend(windAndRain), [
-    "Disc Golf-Wetter",
+    "Disc Golf-Wetter™",
     "Wind",
     "Regen + Wind",
     "Jetzt",
@@ -119,7 +119,7 @@ test("week weather: fine weather shorter than 90 minutes is not disc golf weathe
   });
   const week = plain(loadStatsTable().getDiscGolfWeek(steps));
   assert.deepEqual(week.days[2].good, []);
-  assert.match(loadStatsTable().getWeekWeatherString(steps), /kein Disc Golf-Wetter/);
+  assert.match(loadStatsTable().getWeekWeatherString(steps), /kein Disc Golf-Wetter™/);
 });
 
 test("week weather: the next disc golf weather gets a box, if within the 4 days", () => {
@@ -130,12 +130,12 @@ test("week weather: the next disc golf weather gets a box, if within the 4 days"
     steps.time.indexOf("2026-11-24T10:00"),
   );
   assert.match(boxed, /week-weather-next-box" style="left: 22\.22%; width: 16\.67%"/);
-  assert.ok(boxed.includes("Nächstes Disc Golf-Wetter"));
+  assert.ok(boxed.includes("Nächstes Disc Golf-Wetter™"));
 
   [undefined, steps.time.indexOf("2026-11-28T10:00")].forEach((start) => {
     const html = table.getWeekWeatherString(steps, start);
     assert.ok(!html.includes("week-weather-next-box"));
-    assert.ok(!html.includes("Nächstes Disc Golf-Wetter"));
+    assert.ok(!html.includes("Nächstes Disc Golf-Wetter™"));
   });
 });
 
