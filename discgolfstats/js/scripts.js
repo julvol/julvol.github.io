@@ -1328,6 +1328,7 @@ class StatsTable {
           rain: [],
           wind: [],
           both: [],
+          gap: [],
         });
       }
       const day = days[days.length - 1];
@@ -1341,12 +1342,12 @@ class StatsTable {
       }
       // this quarter hour alone: from its start to its end
       const weather = this.getWeatherOfSteps(steps, i, 2);
-      if (!weather) continue;
-      const rainy = this.isRainy(weather);
-      const windy = this.isWindy(weather);
+      const rainy = weather && this.isRainy(weather);
+      const windy = weather && this.isWindy(weather);
       if (rainy && windy) addRun(day.both, minute);
       else if (rainy) addRun(day.rain, minute);
       else if (windy) addRun(day.wind, minute);
+      else addRun(day.gap, minute);
     }
 
     const daylight = days.flatMap((day) => day.daylight);
@@ -1382,23 +1383,22 @@ class StatsTable {
     const showNow = nowMinute >= from && nowMinute < to;
     const percent = (minute) =>
       (((minute - from) / (to - from)) * 100).toFixed(2);
-    const run = (className, r) =>
-      `<span class="${className}" style="left: ${percent(r.from)}%; width: ${(((r.to - r.from) / (to - from)) * 100).toFixed(2)}%"></span>`;
+    // overlap: 1px further, under the next part, so no hairline shows between the two
+    const run = (className, r, overlap = false) => {
+      const width = (((r.to - r.from) / (to - from)) * 100).toFixed(2);
+      return `<span class="${className}" style="left: ${percent(r.from)}%; width: ${overlap ? `calc(${width}% + 1px)` : `${width}%`}"></span>`;
+    };
     const clock = (minute) =>
       `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
     // the legend only lists what the bars show (empty parts need no explanation)
-    const minutes = (runs) => runs.reduce((sum, r) => sum + r.to - r.from, 0);
     const isShown = (kind) =>
       kind === "now"
         ? showNow
         : kind === "next-box"
         ? nextBox !== null
-        : week.days.some((day) =>
-            kind === "daylight"
-              ? minutes(day.daylight) >
-                minutes([...day.good, ...day.rain, ...day.wind, ...day.both])
-              : day[kind].length > 0,
+        : week.days.some(
+            (day) => day[kind === "daylight" ? "gap" : kind].length > 0,
           );
 
     const everyHours = to - from > 12 * 60 ? 3 : 2;
@@ -1414,14 +1414,26 @@ class StatsTable {
       const windows = day.good.length
         ? day.good.map((r) => `${clock(r.from)} bis ${clock(r.to)} Uhr`).join(", ")
         : "kein Disc Golf-Wetter";
+      const parts = [
+        ["daylight", day.gap],
+        ["good", day.good],
+        ["rain", day.rain],
+        ["wind", day.wind],
+        ["both", day.both],
+      ]
+        .flatMap(([kind, runs]) => runs.map((r) => ({ ...r, kind })))
+        .sort((a, b) => a.from - b.from);
       return `
                   <div class="week-weather-row">
                     <span class="week-weather-label">${day.label}</span>
                     <div class="week-weather-bar" role="img" title="${windows}" aria-label="${day.label}: ${windows}">
-                      ${day.daylight.map((r) => run("week-weather-daylight", r)).join("")}
-                      ${["good", "rain", "wind", "both"]
-                        .flatMap((kind) =>
-                          day[kind].map((r) => run(`week-weather-${kind}`, r)),
+                      ${parts
+                        .map((r, i) =>
+                          run(
+                            `week-weather-${r.kind}`,
+                            r,
+                            parts[i + 1]?.from === r.to,
+                          ),
                         )
                         .join("")}
                       ${ticks.map((hour) => `<span class="week-weather-tick" style="left: ${percent(hour * 60)}%"></span>`).join("")}

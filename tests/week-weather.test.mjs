@@ -92,6 +92,25 @@ test("week weather: the legend only lists what the bars show", () => {
   assert.ok(legend(gap).includes("Lücke unter 90 Min."));
 });
 
+test("week weather: the gap color is only drawn for real gaps, without hairlines", () => {
+  const table = loadStatsTable();
+  const steps = makeSteps();
+  steps.wind_gusts_10m[steps.time.indexOf("2026-11-26T12:00")] = 50;
+  const week = plain(table.getDiscGolfWeek(steps));
+  assert.ok(week.days.every((day) => day.gap.length === 0));
+  const html = table.getWeekWeatherString(steps);
+  assert.ok(!html.includes("week-weather-daylight"));
+  // disc golf weather reaches 1px under the wind that follows it
+  assert.match(html, /week-weather-good" style="left: \d+\.\d+%; width: calc\(\d+\.\d+% \+ 1px\)"/);
+
+  const gap = makeSteps();
+  gap.wind_gusts_10m[gap.time.indexOf("2026-11-25T12:00")] = 50;
+  gap.wind_gusts_10m[gap.time.indexOf("2026-11-25T12:45")] = 50;
+  assert.deepEqual(plain(table.getDiscGolfWeek(gap)).days[2].gap, [
+    { from: 735, to: 750 },
+  ]);
+});
+
 test("week weather: fine weather shorter than 90 minutes is not disc golf weather", () => {
   const steps = makeSteps();
   steps.time.forEach((t, i) => {
