@@ -8208,6 +8208,7 @@ textarea.form-control-lg {
 :root {
   --weather-rain: #1971c2;
   --weather-wind: #f59f00;
+  --weather-strong-wind: #8f3f00;
 }
 .weather-badge {
   font-size: 0.7rem;
@@ -8291,7 +8292,9 @@ textarea.form-control-lg {
 
 .week-weather-rain,
 .week-weather-wind,
-.week-weather-both {
+.week-weather-strong-wind,
+.week-weather-both,
+.week-weather-both-strong {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -8309,6 +8312,27 @@ textarea.form-control-lg {
     var(--weather-rain) 50%,
     var(--weather-wind) 50%
   );
+}
+/* gusts over 45 km/h: brown stripes on the wind color */
+.week-weather-strong-wind {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--weather-strong-wind) 0 2px,
+    var(--weather-wind) 2px 5px
+  );
+}
+/* rain above, strong wind below */
+.week-weather-both-strong {
+  background: linear-gradient(
+      to bottom,
+      var(--weather-rain) 50%,
+      transparent 50%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      var(--weather-strong-wind) 0 2px,
+      var(--weather-wind) 2px 5px
+    );
 }
 /* the 90 minutes of "Nächstes Disc Golf-Wetter" */
 .week-weather-next-box {

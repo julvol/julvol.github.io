@@ -1264,6 +1264,10 @@ class StatsTable {
     return (gusts ?? 0) > 30;
   }
 
+  isStrongWind({ gusts }) {
+    return (gusts ?? 0) > 45;
+  }
+
   // the 90 minutes from step start on in the local time of the course, e.g. "17:30 bis 19:00 Uhr",
   // with "morgen " / "Fr. 20.11. " in front if they are not today
   getWeatherTimeSpan(steps, start, count) {
@@ -1327,7 +1331,9 @@ class StatsTable {
           good: [],
           rain: [],
           wind: [],
+          strongWind: [],
           both: [],
+          bothStrong: [],
           gap: [],
         });
       }
@@ -1344,9 +1350,10 @@ class StatsTable {
       const weather = this.getWeatherOfSteps(steps, i, 2);
       const rainy = weather && this.isRainy(weather);
       const windy = weather && this.isWindy(weather);
-      if (rainy && windy) addRun(day.both, minute);
+      const strong = weather && this.isStrongWind(weather);
+      if (rainy && windy) addRun(strong ? day.bothStrong : day.both, minute);
       else if (rainy) addRun(day.rain, minute);
-      else if (windy) addRun(day.wind, minute);
+      else if (windy) addRun(strong ? day.strongWind : day.wind, minute);
       else addRun(day.gap, minute);
     }
 
@@ -1359,8 +1366,9 @@ class StatsTable {
     };
   }
 
-  // one bar per day: light gray with a hint of green = disc golf weather, blue = rain, amber = wind, split = both,
-  // diagonal stripes = other daylight (a gap under 90 minutes), empty = dark;
+  // one bar per day: light gray with a hint of green = disc golf weather, blue = rain, amber = wind,
+  // amber with brown stripes = strong wind, split = rain and wind,
+  // gray diagonal stripes = other daylight (a gap under 90 minutes), empty = dark;
   // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days;
   // a red line marks the current quarter hour on today's bar, if within the shown hours
   getWeekWeatherString(steps, nextStart = null) {
@@ -1392,14 +1400,17 @@ class StatsTable {
       `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
     // the legend only lists what the bars show (empty parts need no explanation)
+    const runsOfKind = {
+      daylight: "gap",
+      "strong-wind": "strongWind",
+      "both-strong": "bothStrong",
+    };
     const isShown = (kind) =>
       kind === "now"
         ? showNow
         : kind === "next-box"
         ? nextBox !== null
-        : week.days.some(
-            (day) => day[kind === "daylight" ? "gap" : kind].length > 0,
-          );
+        : week.days.some((day) => day[runsOfKind[kind] ?? kind].length > 0);
 
     const everyHours = to - from > 12 * 60 ? 3 : 2;
     const ticks = [];
@@ -1419,7 +1430,9 @@ class StatsTable {
         ["good", day.good],
         ["rain", day.rain],
         ["wind", day.wind],
+        ["strong-wind", day.strongWind],
         ["both", day.both],
+        ["both-strong", day.bothStrong],
       ]
         .flatMap(([kind, runs]) => runs.map((r) => ({ ...r, kind })))
         .sort((a, b) => a.from - b.from);
@@ -1455,8 +1468,10 @@ class StatsTable {
                     ${[
                       ["good", "Disc Golf-Wetter™"],
                       ["rain", "Regen"],
-                      ["wind", "Wind"],
-                      ["both", "Regen + Wind"],
+                      ["wind", "Windböen >30km/h"],
+                      ["strong-wind", "Windböen >45km/h"],
+                      ["both", "Regen + Windböen >30km/h"],
+                      ["both-strong", "Regen + Windböen >45km/h"],
                       ["daylight", "Lücke unter 90 Min."],
                       ["next-box", "Nächstes Disc Golf-Wetter™"],
                       ["now", "Jetzt"],

@@ -53,13 +53,37 @@ test("week weather: rain interrupts the disc golf weather", () => {
 test("week weather: wind, and rain with wind, get their own runs", () => {
   const steps = makeSteps();
   const step = steps.time.indexOf("2026-11-26T12:00");
-  steps.wind_gusts_10m[step] = 50;
+  steps.wind_gusts_10m[step] = 40;
   steps.precipitation[step] = 0.5; // the 15 minutes before 12:00
   const table = loadStatsTable();
   const day = plain(table.getDiscGolfWeek(steps)).days[3];
   assert.deepEqual(day.both, [{ from: 705, to: 720 }]);
   assert.deepEqual(day.wind, [{ from: 720, to: 735 }]);
   assert.deepEqual(day.rain, []);
+  assert.deepEqual(day.strongWind, []);
+  assert.deepEqual(day.bothStrong, []);
+});
+
+test("week weather: gusts over 45 km/h are strong wind, exactly 45 is not", () => {
+  const table = loadStatsTable();
+  const steps = makeSteps();
+  const step = steps.time.indexOf("2026-11-26T12:00");
+  steps.wind_gusts_10m[step] = 46;
+  steps.precipitation[step] = 0.5;
+  const day = plain(table.getDiscGolfWeek(steps)).days[3];
+  assert.deepEqual(day.bothStrong, [{ from: 705, to: 720 }]);
+  assert.deepEqual(day.strongWind, [{ from: 720, to: 735 }]);
+  assert.deepEqual(day.both, []);
+  assert.deepEqual(day.wind, []);
+  const html = table.getWeekWeatherString(steps);
+  assert.ok(html.includes(">Windböen >45km/h<"));
+  assert.ok(html.includes(">Regen + Windböen >45km/h<"));
+  assert.ok(!html.includes(">Windböen >30km/h<"));
+
+  steps.wind_gusts_10m[step] = 45;
+  const limit = plain(table.getDiscGolfWeek(steps)).days[3];
+  assert.deepEqual(limit.strongWind, []);
+  assert.deepEqual(limit.wind, [{ from: 720, to: 735 }]);
 });
 
 test("week weather: the legend only lists what the bars show", () => {
@@ -76,12 +100,12 @@ test("week weather: the legend only lists what the bars show", () => {
 
   const windAndRain = makeSteps();
   const step = windAndRain.time.indexOf("2026-11-26T12:00");
-  windAndRain.wind_gusts_10m[step] = 50;
+  windAndRain.wind_gusts_10m[step] = 40;
   windAndRain.precipitation[step] = 0.5;
   assert.deepEqual(legend(windAndRain), [
     "Disc Golf-Wetter™",
-    "Wind",
-    "Regen + Wind",
+    "Windböen >30km/h",
+    "Regen + Windböen >30km/h",
     "Jetzt",
   ]);
 
