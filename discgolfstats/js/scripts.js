@@ -1118,15 +1118,18 @@ class StatsTable {
   }
 
   // the forecasts of these courses (.course-weather elements) in one request: 15-minute steps
-  // from the current quarter hour on, for the next 7 days, in the order of the items
+  // from the current quarter hour on, for the next 7 days, in the order of the items;
+  // the steps of today before that are in earlierToday (for the bar of today)
   async loadCourseForecasts(items) {
     const DAYS = 7;
+    const PAST_STEPS = 96; // one day, so it always reaches back to midnight
     const params = new URLSearchParams({
       // several places: comma separated, the answer is then a list in the same order
       latitude: items.map((item) => item.dataset.latitude).join(","),
       longitude: items.map((item) => item.dataset.longitude).join(","),
       minutely_15:
         "temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
+      past_minutely_15: String(PAST_STEPS),
       forecast_minutely_15: String(DAYS * 96),
       timezone: "auto",
     });
@@ -1136,7 +1139,37 @@ class StatsTable {
     if (!response.ok) throw new Error(`Open-Meteo: HTTP ${response.status}`);
     const data = await response.json();
     // one place: a single object instead of a list
-    return (Array.isArray(data) ? data : [data]).map((place) => place.minutely_15);
+    return (Array.isArray(data) ? data : [data]).map((place) =>
+      this.splitEarlierSteps(place.minutely_15, PAST_STEPS),
+    );
+  }
+
+  // steps with pastCount steps in front: the steps from now on, with today's earlier ones
+  // in earlierToday
+  splitEarlierSteps(steps, pastCount) {
+    const today = steps?.time?.[pastCount]?.slice(0, 10);
+    if (!today) return steps;
+    const part = (from, to) =>
+      Object.fromEntries(
+        Object.entries(steps).map(([name, values]) => [
+          name,
+          values.slice(from, to),
+        ]),
+      );
+    const midnight = steps.time.findIndex((time) => time.startsWith(today));
+    return { ...part(pastCount), earlierToday: part(midnight, pastCount) };
+  }
+
+  // the steps from now on with today's earlier ones in front
+  getStepsOfWholeToday(steps) {
+    const earlier = steps.earlierToday;
+    if (!earlier?.time.length) return steps;
+    return Object.fromEntries(
+      Object.keys(earlier).map((name) => [
+        name,
+        [...earlier[name], ...steps[name]],
+      ]),
+    );
   }
 
   showCurrentWeather(item, steps) {
@@ -1174,7 +1207,7 @@ class StatsTable {
         break;
       }
     }
-    week.innerHTML = this.getWeekWeatherString(steps, found?.start, true);
+    week.innerHTML = this.getWeekWeatherString(steps, found?.start);
     const heading = document.createElement("h5");
     heading.textContent = "Nächstes Disc Golf-Wetter";
     const text = document.createElement("p");
@@ -1261,9 +1294,10 @@ class StatsTable {
   // the disc golf weather as runs of minutes after midnight. A quarter hour counts as disc
   // golf weather if it lies in 90 minutes that are (same rule as "Nächstes Disc Golf-Wetter").
   // from / to: the common time axis in full hours; null if there is no daylight at all.
-  getDiscGolfWeek(steps) {
+  getDiscGolfWeek(stepsFromNow) {
     const SPAN = 7; // 7 steps cover 90 minutes
     const DAYS = 4;
+    const steps = this.getStepsOfWholeToday(stepsFromNow);
     const times = steps.time;
     const good = new Array(times.length).fill(false);
     for (let start = 0; start + SPAN <= times.length; start++) {
@@ -1325,10 +1359,10 @@ class StatsTable {
   }
 
   // one bar per day: green = disc golf weather, blue = rain, amber = wind, split = both,
-  // gray = other daylight (a gap under 90 minutes), empty = dark or already over;
+  // gray = other daylight (a gap under 90 minutes), empty = dark;
   // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days;
-  // markNow: red line at the current quarter hour on today's bar, if within the shown hours
-  getWeekWeatherString(steps, nextStart = null, markNow = false) {
+  // a red line marks the current quarter hour on today's bar, if within the shown hours
+  getWeekWeatherString(steps, nextStart = null) {
     const week = this.getDiscGolfWeek(steps);
     if (!week) return "";
     const { from, to } = week;
@@ -1345,7 +1379,7 @@ class StatsTable {
           }
         : null;
     const nowMinute = minuteOf(steps.time[0]);
-    const showNow = markNow && nowMinute >= from && nowMinute < to;
+    const showNow = nowMinute >= from && nowMinute < to;
     const percent = (minute) =>
       (((minute - from) / (to - from)) * 100).toFixed(2);
     const run = (className, r) =>
