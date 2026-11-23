@@ -8204,20 +8204,30 @@ textarea.form-control-lg {
 }
 
 /* "Regen" / "Wind" on a course name: the next 90 minutes are no disc golf weather */
+/* shared by the tags on the course names and the 4-day weather */
+:root {
+  --weather-rain: #1971c2;
+  --weather-wind: #f59f00;
+}
 .weather-badge {
   font-size: 0.7rem;
   vertical-align: middle;
   margin-left: 0.5rem;
   color: #ffffff;
-  background-color: #dc3545;
+}
+.weather-badge-rain {
+  background-color: var(--weather-rain);
+}
+.weather-badge-wind {
+  color: #212529;
+  background-color: var(--weather-wind);
 }
 .weather-badge + .weather-badge {
   margin-left: 0.25rem;
 }
-/* "Dämmerung": it gets dark during the next 90 minutes (yellow like "Unranked") */
+/* "Dämmerung": it gets dark during the next 90 minutes */
 .weather-badge-dusk {
-  color: #212529;
-  background-color: #ffc107;
+  background-color: #6f42c1;
 }
 
 /* 4-day disc golf weather of a course (see getWeekWeatherString in scripts.js) */
@@ -8282,14 +8292,18 @@ textarea.form-control-lg {
   bottom: 0;
 }
 .week-weather-rain {
-  background-color: #1971c2;
+  background-color: var(--weather-rain);
 }
 .week-weather-wind {
-  background-color: #f59f00;
+  background-color: var(--weather-wind);
 }
 /* rain and wind: the bar split horizontally into both colors */
 .week-weather-both {
-  background: linear-gradient(to bottom, #1971c2 50%, #f59f00 50%);
+  background: linear-gradient(
+    to bottom,
+    var(--weather-rain) 50%,
+    var(--weather-wind) 50%
+  );
 }
 /* the 90 minutes of "Nächstes Disc Golf-Wetter" */
 .week-weather-next-box {

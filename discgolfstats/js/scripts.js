@@ -1081,8 +1081,8 @@ class StatsTable {
     });
   }
 
-  // red tags on the course name when the next 90 minutes are no disc golf weather because of
-  // rain or wind (see isDiscGolfWeather), a yellow one when it gets dark during them
+  // tags on the course name when the next 90 minutes are no disc golf weather because of
+  // rain (blue) or wind (amber), like in the 4-day weather, a violet one when it gets dark during them
   // ("Dämmerung": day at the start, night at the end; no tag if it is night already);
   // weather null: no tags
   setCourseWeatherTags(item, weather, dusk = false) {
@@ -1091,11 +1091,11 @@ class StatsTable {
       ?.querySelector(".course-weather-tags");
     if (!tags) return;
     const labels = [];
-    if (weather && this.isRainy(weather)) labels.push("Regen");
-    if (weather && this.isWindy(weather)) labels.push("Wind");
-    const tagElements = labels.map((label) => {
+    if (weather && this.isRainy(weather)) labels.push(["Regen", "rain"]);
+    if (weather && this.isWindy(weather)) labels.push(["Wind", "wind"]);
+    const tagElements = labels.map(([label, kind]) => {
       const tag = document.createElement("span");
-      tag.className = "badge weather-badge";
+      tag.className = `badge weather-badge weather-badge-${kind}`;
       tag.textContent = label;
       return tag;
     });
