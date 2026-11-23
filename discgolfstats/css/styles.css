@@ -11476,6 +11476,12 @@ html {
 .copyright {
   background-color: #1a252f;
 }
+.copyright a {
+  color: inherit;
+}
+.copyright a:hover {
+  color: #e28e19;
+}
 /* score history: line chart of a player's completed rounds on one layout (see renderScoreHistory) */
 .score-history-chart {
   position: relative;
