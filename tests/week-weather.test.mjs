@@ -77,7 +77,9 @@ test("week weather: gusts over 45 km/h are strong wind, exactly 45 is not", () =
   assert.deepEqual(day.wind, []);
   const html = table.getWeekWeatherString(steps);
   assert.ok(html.includes(">Windböen >45km/h<"));
-  assert.ok(html.includes(">Regen + Windböen >45km/h<"));
+  // rain with strong wind shares the one legend entry, with the plain swatch
+  assert.ok(html.includes('week-weather-swatch week-weather-both"></span>Regen + Windböen<'));
+  assert.ok(!html.includes("week-weather-swatch week-weather-both-strong"));
   assert.ok(!html.includes(">Windböen >30km/h<"));
 
   steps.wind_gusts_10m[step] = 45;
@@ -105,7 +107,7 @@ test("week weather: the legend only lists what the bars show", () => {
   assert.deepEqual(legend(windAndRain), [
     "Disc Golf-Wetter™",
     "Windböen >30km/h",
-    "Regen + Windböen >30km/h",
+    "Regen + Windböen",
     "Jetzt",
   ]);
 

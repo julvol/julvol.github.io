@@ -1401,16 +1401,19 @@ class StatsTable {
 
     // the legend only lists what the bars show (empty parts need no explanation)
     const runsOfKind = {
-      daylight: "gap",
-      "strong-wind": "strongWind",
-      "both-strong": "bothStrong",
+      daylight: ["gap"],
+      "strong-wind": ["strongWind"],
+      // one legend entry for rain with wind of either strength
+      both: ["both", "bothStrong"],
     };
     const isShown = (kind) =>
       kind === "now"
         ? showNow
         : kind === "next-box"
         ? nextBox !== null
-        : week.days.some((day) => day[runsOfKind[kind] ?? kind].length > 0);
+        : week.days.some((day) =>
+            (runsOfKind[kind] ?? [kind]).some((runs) => day[runs].length > 0),
+          );
 
     const everyHours = to - from > 12 * 60 ? 3 : 2;
     const ticks = [];
@@ -1470,8 +1473,7 @@ class StatsTable {
                       ["rain", "Regen"],
                       ["wind", "Windböen >30km/h"],
                       ["strong-wind", "Windböen >45km/h"],
-                      ["both", "Regen + Windböen >30km/h"],
-                      ["both-strong", "Regen + Windböen >45km/h"],
+                      ["both", "Regen + Windböen"],
                       ["daylight", "Lücke unter 90 Min."],
                       ["next-box", "Nächstes Disc Golf-Wetter™"],
                       ["now", "Jetzt"],
