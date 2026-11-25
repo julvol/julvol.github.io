@@ -287,7 +287,7 @@ test("week weather: the last day's daylight is marked under its bar", () => {
   const table = loadStatsTable();
   const html = table.getWeekWeatherString(makeSteps());
   assert.ok(html.includes('week-weather-daytime" style="left: 33.33%; width: 37.50%"'));
-  assert.ok(html.includes(">hell von 08:00 bis 17:00 Uhr<"));
+  assert.ok(html.includes('title="08:00 bis 17:00 Uhr">Tageslicht<'));
 
   const night = makeSteps();
   night.is_day = night.is_day.map((d, i) => (night.time[i].startsWith("2026-11-26") ? 0 : d));

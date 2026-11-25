@@ -1487,7 +1487,7 @@ class StatsTable {
                     <span class="week-weather-label"></span>
                     <div class="week-weather-daytime-axis">
                       ${run("week-weather-daytime", daytime)}
-                      <span class="week-weather-daytime-text" style="left: ${percent((daytime.from + daytime.to) / 2)}%">hell von ${clock(daytime.from)} bis ${clock(daytime.to)} Uhr</span>
+                      <span class="week-weather-daytime-text" style="left: ${percent((daytime.from + daytime.to) / 2)}%" title="${clock(daytime.from)} bis ${clock(daytime.to)} Uhr">Tageslicht</span>
                     </div>
                   </div>`
       : "";
