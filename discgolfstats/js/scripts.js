@@ -1294,10 +1294,11 @@ class StatsTable {
     return `${weekday} ${time.slice(8, 10)}.${time.slice(5, 7)}.`;
   }
 
-  // The next 4 calendar days from the steps that are loaded anyway: per day the daylight and
-  // the disc golf weather as runs of minutes after midnight. A quarter hour counts as disc
-  // golf weather if it lies in 90 minutes that are (same rule as "Nächstes Disc Golf-Wetter").
-  // from / to: the common time axis in full hours; null if there is no daylight at all.
+  // The next 4 calendar days from the steps that are loaded anyway: per day the daylight, the
+  // night and the weather as runs of minutes after midnight. A quarter hour counts as disc
+  // golf weather if it lies in 90 minutes that are (same rule as "Nächstes Disc Golf-Wetter"),
+  // so only in daylight; rain and wind are shown by night too.
+  // from / to: the time axis, the whole day; null if there are no steps.
   getDiscGolfWeek(stepsFromNow) {
     const SPAN = 7; // 7 steps cover 90 minutes
     const DAYS = 4;
@@ -1335,13 +1336,14 @@ class StatsTable {
           both: [],
           bothStrong: [],
           gap: [],
+          night: [],
         });
       }
       const day = days[days.length - 1];
       const minute =
         Number(times[i].slice(11, 13)) * 60 + Number(times[i].slice(14, 16));
-      if (steps.is_day?.[i] !== 1 || steps.is_day?.[i + 1] !== 1) continue;
-      addRun(day.daylight, minute);
+      const isDay = steps.is_day?.[i] === 1 && steps.is_day?.[i + 1] === 1;
+      addRun(isDay ? day.daylight : day.night, minute);
       if (good[i]) {
         addRun(day.good, minute);
         continue;
@@ -1354,21 +1356,18 @@ class StatsTable {
       if (rainy && windy) addRun(strong ? day.bothStrong : day.both, minute);
       else if (rainy) addRun(day.rain, minute);
       else if (windy) addRun(strong ? day.strongWind : day.wind, minute);
-      else addRun(day.gap, minute);
+      // fine night: only the night is drawn
+      else if (isDay) addRun(day.gap, minute);
     }
 
-    const daylight = days.flatMap((day) => day.daylight);
-    if (daylight.length === 0) return null;
-    return {
-      from: Math.floor(Math.min(...daylight.map((r) => r.from)) / 60) * 60,
-      to: Math.ceil(Math.max(...daylight.map((r) => r.to)) / 60) * 60,
-      days,
-    };
+    if (days.length === 0) return null;
+    return { from: 0, to: 24 * 60, days };
   }
 
   // one bar per day: light gray with a hint of green = disc golf weather, blue = rain, amber = wind,
   // amber with brown stripes = strong wind, split = rain and wind,
-  // gray diagonal stripes = other daylight (a gap under 90 minutes), empty = dark;
+  // gray diagonal stripes = other daylight (a gap under 90 minutes),
+  // dark blue with stars = night (stars also on rain and wind by night), empty = not forecast;
   // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days;
   // a red line marks the current quarter hour on today's bar, if within the shown hours
   getWeekWeatherString(steps, nextStart = null) {
@@ -1395,6 +1394,11 @@ class StatsTable {
     const run = (className, r, overlap = false) => {
       const width = (((r.to - r.from) / (to - from)) * 100).toFixed(2);
       return `<span class="${className}" style="left: ${percent(r.from)}%; width: ${overlap ? `calc(${width}% + 1px)` : `${width}%`}"></span>`;
+    };
+    // the night's color reaches 1px under the parts on both sides, which are drawn later
+    const nightRun = (r) => {
+      const width = (((r.to - r.from) / (to - from)) * 100).toFixed(2);
+      return `<span class="week-weather-night" style="left: calc(${percent(r.from)}% - 1px); width: calc(${width}% + 2px)"></span>`;
     };
     const clock = (minute) =>
       `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
@@ -1443,6 +1447,7 @@ class StatsTable {
                   <div class="week-weather-row">
                     <span class="week-weather-label">${day.label}</span>
                     <div class="week-weather-bar" role="img" title="${windows}" aria-label="${day.label}: ${windows}">
+                      ${day.night.map(nightRun).join("")}
                       ${parts
                         .map((r, i) =>
                           run(
@@ -1452,6 +1457,7 @@ class StatsTable {
                           ),
                         )
                         .join("")}
+                      ${day.night.map((r) => run("week-weather-stars", r)).join("")}
                       ${ticks.map((hour) => `<span class="week-weather-tick" style="left: ${percent(hour * 60)}%"></span>`).join("")}
                       ${nextBox?.date === day.date ? run("week-weather-next-box", nextBox) : ""}
                       ${showNow && day === week.days[0] ? `<span class="week-weather-now" style="left: ${percent(nowMinute)}%"></span>` : ""}
@@ -1475,13 +1481,14 @@ class StatsTable {
                       ["strong-wind", "Windböen >45km/h"],
                       ["both", "Regen + Windböen"],
                       ["daylight", "Lücke unter 90 Min."],
+                      ["night", "Nacht"],
                       ["next-box", "Nächstes Disc Golf-Wetter™"],
                       ["now", "Jetzt"],
                     ]
                       .filter(([kind]) => isShown(kind))
                       .map(
                         ([kind, text]) =>
-                          `<span class="week-weather-legend-entry"><span class="week-weather-swatch week-weather-${kind}"></span>${text}</span>`,
+                          `<span class="week-weather-legend-entry"><span class="week-weather-swatch week-weather-${kind}${kind === "night" ? " week-weather-stars" : ""}"></span>${text}</span>`,
                       )
                       .join("")}
                   </div>

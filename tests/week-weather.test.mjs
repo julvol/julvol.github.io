@@ -29,10 +29,34 @@ test("week weather: 4 calendar days, today only from now on", () => {
     week.days.map((day) => day.label),
     ["heute", "morgen", "Mi. 25.11.", "Do. 26.11."],
   );
-  assert.equal(week.from, 480);
-  assert.equal(week.to, 1020);
+  assert.equal(week.from, 0);
+  assert.equal(week.to, 1440);
   assert.deepEqual(week.days[0].daylight, [{ from: 600, to: 1020 }]);
   assert.deepEqual(week.days[0].good, [{ from: 600, to: 1020 }]);
+  assert.deepEqual(week.days[0].night, [{ from: 1020, to: 1440 }]);
+  assert.deepEqual(week.days[1].night, [
+    { from: 0, to: 480 },
+    { from: 1020, to: 1440 },
+  ]);
+});
+
+test("week weather: the whole day, rain and wind also by night, with stars", () => {
+  const table = loadStatsTable();
+  const steps = makeSteps();
+  // rain in the 15 minutes before Tuesday 03:00, gusts at 22:00 (they count for both quarter hours around it)
+  steps.precipitation[steps.time.indexOf("2026-11-24T03:00")] = 0.5;
+  steps.wind_gusts_10m[steps.time.indexOf("2026-11-24T22:00")] = 40;
+  const day = plain(table.getDiscGolfWeek(steps)).days[1];
+  assert.deepEqual(day.rain, [{ from: 165, to: 180 }]);
+  assert.deepEqual(day.wind, [{ from: 1305, to: 1335 }]);
+  // a fine night is no gap and no disc golf weather
+  assert.deepEqual(day.gap, []);
+  assert.deepEqual(day.good, [{ from: 480, to: 1020 }]);
+  const html = table.getWeekWeatherString(steps);
+  // the night's color reaches 1px under the parts on both sides, the stars lie exactly on it
+  assert.ok(html.includes('week-weather-night" style="left: calc(0.00% - 1px); width: calc(33.33% + 2px)"'));
+  assert.ok(html.includes('week-weather-stars" style="left: 0.00%; width: 33.33%"'));
+  assert.ok(html.includes('week-weather-swatch week-weather-night week-weather-stars"></span>Nacht<'));
 });
 
 test("week weather: rain interrupts the disc golf weather", () => {
@@ -98,7 +122,7 @@ test("week weather: the legend only lists what the bars show", () => {
         .matchAll(/<\/span>([^<]+)<\/span>/g),
     ].map((entry) => entry[1]);
 
-  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter™", "Jetzt"]);
+  assert.deepEqual(legend(makeSteps()), ["Disc Golf-Wetter™", "Nacht", "Jetzt"]);
 
   const windAndRain = makeSteps();
   const step = windAndRain.time.indexOf("2026-11-26T12:00");
@@ -108,6 +132,7 @@ test("week weather: the legend only lists what the bars show", () => {
     "Disc Golf-Wetter™",
     "Windböen >30km/h",
     "Regen + Windböen",
+    "Nacht",
     "Jetzt",
   ]);
 
@@ -155,7 +180,7 @@ test("week weather: the next disc golf weather gets a box, if within the 4 days"
     steps,
     steps.time.indexOf("2026-11-24T10:00"),
   );
-  assert.match(boxed, /week-weather-next-box" style="left: 22\.22%; width: 16\.67%"/);
+  assert.match(boxed, /week-weather-next-box" style="left: 41\.67%; width: 6\.25%"/);
   assert.ok(boxed.includes("Nächstes Disc Golf-Wetter™"));
 
   [undefined, steps.time.indexOf("2026-11-28T10:00")].forEach((start) => {
@@ -165,18 +190,17 @@ test("week weather: the next disc golf weather gets a box, if within the 4 days"
   });
 });
 
-test("week weather: red line for now, also in disc golf weather, if within the shown hours", () => {
+test("week weather: red line for now, also in disc golf weather and by night", () => {
   const table = loadStatsTable();
   const marked = table.getWeekWeatherString(makeSteps());
-  assert.equal(marked.match(/week-weather-now" style="left: 22\.22%"/g).length, 1);
+  assert.equal(marked.match(/week-weather-now" style="left: 41\.67%"/g).length, 1);
   assert.ok(marked.includes(">Jetzt<"));
 
   const beforeSunrise = makeSteps();
   beforeSunrise.time[0] = "2026-11-23T07:00";
   beforeSunrise.is_day[0] = 0;
-  const outside = table.getWeekWeatherString(beforeSunrise);
-  assert.ok(!outside.includes("week-weather-now"));
-  assert.ok(!outside.includes(">Jetzt<"));
+  const night = table.getWeekWeatherString(beforeSunrise);
+  assert.match(night, /week-weather-now" style="left: 29\.17%"/);
 });
 
 test("week weather: today's bar also shows the time since sunrise", () => {
@@ -215,7 +239,7 @@ test("week weather: today's bar also shows the time since sunrise", () => {
   assert.deepEqual(today.good, [{ from: 540, to: 1020 }]);
   assert.match(
     table.getWeekWeatherString(steps),
-    /week-weather-now" style="left: 22\.22%"/,
+    /week-weather-now" style="left: 41\.67%"/,
   );
 });
 
@@ -245,10 +269,14 @@ test("loading screen: goes away after loading, also if building the page fails",
   );
 });
 
-test("week weather: nothing to show without daylight", () => {
+test("week weather: without daylight only night, nothing to show without steps", () => {
   const steps = makeSteps();
   steps.is_day = steps.is_day.map(() => 0);
   const table = loadStatsTable();
-  assert.equal(table.getDiscGolfWeek(steps), null);
-  assert.equal(table.getWeekWeatherString(steps), "");
+  const week = plain(table.getDiscGolfWeek(steps));
+  assert.ok(week.days.every((day) => day.good.length === 0 && day.daylight.length === 0));
+  assert.deepEqual(week.days[1].night, [{ from: 0, to: 1440 }]);
+  const empty = { ...steps, time: [], is_day: [] };
+  assert.equal(table.getDiscGolfWeek(empty), null);
+  assert.equal(table.getWeekWeatherString(empty), "");
 });
