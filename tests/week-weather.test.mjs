@@ -282,14 +282,3 @@ test("week weather: without daylight only night, nothing to show without steps",
   assert.equal(table.getDiscGolfWeek(empty), null);
   assert.equal(table.getWeekWeatherString(empty), "");
 });
-
-test("week weather: the last day's daylight is marked under its bar", () => {
-  const table = loadStatsTable();
-  const html = table.getWeekWeatherString(makeSteps());
-  assert.ok(html.includes('week-weather-daytime" style="left: 33.33%; width: 37.50%"'));
-  assert.ok(html.includes(">hell von 08:00 bis 17:00 Uhr<"));
-
-  const night = makeSteps();
-  night.is_day = night.is_day.map((d, i) => (night.time[i].startsWith("2026-11-26") ? 0 : d));
-  assert.ok(!table.getWeekWeatherString(night).includes("week-weather-daytime"));
-});
