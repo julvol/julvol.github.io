@@ -1475,6 +1475,22 @@ class StatsTable {
                     </div>
                   </div>`;
     });
+    // under the last day's bar: a bracket over its daylight, from the first to the last
+    // daylight quarter hour
+    const lastDaylight = week.days[week.days.length - 1].daylight;
+    const daytime = lastDaylight.length
+      ? { from: lastDaylight[0].from, to: lastDaylight[lastDaylight.length - 1].to }
+      : null;
+    const daytimeRow = daytime
+      ? `
+                  <div class="week-weather-row">
+                    <span class="week-weather-label"></span>
+                    <div class="week-weather-daytime-axis">
+                      ${run("week-weather-daytime", daytime)}
+                      <span class="week-weather-daytime-text" style="left: ${percent((daytime.from + daytime.to) / 2)}%">hell von ${clock(daytime.from)} bis ${clock(daytime.to)} Uhr</span>
+                    </div>
+                  </div>`
+      : "";
     return `
                 <h5>Wetter in den nächsten 4 Tagen</h5>
                 <div class="week-weather">
@@ -1483,7 +1499,7 @@ class StatsTable {
                     <div class="week-weather-axis">
                       ${ticks.map((hour) => `<span style="left: ${percent(hour * 60)}%">${hour}</span>`).join("")}
                     </div>
-                  </div>${rows.join("")}
+                  </div>${rows.join("")}${daytimeRow}
                   <div class="week-weather-legend">
                     ${[
                       ["good", "Disc Golf-Wetter™"],
