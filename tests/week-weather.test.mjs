@@ -53,10 +53,12 @@ test("week weather: the whole day, rain and wind also by night, with stars", () 
   assert.deepEqual(day.gap, []);
   assert.deepEqual(day.good, [{ from: 480, to: 1020 }]);
   const html = table.getWeekWeatherString(steps);
-  // the night's color reaches 1px under the parts on both sides, the stars lie exactly on it
+  // the night's color reaches 1px under the parts on both sides, the stars only on rain and wind
   assert.ok(html.includes('week-weather-night" style="left: calc(0.00% - 1px); width: calc(33.33% + 2px)"'));
-  assert.ok(html.includes('week-weather-stars" style="left: 0.00%; width: 33.33%"'));
-  assert.ok(html.includes('week-weather-swatch week-weather-night week-weather-stars"></span>Nacht<'));
+  // white stars only on the rain by night (02:45 to 03:00), not on the fine night
+  assert.equal(html.match(/week-weather-stars"/g).length, 2);
+  assert.ok(html.includes('week-weather-stars" style="left: 11.46%; width: 1.04%"'));
+  assert.ok(html.includes('week-weather-swatch week-weather-night"></span>Nacht<'));
 });
 
 test("week weather: rain interrupts the disc golf weather", () => {

@@ -1367,7 +1367,8 @@ class StatsTable {
   // one bar per day: light gray with a hint of green = disc golf weather, blue = rain, amber = wind,
   // amber with brown stripes = strong wind, split = rain and wind,
   // gray diagonal stripes = other daylight (a gap under 90 minutes),
-  // dark blue with stars = night (stars also on rain and wind by night), empty = not forecast;
+  // a little darker than disc golf weather with gray stars = night (white stars on rain and
+  // wind by night), empty = not forecast;
   // nextStart: first step of "Nächstes Disc Golf-Wetter", boxed if it is within these days;
   // a red line marks the current quarter hour on today's bar, if within the shown hours
   getWeekWeatherString(steps, nextStart = null) {
@@ -1457,7 +1458,17 @@ class StatsTable {
                           ),
                         )
                         .join("")}
-                      ${day.night.map((r) => run("week-weather-stars", r)).join("")}
+                      ${parts
+                        .filter((r) => r.kind !== "good" && r.kind !== "daylight")
+                        .flatMap((r) =>
+                          day.night.map((n) => ({
+                            from: Math.max(r.from, n.from),
+                            to: Math.min(r.to, n.to),
+                          })),
+                        )
+                        .filter((r) => r.from < r.to)
+                        .map((r) => run("week-weather-stars", r))
+                        .join("")}
                       ${ticks.map((hour) => `<span class="week-weather-tick" style="left: ${percent(hour * 60)}%"></span>`).join("")}
                       ${nextBox?.date === day.date ? run("week-weather-next-box", nextBox) : ""}
                       ${showNow && day === week.days[0] ? `<span class="week-weather-now" style="left: ${percent(nowMinute)}%"></span>` : ""}
@@ -1488,7 +1499,7 @@ class StatsTable {
                       .filter(([kind]) => isShown(kind))
                       .map(
                         ([kind, text]) =>
-                          `<span class="week-weather-legend-entry"><span class="week-weather-swatch week-weather-${kind}${kind === "night" ? " week-weather-stars" : ""}"></span>${text}</span>`,
+                          `<span class="week-weather-legend-entry"><span class="week-weather-swatch week-weather-${kind}"></span>${text}</span>`,
                       )
                       .join("")}
                   </div>

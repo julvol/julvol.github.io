@@ -8334,19 +8334,21 @@ textarea.form-control-lg {
       var(--weather-wind) 2px 5px
     );
 }
-/* the night: dark blue, with small stars on top (also over rain and wind by night) */
+/* the night: a little darker than the disc golf weather, with gray stars;
+   rain and wind by night get white stars on top */
 .week-weather-night,
 .week-weather-stars {
   position: absolute;
   top: 0;
   bottom: 0;
+  background-position: left center;
 }
 .week-weather-night {
-  background-color: #2f3b5c;
+  background-color: #b9c6bd;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='14'%3E%3Cg fill='%236c757d'%3E%3Cpath d='M5 2.2l.7 1.6 1.6.7-1.6.7L5 6.8l-.7-1.6-1.6-.7 1.6-.7z'/%3E%3Ccircle cx='14.5' cy='9.5' r='.9'/%3E%3Ccircle cx='11' cy='3' r='.6'/%3E%3Ccircle cx='2.5' cy='11' r='.5'/%3E%3C/g%3E%3C/svg%3E");
 }
 .week-weather-stars {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='14'%3E%3Cg fill='%23fff'%3E%3Cpath d='M5 2.2l.7 1.6 1.6.7-1.6.7L5 6.8l-.7-1.6-1.6-.7 1.6-.7z'/%3E%3Ccircle cx='14.5' cy='9.5' r='.9'/%3E%3Ccircle cx='11' cy='3' r='.6'/%3E%3Ccircle cx='2.5' cy='11' r='.5'/%3E%3C/g%3E%3C/svg%3E");
-  background-position: left center;
 }
 /* the 90 minutes of "Nächstes Disc Golf-Wetter" */
 .week-weather-next-box {
