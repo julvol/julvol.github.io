@@ -3675,7 +3675,7 @@ class StatsTable {
       .filter((pin) => pin.coordinates);
     // without Leaflet (CDN not reachable) or coordinates: no map
     if (typeof L === "undefined" || !pins.length) {
-      container.remove();
+      container.parentElement.remove();
       return;
     }
 
@@ -3700,6 +3700,7 @@ class StatsTable {
       this.coursePins.set(this.getCourseCollapseId(pin.course), pin);
       this.updateCoursePin(pin);
     });
+    this.updateCourseMapLegend();
 
     // the view fits the played courses (an unplayed one far away would squeeze them
     // together; it is seen when zooming out), all of them if none is played yet
@@ -3730,18 +3731,43 @@ class StatsTable {
     }
     pin.weather = kind;
     this.updateCoursePin(pin);
+    this.updateCourseMapLegend();
+  }
+
+  // the weather of a pin in its tooltip and the legend
+  static PIN_WEATHER_LABELS = {
+    good: "Disc Golf-Wetter™",
+    night: "Nacht",
+    rain: "Regen",
+    wind: "Windböen >30km/h",
+    "strong-wind": "Windböen >45km/h",
+    both: "Regen + Windböen",
+    "both-strong": "Regen + Windböen >45km/h",
+  };
+
+  // below the map, like the legend of the 4-day weather: only what the pins show
+  updateCourseMapLegend() {
+    const legend = document.getElementById("courseMapLegend");
+    if (!legend || !this.coursePins?.size) return;
+    const pins = [...this.coursePins.values()];
+    const entry = (classes, text) =>
+      `<span class="week-weather-legend-entry"><span class="course-map-legend-pin ${classes}"></span>${text}</span>`;
+    const entries = [];
+    if (pins.some((pin) => pin.played))
+      entries.push(entry("course-map-pin-played", "gespielt"));
+    if (pins.some((pin) => !pin.played))
+      entries.push(entry("course-map-pin-unplayed", "noch nicht gespielt"));
+    Object.entries(StatsTable.PIN_WEATHER_LABELS).forEach(([kind, text]) => {
+      if (pins.some((pin) => pin.weather === kind))
+        entries.push(entry(`course-map-pin-${kind}`, text));
+    });
+    if (pins.some((pin) => !pin.weather))
+      entries.push(entry("course-map-pin-unknown", "Wetter unbekannt"));
+    legend.innerHTML = entries.join("");
   }
 
   updateCoursePin(pin) {
-    const labels = {
-      good: "Disc Golf-Wetter™",
-      rain: "Regen",
-      wind: "Windböen >30km/h",
-      "strong-wind": "Windböen >45km/h",
-      both: "Regen + Windböen",
-      "both-strong": "Regen + Windböen >45km/h",
-      night: "Nacht",
-    };
+    const labels = StatsTable.PIN_WEATHER_LABELS;
     pin.marker.setIcon(
       L.divIcon({
         className: `course-map-pin course-map-pin-${pin.played ? "played" : "unplayed"} course-map-pin-${pin.weather ?? "unknown"}`,

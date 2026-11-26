@@ -11956,9 +11956,11 @@ td > .record-rank {
 }
 
 /* course map above the course list (open item #48) */
+.course-map-wrapper {
+  margin-bottom: 1.5rem;
+}
 .course-map {
   height: 260px;
-  margin-bottom: 1.5rem;
   border-radius: 0.5rem;
   overflow: hidden;
   /* below the fixed navbar (Leaflet's panes use z-index up to 1000) */
@@ -11976,6 +11978,21 @@ td > .record-rank {
 .course-map-pin-unplayed {
   border-color: #212529;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+/* in the legend: played / unplayed as an outline only, the weather as a fill only */
+.course-map-legend-pin {
+  display: inline-block;
+  flex: none;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+}
+.course-map-legend-pin.course-map-pin-played {
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.course-map-legend-pin.course-map-pin-unplayed {
+  border: 2px solid #212529;
 }
 .course-map-pin-unknown {
   background-color: #e9ecef;
