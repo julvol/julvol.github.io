@@ -21,9 +21,15 @@ const streaksFor = (matches, now) => {
   matches.forEach((m, i) => (table.matches[i] = m));
   const entries = table.getWeeklyStreaks(now);
   // the text without the HTML of the status (icon, span)
-  const text = (html) => html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  const text = (html) =>
+    html
+      .replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
   return plain(
-    table.rankRecordEntries(entries).map((e) => [e.rank, e.name, e.value, text(e.detail)]),
+    table
+      .rankRecordEntries(entries)
+      .map((e) => [e.rank, e.name, e.value, text(e.detail)]),
   );
 };
 
@@ -63,14 +69,32 @@ test("still running if the last week is this week (safe) or last week (still ope
     match("2026-03-16", ["Anna"]), // this week (Mon 16 Mar)
   ];
   assert.deepEqual(streaksFor(matches, NOW), [
-    [1, "Anna", 3, "seit 02.03.2026, diese Woche gesichert"], // played this week
-    [2, "Ben", 2, "seit 02.03.2026, diese Woche noch offen"], // last week: this week is not over yet
+    [1, "Anna", 3, "seit 02.03.2026, diese Woche gespielt"], // played this week
+    [2, "Ben", 2, "seit 02.03.2026, diese Woche noch nicht gespielt"], // last week: this week is not over yet
   ]);
   // two weeks later Ben's streak is over, Anna's too
   assert.deepEqual(streaksFor(matches, new Date(2026, 2, 30, 12)), [
     [1, "Anna", 3, "02.03.2026 – 16.03.2026"],
     [2, "Ben", 2, "02.03.2026 – 09.03.2026"],
   ]);
+});
+
+test("not played yet: a red warning when less than 3 days are left until Sunday ends", () => {
+  const table = loadStatsTable();
+  [match("2026-03-02", ["Ben"]), match("2026-03-09", ["Ben"])].forEach(
+    (m, i) => (table.matches[i] = m),
+  );
+  const detailAt = (now) => table.getWeeklyStreaks(now)[0].detail;
+  // Sunday ends Mon 23 Mar 0:00. Thu 19 Mar 23:00: 73 hours left
+  const thursday = detailAt(new Date(2026, 2, 19, 23));
+  assert.match(thursday, /fa-hourglass-half/);
+  assert.doesNotMatch(thursday, /streak-urgent/);
+  // Fri 20 Mar 1:00: 71 hours left
+  assert.match(
+    detailAt(new Date(2026, 2, 20, 1)),
+    /streak-urgent.*fa-triangle-exclamation/,
+  );
+  assert.match(detailAt(new Date(2026, 2, 22, 22)), /streak-urgent/); // Sunday evening
 });
 
 test("per player the longest streak (the latest of equally long ones); ties: who got there first", () => {

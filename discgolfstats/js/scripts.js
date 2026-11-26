@@ -1177,8 +1177,7 @@ class StatsTable {
     const now = steps && this.getWeatherOfSteps(steps, 0, SPAN);
     if (!now) throw new Error("Open-Meteo: no forecast");
     // day at the start of the 90 minutes, night at their end
-    const dusk =
-      steps.is_day?.[0] === 1 && steps.is_day?.[SPAN - 1] === 0;
+    const dusk = steps.is_day?.[0] === 1 && steps.is_day?.[SPAN - 1] === 0;
     this.setCourseWeatherTags(item, now, dusk);
     item.replaceChildren(
       this.getWeatherTimeSpan(steps, 0, SPAN),
@@ -1415,10 +1414,10 @@ class StatsTable {
       kind === "now"
         ? showNow
         : kind === "next-box"
-        ? nextBox !== null
-        : week.days.some((day) =>
-            (runsOfKind[kind] ?? [kind]).some((runs) => day[runs].length > 0),
-          );
+          ? nextBox !== null
+          : week.days.some((day) =>
+              (runsOfKind[kind] ?? [kind]).some((runs) => day[runs].length > 0),
+            );
 
     const everyHours = to - from > 12 * 60 ? 3 : 2;
     const ticks = [];
@@ -1431,7 +1430,9 @@ class StatsTable {
 
     const rows = week.days.map((day) => {
       const windows = day.good.length
-        ? day.good.map((r) => `${clock(r.from)} bis ${clock(r.to)} Uhr`).join(", ")
+        ? day.good
+            .map((r) => `${clock(r.from)} bis ${clock(r.to)} Uhr`)
+            .join(", ")
         : "kein Disc Golf-Wetter™";
       const parts = [
         ["daylight", day.gap],
@@ -1459,7 +1460,9 @@ class StatsTable {
                         )
                         .join("")}
                       ${parts
-                        .filter((r) => r.kind !== "good" && r.kind !== "daylight")
+                        .filter(
+                          (r) => r.kind !== "good" && r.kind !== "daylight",
+                        )
                         .flatMap((r) =>
                           day.night.map((n) => ({
                             from: Math.max(r.from, n.from),
@@ -2093,7 +2096,10 @@ class StatsTable {
     y += 12;
 
     const badgeColors = Object.fromEntries(
-      SCORE_CATEGORIES.map((c) => [c.cls, backgroundOf(`bg-scorecard-${c.cls}`)]),
+      SCORE_CATEGORIES.map((c) => [
+        c.cls,
+        backgroundOf(`bg-scorecard-${c.cls}`),
+      ]),
     );
     const headerRows = [
       ["Bahn", (i) => String(i + 1), fonts.cellBold],
@@ -3438,7 +3444,8 @@ class StatsTable {
   getPlayingPartnerRows(name) {
     const rows = this.getPlayingPartners(name);
     const soloCount = this.getSoloMatchCount(name);
-    if (soloCount > 0) rows.push({ name: "Solo", count: soloCount, solo: true });
+    if (soloCount > 0)
+      rows.push({ name: "Solo", count: soloCount, solo: true });
     return rows.sort(
       (a, b) => b.count - a.count || a.name.localeCompare(b.name, "de"),
     );
@@ -4008,8 +4015,9 @@ class StatsTable {
 
   // Longest weekly streak (open item #36): per player the most calendar weeks (Monday to
   // Sunday) in a row with at least one ranked match, from 2 weeks on. A streak is still
-  // running if the player played this week ("gesichert") or last week ("noch offen": this
-  // week is not over yet, a match until Sunday keeps it going).
+  // running if the player played this week ("gespielt") or last week ("noch nicht gespielt":
+  // this week is not over yet, a match until Sunday keeps it going; in red with a warning
+  // sign when less than 3 days are left).
   // Of equally long streaks of one player the latest counts. time = when the streak got
   // that long (who got there first is listed first on equal values).
   getWeeklyStreaks(now = new Date()) {
@@ -4022,6 +4030,9 @@ class StatsTable {
           7,
       );
     const currentWeek = weekOf(now);
+    // the end of this Sunday (local time): the Monday after it, 0:00
+    const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    weekEnd.setDate(weekEnd.getDate() + 7 - ((now.getDay() + 6) % 7));
 
     const matchesByPlayer = new Map();
     this.getRankedMatches()
@@ -4062,9 +4073,12 @@ class StatsTable {
       let detail = `${this.formatDate(best.start.startTime)} – ${this.formatDate(best.end.startTime)}`;
       // still running: safe if the player already played this week, otherwise still open
       if (lastWeek === currentWeek)
-        detail = `${since}, <span class="streak-safe" title="Diese Woche schon gespielt: die Serie geht nächste Woche weiter"><i class="fas fa-check"></i> diese Woche gesichert</span>`;
-      else if (lastWeek === currentWeek - 1)
-        detail = `${since}, <span class="streak-open" title="Diese Woche noch nicht gespielt: bis Sonntag eine Partie, sonst endet die Serie"><i class="fas fa-hourglass-half"></i> diese Woche noch offen</span>`;
+        detail = `${since}, <span class="streak-safe" title="Diese Woche schon gespielt: Die Serie geht nächste Woche weiter!"><i class="fas fa-check"></i> diese Woche gespielt</span>`;
+      else if (lastWeek === currentWeek - 1) {
+        // less than 3 days left until the end of Sunday: a warning in red
+        const urgent = weekEnd - now < 3 * DAY;
+        detail = `${since}, <span class="streak-open${urgent ? " streak-urgent" : ""}" title="Diese Woche noch nicht gespielt: Spiele bis Sonntag eine Partie, sonst endet die Serie!"><i class="fas fa-${urgent ? "triangle-exclamation" : "hourglass-half"}"></i> diese Woche noch nicht gespielt</span>`;
+      }
       entries.push({
         name,
         value: best.value,

@@ -11731,11 +11731,14 @@ td > .record-rank {
 /* weekly streak: already played this week (safe) or not yet (open) */
 .streak-safe {
   color: #212529;
-  font-weight: 600;
   white-space: nowrap;
 }
 .streak-open {
   white-space: nowrap;
+}
+/* less than 3 days left to keep the streak going */
+.streak-urgent {
+  color: #dc3545;
 }
 .record-value {
   flex: none;
