@@ -11965,6 +11965,52 @@ td > .record-rank {
   z-index: 0;
   position: relative;
 }
+/* a pin: the outline says played (white) or not (black), the fill the weather of the
+   next 90 minutes in the colors of the 4-day weather */
 .course-map-pin {
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.4);
   cursor: pointer;
+}
+.course-map-pin-unplayed {
+  border-color: #212529;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.course-map-pin-unknown {
+  background-color: #e9ecef;
+}
+.course-map-pin-good {
+  background-color: #ccd9d0;
+}
+.course-map-pin-night {
+  background-color: #b9c6bd;
+}
+.course-map-pin-rain {
+  background-color: var(--weather-rain);
+}
+.course-map-pin-wind {
+  background-color: var(--weather-wind);
+}
+.course-map-pin-strong-wind {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--weather-strong-wind) 0 2px,
+    var(--weather-wind) 2px 5px
+  );
+}
+.course-map-pin-both {
+  background: linear-gradient(
+    to bottom,
+    var(--weather-rain) 50%,
+    var(--weather-wind) 50%
+  );
+}
+.course-map-pin-both-strong {
+  background: linear-gradient(to bottom, var(--weather-rain) 50%, transparent 50%),
+    repeating-linear-gradient(
+      45deg,
+      var(--weather-strong-wind) 0 2px,
+      var(--weather-wind) 2px 5px
+    );
 }

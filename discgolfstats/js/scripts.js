@@ -1050,6 +1050,7 @@ class StatsTable {
       item.nextElementSibling?.replaceChildren();
       item.nextElementSibling?.nextElementSibling?.replaceChildren();
       this.setCourseWeatherTags(item, null);
+      this.setCoursePinWeather(item, null);
       delete item.dataset.loadedAt; // try again the next time it is opened
     };
     const load = async (items) => {
@@ -1179,6 +1180,7 @@ class StatsTable {
     // day at the start of the 90 minutes, night at their end
     const dusk = steps.is_day?.[0] === 1 && steps.is_day?.[SPAN - 1] === 0;
     this.setCourseWeatherTags(item, now, dusk);
+    this.setCoursePinWeather(item, now, steps.is_day?.[0] === 0);
     item.replaceChildren(
       this.getWeatherTimeSpan(steps, 0, SPAN),
       document.createElement("br"),
@@ -3654,10 +3656,13 @@ class StatsTable {
           </div>`;
   }
 
-  // Course map (open item #48) above the course list: a pin per course with coordinates,
-  // orange = played, gray = never played (like its grayed-out name); tapping a pin opens
-  // that course and scrolls to it. Tiles from OpenStreetMap (none offline: then only the pins).
+  // Course map (open item #48) above the course list: a pin per course with coordinates.
+  // Its outline: white = played, black = never played. Its fill: the weather of the next
+  // 90 minutes in the colors of the 4-day weather (see setCoursePinWeather; light gray until
+  // it is loaded). Tapping a pin opens that course and scrolls to it.
+  // Tiles from OpenStreetMap (none offline: then only the pins).
   renderCourseMap(courseGroups) {
+    this.coursePins = new Map(); // id of the course's collapse -> pin
     const container = document.getElementById("courseMap");
     if (!container) return;
     const pins = courseGroups
@@ -3665,6 +3670,7 @@ class StatsTable {
         course: layouts[0].course,
         played: layouts.some((layout) => !layout.unplayed),
         coordinates: this.courseCoordinates?.get(layouts[0].course),
+        weather: null,
       }))
       .filter((pin) => pin.coordinates);
     // without Leaflet (CDN not reachable) or coordinates: no map
@@ -3682,26 +3688,19 @@ class StatsTable {
         '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
     }).addTo(map);
 
-    // played pins on top of unplayed ones
-    [...pins]
-      .sort((a, b) => a.played - b.played)
-      .forEach((pin) => {
-        const { latitude, longitude } = pin.coordinates;
-        L.circleMarker([latitude, longitude], {
-          radius: 8,
-          weight: 2,
-          color: "#fff",
-          fillColor: pin.played ? "#fd7e14" : "#868e96",
-          fillOpacity: 1,
-          className: "course-map-pin",
-        })
-          .bindTooltip(
-            pin.played ? pin.course : `${pin.course} (noch nicht gespielt)`,
-            { direction: "top", offset: [0, -8] },
-          )
-          .on("click", () => this.openCourse(pin.course))
-          .addTo(map);
-      });
+    pins.forEach((pin) => {
+      const { latitude, longitude } = pin.coordinates;
+      pin.marker = L.marker([latitude, longitude], {
+        // played pins on top of unplayed ones
+        zIndexOffset: pin.played ? 1000 : 0,
+      })
+        .bindTooltip("", { direction: "top", offset: [0, -10] })
+        .on("click", () => this.openCourse(pin.course))
+        .addTo(map);
+      this.coursePins.set(this.getCourseCollapseId(pin.course), pin);
+      this.updateCoursePin(pin);
+    });
+
     // the view fits the played courses (an unplayed one far away would squeeze them
     // together; it is seen when zooming out), all of them if none is played yet
     const played = pins.filter((pin) => pin.played);
@@ -3714,10 +3713,55 @@ class StatsTable {
     );
   }
 
+  // the weather of a course's pin: "good", "rain", "wind", "strong-wind", "both",
+  // "both-strong" or "night" (a fine night), null = unknown. From showCurrentWeather.
+  setCoursePinWeather(item, weather, night = false) {
+    const pin = this.coursePins?.get(item.closest(".accordion-collapse")?.id);
+    if (!pin) return;
+    let kind = null;
+    if (weather) {
+      const rain = this.isRainy(weather);
+      const wind = this.isWindy(weather);
+      const strong = this.isStrongWind(weather);
+      if (rain && wind) kind = strong ? "both-strong" : "both";
+      else if (rain) kind = "rain";
+      else if (wind) kind = strong ? "strong-wind" : "wind";
+      else kind = night ? "night" : "good";
+    }
+    pin.weather = kind;
+    this.updateCoursePin(pin);
+  }
+
+  updateCoursePin(pin) {
+    const labels = {
+      good: "Disc Golf-Wetter™",
+      rain: "Regen",
+      wind: "Windböen >30km/h",
+      "strong-wind": "Windböen >45km/h",
+      both: "Regen + Windböen",
+      "both-strong": "Regen + Windböen >45km/h",
+      night: "Nacht",
+    };
+    pin.marker.setIcon(
+      L.divIcon({
+        className: `course-map-pin course-map-pin-${pin.played ? "played" : "unplayed"} course-map-pin-${pin.weather ?? "unknown"}`,
+        iconSize: [20, 20],
+      }),
+    );
+    pin.marker.setTooltipContent(
+      `<b>${pin.course}</b>${pin.played ? "" : " (noch nicht gespielt)"}<br>${
+        pin.weather ? `jetzt: ${labels[pin.weather]}` : "Wetter wird geladen …"
+      }`,
+    );
+  }
+
+  getCourseCollapseId(course) {
+    return `collapse-course-${course.replace(/[^a-zA-Z0-9]/g, "")}`; // like renderCourseGroup
+  }
+
   // opens a course of the course list (not its layouts) and scrolls to it below the navbar
   openCourse(course) {
-    const id = `collapse-course-${course.replace(/[^a-zA-Z0-9]/g, "")}`; // like renderCourseGroup
-    const collapse = document.getElementById(id);
+    const collapse = document.getElementById(this.getCourseCollapseId(course));
     if (!collapse) return;
     const scrollToCourse = () => {
       const target = collapse.closest(".accordion-item");
