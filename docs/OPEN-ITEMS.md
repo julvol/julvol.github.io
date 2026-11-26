@@ -24,7 +24,7 @@ Each item has a fixed number that stays the same when other items are added or r
 - [x] **#29 Playing partners:** a "Mitspieler" table in a player's section below "Gespielte Bahnen": who they played with how often (number of shared ranked matches only, no score comparison), most first, each name linking to that player.
 - [x] **#35 Result as an image:** the share button of a match shares an image of its result and scorecard (with the link) instead of the summary text: the share menu on phones, copied to the clipboard (or downloaded) on computers.
 - [x] **#38 Wider scorecard on big screens:** an expanded match with more than 9 holes gets wider on big screens (the same width for all of them), so its scorecard shows up to 18 holes per row instead of 9.
-- [ ] **#48 Course map:** a small map above the course list with a pin per course (played and unplayed in different colors); tapping a pin opens that course.
+- [x] **#48 Course map:** a small map above the course list with a pin per course (played orange, unplayed gray); tapping a pin opens that course. Leaflet with OpenStreetMap tiles; the view fits the played courses.
 
 ## Match details
 

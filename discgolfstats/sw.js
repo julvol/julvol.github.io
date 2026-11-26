@@ -3,7 +3,7 @@
 // - Files of this site: network first, so changes show up right away when online.
 //   The cache is only the fallback when offline (or when the network is very slow).
 //   That's why the cache name never needs to change after editing the site.
-// - Files from CDNs (Bootstrap, Font Awesome, Google Fonts): cache first, they never
+// - Files from CDNs (Bootstrap, Font Awesome, Google Fonts, Leaflet): cache first, they never
 //   change for a given URL.
 // - The Google Sheet is not handled here: scripts.js keeps the last data in
 //   localStorage and shows it when the sheet can't be loaded.
@@ -30,6 +30,8 @@ const SITE_FILES = [
 const CDN_FILES = [
   ["https://use.fontawesome.com/releases/v6.3.0/js/all.js", "cors"],
   ["https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js", "no-cors"],
+  ["https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js", "no-cors"],
+  ["https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css", "no-cors"],
   ["https://fonts.googleapis.com/css?family=Montserrat:400,700", "no-cors"],
   ["https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic", "no-cors"],
 ];

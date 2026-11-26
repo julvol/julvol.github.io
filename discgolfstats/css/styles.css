@@ -11954,3 +11954,17 @@ td > .record-rank {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* course map above the course list (open item #48) */
+.course-map {
+  height: 260px;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  /* below the fixed navbar (Leaflet's panes use z-index up to 1000) */
+  z-index: 0;
+  position: relative;
+}
+.course-map-pin {
+  cursor: pointer;
+}

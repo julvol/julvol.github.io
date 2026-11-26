@@ -418,9 +418,9 @@ class StatsTable {
       .forEach((player) => this.getPlayerString(player));
 
     console.log(this.courses);
-    this.getCourseGroups().forEach((layouts) =>
-      this.renderCourseGroup(layouts),
-    );
+    const courseGroups = this.getCourseGroups();
+    courseGroups.forEach((layouts) => this.renderCourseGroup(layouts));
+    this.renderCourseMap(courseGroups);
 
     this.renderRecords();
     this.renderActivityCalendar();
@@ -3652,6 +3652,89 @@ class StatsTable {
               </div>
             </div>
           </div>`;
+  }
+
+  // Course map (open item #48) above the course list: a pin per course with coordinates,
+  // orange = played, gray = never played (like its grayed-out name); tapping a pin opens
+  // that course and scrolls to it. Tiles from OpenStreetMap (none offline: then only the pins).
+  renderCourseMap(courseGroups) {
+    const container = document.getElementById("courseMap");
+    if (!container) return;
+    const pins = courseGroups
+      .map((layouts) => ({
+        course: layouts[0].course,
+        played: layouts.some((layout) => !layout.unplayed),
+        coordinates: this.courseCoordinates?.get(layouts[0].course),
+      }))
+      .filter((pin) => pin.coordinates);
+    // without Leaflet (CDN not reachable) or coordinates: no map
+    if (typeof L === "undefined" || !pins.length) {
+      container.remove();
+      return;
+    }
+
+    const map = L.map(container, {
+      scrollWheelZoom: false, // the mouse wheel scrolls the page, the +/- buttons zoom
+    });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+    }).addTo(map);
+
+    // played pins on top of unplayed ones
+    [...pins]
+      .sort((a, b) => a.played - b.played)
+      .forEach((pin) => {
+        const { latitude, longitude } = pin.coordinates;
+        L.circleMarker([latitude, longitude], {
+          radius: 8,
+          weight: 2,
+          color: "#fff",
+          fillColor: pin.played ? "#fd7e14" : "#868e96",
+          fillOpacity: 1,
+          className: "course-map-pin",
+        })
+          .bindTooltip(
+            pin.played ? pin.course : `${pin.course} (noch nicht gespielt)`,
+            { direction: "top", offset: [0, -8] },
+          )
+          .on("click", () => this.openCourse(pin.course))
+          .addTo(map);
+      });
+    // the view fits the played courses (an unplayed one far away would squeeze them
+    // together; it is seen when zooming out), all of them if none is played yet
+    const played = pins.filter((pin) => pin.played);
+    map.fitBounds(
+      (played.length ? played : pins).map(({ coordinates: c }) => [
+        c.latitude,
+        c.longitude,
+      ]),
+      { padding: [24, 24], maxZoom: 12 },
+    );
+  }
+
+  // opens a course of the course list (not its layouts) and scrolls to it below the navbar
+  openCourse(course) {
+    const id = `collapse-course-${course.replace(/[^a-zA-Z0-9]/g, "")}`; // like renderCourseGroup
+    const collapse = document.getElementById(id);
+    if (!collapse) return;
+    const scrollToCourse = () => {
+      const target = collapse.closest(".accordion-item");
+      const navHeight = document.getElementById("mainNav")?.offsetHeight ?? 0;
+      window.scrollTo({
+        top:
+          target.getBoundingClientRect().top + window.scrollY - navHeight - 8,
+        behavior: "smooth",
+      });
+    };
+    if (collapse.classList.contains("show")) scrollToCourse();
+    else {
+      collapse.addEventListener("shown.bs.collapse", scrollToCourse, {
+        once: true,
+      });
+      bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+    }
   }
 
   // "Gespielte Parcours": one entry per course with the weather forecast (the same for all
