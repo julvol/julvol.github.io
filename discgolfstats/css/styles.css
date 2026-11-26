@@ -11728,6 +11728,15 @@ td > .record-rank {
   font-size: 0.75rem;
   color: #6c757d;
 }
+/* weekly streak: already played this week (safe) or not yet (open) */
+.streak-safe {
+  color: #212529;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.streak-open {
+  white-space: nowrap;
+}
 .record-value {
   flex: none;
   white-space: nowrap;

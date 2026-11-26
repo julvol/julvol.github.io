@@ -20,8 +20,10 @@ const streaksFor = (matches, now) => {
   const table = loadStatsTable();
   matches.forEach((m, i) => (table.matches[i] = m));
   const entries = table.getWeeklyStreaks(now);
+  // the text without the HTML of the status (icon, span)
+  const text = (html) => html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
   return plain(
-    table.rankRecordEntries(entries).map((e) => [e.rank, e.name, e.value, e.detail]),
+    table.rankRecordEntries(entries).map((e) => [e.rank, e.name, e.value, text(e.detail)]),
   );
 };
 
@@ -54,15 +56,15 @@ test("a streak of 1 week does not count, unranked matches do not count", () => {
   assert.deepEqual(result, []);
 });
 
-test("still running if the last week is this week or last week", () => {
+test("still running if the last week is this week (safe) or last week (still open)", () => {
   const matches = [
     match("2026-03-02", ["Anna", "Ben"]),
     match("2026-03-09", ["Anna", "Ben"]),
     match("2026-03-16", ["Anna"]), // this week (Mon 16 Mar)
   ];
   assert.deepEqual(streaksFor(matches, NOW), [
-    [1, "Anna", 3, "seit 02.03.2026, läuft noch"],
-    [2, "Ben", 2, "seit 02.03.2026, läuft noch"], // last week: this week is not over yet
+    [1, "Anna", 3, "seit 02.03.2026, diese Woche gesichert"], // played this week
+    [2, "Ben", 2, "seit 02.03.2026, diese Woche noch offen"], // last week: this week is not over yet
   ]);
   // two weeks later Ben's streak is over, Anna's too
   assert.deepEqual(streaksFor(matches, new Date(2026, 2, 30, 12)), [

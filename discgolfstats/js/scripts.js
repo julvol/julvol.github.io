@@ -4008,7 +4008,8 @@ class StatsTable {
 
   // Longest weekly streak (open item #36): per player the most calendar weeks (Monday to
   // Sunday) in a row with at least one ranked match, from 2 weeks on. A streak is still
-  // running if the player played this week or last week (this week is not over yet).
+  // running if the player played this week ("gesichert") or last week ("noch offen": this
+  // week is not over yet, a match until Sunday keeps it going).
   // Of equally long streaks of one player the latest counts. time = when the streak got
   // that long (who got there first is listed first on equal values).
   getWeeklyStreaks(now = new Date()) {
@@ -4056,14 +4057,19 @@ class StatsTable {
       });
       if (best.value < 2) return;
 
-      const running = weekOf(best.end.startTime) >= currentWeek - 1;
+      const lastWeek = weekOf(best.end.startTime);
+      const since = `seit ${this.formatDate(best.start.startTime)}`;
+      let detail = `${this.formatDate(best.start.startTime)} – ${this.formatDate(best.end.startTime)}`;
+      // still running: safe if the player already played this week, otherwise still open
+      if (lastWeek === currentWeek)
+        detail = `${since}, <span class="streak-safe" title="Diese Woche schon gespielt: die Serie geht nächste Woche weiter"><i class="fas fa-check"></i> diese Woche gesichert</span>`;
+      else if (lastWeek === currentWeek - 1)
+        detail = `${since}, <span class="streak-open" title="Diese Woche noch nicht gespielt: bis Sonntag eine Partie, sonst endet die Serie"><i class="fas fa-hourglass-half"></i> diese Woche noch offen</span>`;
       entries.push({
         name,
         value: best.value,
         time: best.end.startTime,
-        detail: running
-          ? `seit ${this.formatDate(best.start.startTime)}, läuft noch`
-          : `${this.formatDate(best.start.startTime)} – ${this.formatDate(best.end.startTime)}`,
+        detail,
       });
     });
     return entries;
