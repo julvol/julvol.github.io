@@ -15,7 +15,6 @@ Each item has a fixed number that stays the same when other items are added or r
 - [x] **#17 More records:** two more cards in "Rekorde": the longest bogey-free run (par or better on consecutive holes) within one round, and the number of completed bogey-free rounds (no hole over par) per player, linking to the most recent one.
 - [x] **#36 Longest weekly streak:** a record card for the most consecutive calendar weeks with at least one ranked match per player, with the current streak marked if it is still running.
 - [ ] **#44 List of all aces:** the aces card can be expanded to show every ace with player, date, course and hole, each linking to its match. <-- We tackle that when the situation actually is real. Aces have never happened until now, and two aces for one player is unthinkable as of now because everyone is so bad...
-- [ ] **#56 Current weekly streak in the player section:** a line in a player's stats with their current weekly streak (number of weeks, gespielt / noch nicht gespielt this week, like in the record card), also when it is not among the top 3.
 
 ## Usability
 
