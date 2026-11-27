@@ -15,7 +15,6 @@ Each item has a fixed number that stays the same when other items are added or r
 - [x] **#17 More records:** two more cards in "Rekorde": the longest bogey-free run (par or better on consecutive holes) within one round, and the number of completed bogey-free rounds (no hole over par) per player, linking to the most recent one.
 - [x] **#36 Longest weekly streak:** a record card for the most consecutive calendar weeks with at least one ranked match per player, with the current streak marked if it is still running.
 - [ ] **#44 List of all aces:** the aces card can be expanded to show every ace with player, date, course and hole, each linking to its match. <-- We tackle that when the situation actually is real. Aces have never happened until now, and two aces for one player is unthinkable as of now because everyone is so bad...
-- [ ] **#58 Early bird and night owl:** two record cards for the earliest and the latest start of a ranked match per player (time of day only), each linking to its match.
 - [ ] **#56 Current weekly streak in the player section:** a line in a player's stats with their current weekly streak (number of weeks, gespielt / noch nicht gespielt this week, like in the record card), also when it is not among the top 3.
 
 ## Usability
@@ -27,8 +26,6 @@ Each item has a fixed number that stays the same when other items are added or r
 - [x] **#35 Result as an image:** the share button of a match shares an image of its result and scorecard (with the link) instead of the summary text: the share menu on phones, copied to the clipboard (or downloaded) on computers.
 - [x] **#38 Wider scorecard on big screens:** an expanded match with more than 9 holes gets wider on big screens (the same width for all of them), so its scorecard shows up to 18 holes per row instead of 9.
 - [x] **#48 Course map:** a small map above the course list with a pin per course (outline: white = played, black = unplayed; fill: the weather of the next 90 minutes in the 4-day weather colors); tapping a pin opens that course. Leaflet with OpenStreetMap tiles; the view fits the played courses.
-- [ ] **#52 Map of a player's courses:** a small map in a player's section with a pin per course they played, sized by how many matches they played there; tapping a pin opens that course.
-- [ ] **#53 Rain radar on the course map:** a switch to lay the current rain radar (e.g. RainViewer, free) over the course map, to see where a shower is heading.
 
 ## Match details
 
@@ -36,10 +33,6 @@ Each item has a fixed number that stays the same when other items are added or r
 - [x] **#49 Disc golf weather for the week:** a compact 4-day strip "Wetter in den nächsten 4 Tagen" in an opened course, between the next 90 minutes and the next suitable 90 minutes, marking the daylight hours with disc golf weather (no rain, gusts up to 30 km/h, for at least 90 minutes), rain, wind or both, with a legend.
 - [x] **#50 Current time in the 4-day weather:** a red line in "Wetter in den nächsten 4 Tagen" showing the current time on today's bar, if it is no disc golf weather right now and the time is within the shown hours.
 - [x] **#51 Next disc golf weather in the 4-day weather:** the 90 minutes of "Nächstes Disc Golf-Wetter" marked with a box in "Wetter in den nächsten 4 Tagen".
-- [ ] **#54 Where to play next:** a short list above the course map with the next disc golf weather of every course, soonest first (e.g. "Aachen Kronenbergpark: heute 14:00 bis 15:30 Uhr"), each linking to its course.
-- [ ] **#55 Streak and weather:** when a weekly streak says "diese Woche noch nicht gespielt", also show the next disc golf weather before Sunday ends (course and time), or that there is none.
-- [ ] **#57 Temperatures in the 4-day weather:** the lowest and highest temperature of each day at the end of its bar, e.g. "2–7°".
-- [ ] **#59 Frost and snow in the 4-day weather:** marks the hours below 0 °C (slippery tee pads, frozen baskets) and snow in their own colors, with legend entries.
 
 ## Data upkeep
 
