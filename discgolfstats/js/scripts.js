@@ -3803,7 +3803,9 @@ class StatsTable {
       collapse.addEventListener("shown.bs.collapse", scrollToCourse, {
         once: true,
       });
-      bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+      bootstrap.Collapse.getOrCreateInstance(collapse, {
+        toggle: false,
+      }).show();
     }
   }
 
@@ -4161,6 +4163,7 @@ class StatsTable {
         title: "Längste Wochen-Serie",
         icon: "calendar-week",
         entries: weeklyStreaks,
+        runningBelow: true,
         empty: "Noch niemand in zwei Wochen hintereinander gespielt.",
       },
     ];
@@ -4172,7 +4175,8 @@ class StatsTable {
   // this week is not over yet, a match until Sunday keeps it going; in red with a warning
   // sign when less than 3 days are left).
   // Of equally long streaks of one player the latest counts. time = when the streak got
-  // that long (who got there first is listed first on equal values).
+  // that long (who got there first is listed first on equal values). running: the current
+  // streak of the player if it is still running (for the rows below the top 3).
   getWeeklyStreaks(now = new Date()) {
     const DAY = 24 * 60 * 60 * 1000;
     // number of the week (weeks start on Monday; 1 Jan 1970 was a Thursday)
@@ -4221,22 +4225,38 @@ class StatsTable {
       });
       if (best.value < 2) return;
 
-      const lastWeek = weekOf(best.end.startTime);
-      const since = `seit ${this.formatDate(best.start.startTime)}`;
-      let detail = `${this.formatDate(best.start.startTime)} – ${this.formatDate(best.end.startTime)}`;
-      // still running: safe if the player already played this week, otherwise still open
-      if (lastWeek === currentWeek)
-        detail = `${since}, <span class="streak-safe" title="Diese Woche schon gespielt: Die Serie geht nächste Woche weiter!"><i class="fas fa-check"></i> diese Woche gespielt</span>`;
-      else if (lastWeek === currentWeek - 1) {
+      // still running: "gespielt" if the player already played this week, otherwise
+      // "noch nicht gespielt" (red with a warning when less than 3 days are left)
+      const runningDetail = (run) => {
+        const since = `seit ${this.formatDate(run.start.startTime)}`;
+        if (weekOf(run.end.startTime) === currentWeek)
+          return `${since}, <span class="streak-safe" title="Diese Woche schon gespielt: Die Serie geht nächste Woche weiter!"><i class="fas fa-check"></i> diese Woche gespielt</span>`;
         // less than 3 days left until the end of Sunday: a warning in red
         const urgent = weekEnd - now < 3 * DAY;
-        detail = `${since}, <span class="streak-open${urgent ? " streak-urgent" : ""}" title="Diese Woche noch nicht gespielt: Spiele bis Sonntag eine Partie, sonst endet die Serie!"><i class="fas fa-${urgent ? "triangle-exclamation" : "hourglass-half"}"></i> diese Woche noch nicht gespielt</span>`;
-      }
+        return `${since}, <span class="streak-open${urgent ? " streak-urgent" : ""}" title="Diese Woche noch nicht gespielt: Spiele bis Sonntag eine Partie, sonst endet die Serie!"><i class="fas fa-${urgent ? "triangle-exclamation" : "hourglass-half"}"></i> diese Woche noch nicht gespielt</span>`;
+      };
+      const isRunning = (run) => weekOf(run.end.startTime) >= currentWeek - 1;
+
+      // the current run of weeks (the last one), if it is still running and a streak
+      const last = matches[matches.length - 1];
+      const current = { value: weeks, start, end: last };
+      const running =
+        weeks >= 2 && isRunning(current)
+          ? {
+              value: weeks,
+              time: last.startTime,
+              detail: runningDetail(current),
+            }
+          : null;
+
       entries.push({
         name,
         value: best.value,
         time: best.end.startTime,
-        detail,
+        detail: isRunning(best)
+          ? runningDetail(best)
+          : `${this.formatDate(best.start.startTime)} – ${this.formatDate(best.end.startTime)}`,
+        running,
       });
     });
     return entries;
@@ -4284,8 +4304,10 @@ class StatsTable {
     bestPerPlayerByDefault,
     empty,
     note,
+    runningBelow,
   }) {
     const rows = this.rankRecordEntries(entries);
+    if (runningBelow) rows.push(...this.getRunningBelowRows(entries, rows));
     const listString = this.getRecordListString(rows, empty);
 
     // switch only if showing one entry per player would change anything
@@ -4314,6 +4336,32 @@ class StatsTable {
       </div>`;
   }
 
+  // Weekly streak: the players with a running streak who are not among the shown places,
+  // below a dashed line, with the place their running streak has among the longest streaks
+  // of the others (so not just 4, 5, …). entry.running: see getWeeklyStreaks.
+  getRunningBelowRows(entries, shownRows) {
+    const shown = new Set(shownRows.map((row) => row.name));
+    return entries
+      .filter((entry) => entry.running && !shown.has(entry.name))
+      .map(({ name, running }) => {
+        const others = entries.filter((other) => other.name !== name);
+        return {
+          name,
+          value: running.value,
+          time: running.time,
+          detail: running.detail,
+          rank:
+            1 + others.filter((other) => other.value > running.value).length,
+          tied: others.some((other) => other.value === running.value),
+          below: true,
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.rank - b.rank || a.time - b.time || a.name.localeCompare(b.name),
+      );
+  }
+
   // a place shared with others gets a T ("tied"): 1, T2, T2, 4
   formatRank(rank, tied) {
     return tied ? `T${rank}` : String(rank);
@@ -4326,7 +4374,7 @@ class StatsTable {
 
   getRecordListString(rows, empty) {
     if (!rows.length) return `<p class="text-muted mb-0">${empty}</p>`;
-    const rowStrings = rows.map((entry) => {
+    const rowStrings = rows.map((entry, i) => {
       const context = [entry.detail];
       if (entry.match) {
         context.push(
@@ -4334,8 +4382,8 @@ class StatsTable {
         );
       }
       return `
-        <li class="record-row">
-          ${this.getRankBadge(entry.rank, rows.filter((other) => other.rank === entry.rank).length > 1)}
+        <li class="record-row${entry.below && !rows[i - 1]?.below ? " record-row-below" : ""}">
+          ${this.getRankBadge(entry.rank, entry.tied ?? rows.filter((other) => other.rank === entry.rank).length > 1)}
           <div class="record-who">
             <a class="player-link fw-bold" href="?spieler=${encodeURIComponent(entry.name)}" ${this.getPlayerLinkAttribute(entry.name)}>${entry.name}</a>
             <div class="record-context">${context.filter(Boolean).join(" · ")}</div>

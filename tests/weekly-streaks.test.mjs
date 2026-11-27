@@ -113,3 +113,77 @@ test("per player the longest streak (the latest of equally long ones); ties: who
     [1, "Anna", 2, "02.02.2026 – 09.02.2026"], // the later one of Anna's two
   ]);
 });
+
+test("running streaks below the top 3: below a dashed line, with their real place", () => {
+  const table = loadStatsTable();
+  [
+    // Anna 5, Ben 4, Cleo 3 weeks: finished long ago
+    ...[
+      "2026-01-05",
+      "2026-01-12",
+      "2026-01-19",
+      "2026-01-26",
+      "2026-02-02",
+    ].map((d) => match(d, ["Anna"])),
+    ...["2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26"].map((d) =>
+      match(d, ["Ben"]),
+    ),
+    ...["2026-01-05", "2026-01-12", "2026-01-19"].map((d) =>
+      match(d, ["Cleo"]),
+    ),
+    // Dana: 3 weeks once (finished), now 2 weeks running; Emil: 3 weeks running
+    ...["2026-01-05", "2026-01-12", "2026-01-19"].map((d) =>
+      match(d, ["Dana"]),
+    ),
+    match("2026-03-09", ["Dana"]),
+    match("2026-03-16", ["Dana"]), // this week
+    ...["2026-03-02", "2026-03-09"].map((d) => match(d, ["Emil"])),
+    match("2026-03-10", ["Emil"]), // Emil only last week: still open
+    // Finn: 2 weeks, finished: not shown
+    ...["2026-01-05", "2026-01-12"].map((d) => match(d, ["Finn"])),
+  ].forEach((m, i) => (table.matches[i] = m));
+  table.matches[100] = match("2026-02-23", ["Emil"]); // Emil: 3 weeks from 23 Feb
+  const entries = table.getWeeklyStreaks(NOW);
+  const top = table.rankRecordEntries(entries);
+  const text = (html) =>
+    html
+      .replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  assert.deepEqual(plain(top.map((e) => [e.rank, e.name, e.value])), [
+    [1, "Anna", 5],
+    [2, "Ben", 4],
+    [3, "Cleo", 3],
+    [3, "Dana", 3],
+    [3, "Emil", 3],
+  ]);
+  // all of rank 3 are shown already: nobody below the line
+  assert.deepEqual(plain(table.getRunningBelowRows(entries, top)), []);
+
+  // with only the top 2 shown: Emil (3 weeks, running) is T3, Dana's running 2 weeks are
+  // T5 (behind Anna, Ben, Cleo and Emil, tied with Finn; her own finished 3 weeks don't count)
+  const below = table.getRunningBelowRows(entries, top.slice(0, 2));
+  assert.deepEqual(
+    plain(
+      below.map((e) => [
+        e.rank,
+        e.tied,
+        e.name,
+        e.value,
+        text(e.detail),
+        e.below,
+      ]),
+    ),
+    [
+      [
+        3,
+        true,
+        "Emil",
+        3,
+        "seit 23.02.2026, diese Woche noch nicht gespielt",
+        true,
+      ],
+      [5, true, "Dana", 2, "seit 09.03.2026, diese Woche gespielt", true],
+    ],
+  );
+});

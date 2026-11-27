@@ -11692,6 +11692,10 @@ html {
 .record-row + .record-row {
   border-top: 1px solid #ebe3d9;
 }
+/* weekly streak: the running streaks below the top 3 */
+.record-row + .record-row.record-row-below {
+  border-top: 2px dashed #c9bba9;
+}
 .record-rank {
   flex: none;
   width: 1.6rem;
